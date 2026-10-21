@@ -74,7 +74,7 @@
 
 
 
-\## 四、 基础动作 (阻塞式，执行完才返回)
+\## 四、 基础动作 (takeoff 与位移为阻塞式，land 为发送即返回)
 
 
 
@@ -84,13 +84,25 @@
 
 
 
-\- `takeoff(owner)` / `land(owner)`
+\### 4.1 阻塞式动作 (执行完才返回)
+
+\- `takeoff(owner)`: 阻塞至起飞动作完成。
 
 \- `move\_forward(owner, cm)` / `move\_back` / `move\_left` / `move\_right` / `move\_up` / `move\_down` (cm: 20\~500)
 
 \- `rotate(owner, degrees)`
 
 \- \*\*中断机制\*\*: 在阻塞期间，若由独立线程调用 `stop\_motion(owner)` 或 `land(owner)`，底层会强行打断当前动作。
+
+
+
+\### 4.2 非阻塞动作 (发送即返回)
+
+\- `land(owner)`: \*\*指令成功发送给飞控后立即返回\*\* `ok=True` / `status="completed"`。返回值\*\*不代表飞机已经落地\*\*。
+
+\- `stop\_motion(owner)`: 同上，返回仅表示悬停指令已发送。
+
+\- \*\*并发要求\*\*: `land` 与 `stop\_motion` 不得与阻塞动作共用锁，必须在 50ms 内返回（回归测试见 `test\_concurrency.py`）。
 
 
 
@@ -107,4 +119,22 @@
 \- `stop\_follow()`: 停止跟随，释放控制权。
 
 \- `is\_following() -> bool`: 查询状态。
+
+
+
+\---
+
+
+
+\## 六、 落地状态与遥测
+
+
+
+\- \*\*判定方式\*\*: `land()` 返回后，请轮询 `get\_status().flight\_state`，变为 `"landed"` 才算真正落地。
+
+\- \*\*数据来源\*\*: `flight\_state` 必须由飞控遥测驱动，发送降落指令时不得提前置位。
+
+\- \*\*当前实现\*\*: `drone\_sdk` 仍是模拟层，`land()` 会把 `flight\_state` 立即置为 `"landed"`（没有遥测可依赖）。接入真机后由 `_driver` 按遥测更新，\*\*调用方代码无需改动\*\*。
+
+\- \*\*调用方注意\*\*: 急停或降落后的自动化流程（如自动恢复跟随、自动重新起飞）必须等 `flight\_state` 变为 `"landed"` 再继续，不要在 `land()` 返回时立即认为飞机已停在地面。
 
