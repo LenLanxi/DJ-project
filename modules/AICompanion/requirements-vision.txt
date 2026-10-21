@@ -1,0 +1,3 @@
+# Reuse the shared OpenCV distribution; do not co-install the headless package.
+numpy==1.26.4
+opencv-python==4.8.0.76

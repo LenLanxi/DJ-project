@@ -1,0 +1,3 @@
+# Python 3.11. Offline/core flows use the standard library only.
+# SDK integration uses the repository-root requirements.txt.
+# Optional audio and image dependencies are listed in this module directory.

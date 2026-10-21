@@ -1,0 +1,19 @@
+集成验证记录（2026-10-21）
+环境：Windows，uv，Python 3.11.15。
+上游基线：aa40228。
+
+1. 原压缩包原样运行：25 项 unittest 通过，未调用真实 API。
+2. 包导入整理及 SDK 适配后：38 项 unittest 通过（25 原有 + 13 新增）。
+   新增覆盖实际共享桩流程、控制权 busy、断连、异常/超时释放、释放失败、accepted 非完成、
+   跟随交接拒绝、非法程序无副作用、帧浅层转换、阻塞中断入口限制。
+
+3. 按根 requirements.txt 完整固定依赖环境复核：38 项测试通过。
+4. 根 test_stub.py 通过：控制权 busy、基础动作、速度更新与看门狗打印符合当前桩行为。
+5. 包命名空间下离线 demo_ai --scenario 与公共 SDK SdkDemo --scenario 均完成。
+6. main --help 可启动；离线终端状态读取和退出已检查。
+
+完整测试命令（仓库根目录）：
+uv run --no-project --python 3.11 --with-requirements requirements.txt python -B -m unittest -v modules.AICompanion.test_agent modules.AICompanion.test_demo modules.AICompanion.test_independent modules.AICompanion.TestSdk
+
+SDK 仅为假飞行桩，以上通过不能证明物理飞行、真实中断或设备能力。
+未调用付费 API，未使用麦克风/耳机，未连接真实无人机。
