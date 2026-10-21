@@ -20,7 +20,7 @@ def _watchdog_thread():
             # 如果当前有控制权，且超过0.5秒没收到新速度指令
             if _current_owner is not None and _last_velocity_time > 0:
                 if (time.time() - _last_velocity_time) > 0.5:
-                    print(f"\n[假飞行] 🐶看门狗触发: 超过0.5秒未更新速度，自动归零悬停！")
+                    print(f"\n[假飞行][看门狗] 超过0.5秒未更新速度，自动归零悬停！")
                     _last_velocity_time = 0 # 重置标记，防止一直刷屏
 
 # 启动后台守护线程
@@ -56,7 +56,7 @@ def request_control(owner: str) -> ControlResult:
             return ControlResult(ok=False, current_owner=_current_owner, reason="busy")
         
         if _current_owner != owner:
-            print(f"\n[假飞行] 🔄 控制权切换至 {owner}，旧速度请求已强制清零")
+            print(f"\n[假飞行][控制权] 切换至 {owner}，旧速度请求已强制清零")
             _last_velocity_time = 0
             
         _current_owner = owner
@@ -67,7 +67,7 @@ def release_control(owner: str) -> ControlResult:
     global _current_owner, _last_velocity_time
     with _velocity_lock:
         if _current_owner == owner:
-            print(f"\n[假飞行] 🛑 {owner} 释放控制权，速度强制归零悬停")
+            print(f"\n[假飞行][控制权] {owner} 释放控制权，速度强制归零悬停")
             _last_velocity_time = 0
             _current_owner = None
         return ControlResult(ok=True, current_owner="none")
@@ -83,7 +83,7 @@ def update_velocity(owner: str, left_right: int, forward_back: int, up_down: int
         _last_velocity_time = time.time() # 刷新看门狗时间
         # 模拟打印，防止刷屏，这里简单过滤一下全0的情况
         if left_right or forward_back or up_down or yaw:
-            print(f"[假飞行] 🚀 {owner} 速度更新: 左右{left_right}, 前后{forward_back}, 上下{up_down}, 偏航{yaw}")
+            print(f"[假飞行][速度] {owner} 速度更新: 左右{left_right}, 前后{forward_back}, 上下{up_down}, 偏航{yaw}")
         return CommandResult(ok=True, status="accepted", is_blocking=False)
 
 # ====== 基础动作 (阻塞式) ======
@@ -93,7 +93,7 @@ def _mock_move(owner: str, action_name: str, param: int) -> CommandResult:
     if _flight_state == "landed":
         return CommandResult(ok=False, status="failed", reason="is_landed")
     
-    print(f"[假飞行] ✈️ {owner} 执行 {action_name}: {param}")
+    print(f"[假飞行][动作] {owner} 执行 {action_name}: {param}")
     # 真实 djitellopy 这里是阻塞的，所以 is_blocking=True
     return CommandResult(ok=True, status="completed", reason="", is_blocking=True)
 
@@ -101,20 +101,20 @@ def takeoff(owner: str) -> CommandResult:
     global _flight_state
     if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
     _flight_state = "flying"
-    print(f"[假飞行] ✈️ {owner} 执行 起飞")
+    print(f"[假飞行][动作] {owner} 执行 起飞")
     return CommandResult(ok=True, status="completed")
 
 def land(owner: str) -> CommandResult:
     global _flight_state
     if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
     _flight_state = "landed"
-    print(f"[假飞行] ✈️ {owner} 执行 降落")
+    print(f"[假飞行][动作] {owner} 执行 降落")
     return CommandResult(ok=True, status="completed")
 
 def stop_motion(owner: str) -> CommandResult:
     """最高优先级：紧急悬停。"""
     if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
-    print(f"[假飞行] ⚠️ {owner} 执行 紧急悬停")
+    print(f"[假飞行][紧急] {owner} 执行 紧急悬停")
     return CommandResult(ok=True, status="completed")
 
 def move_forward(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "前进", cm)
@@ -129,13 +129,13 @@ def rotate(owner: str, degrees: int) -> CommandResult: return _mock_move(owner, 
 def start_follow() -> ControlResult:
     global _following
     _following = True
-    print("\n[假飞行] 🎯 开始跟随模式")
+    print("\n[假飞行][跟随] 开始跟随模式")
     return ControlResult(ok=True, current_owner="follow")
 
 def stop_follow() -> ControlResult:
     global _following
     _following = False
-    print("\n[假飞行] 🎯 停止跟随模式，已悬停")
+    print("\n[假飞行][跟随] 停止跟随模式，已悬停")
     return ControlResult(ok=True, current_owner="none")
 
 def is_following() -> bool:
