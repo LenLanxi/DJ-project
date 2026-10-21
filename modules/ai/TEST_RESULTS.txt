@@ -1,0 +1,30 @@
+test_busy_result_not_success (test_agent.AgentTests.test_busy_result_not_success) ... ok
+test_failure_no_resume (test_agent.AgentTests.test_failure_no_resume) ... ok
+test_full_flow (test_agent.AgentTests.test_full_flow) ... ok
+test_invalid_model_json (test_agent.AgentTests.test_invalid_model_json) ... ok
+test_model_error_no_action (test_agent.AgentTests.test_model_error_no_action) ... ok
+test_reject_code_without_side_effects (test_agent.AgentTests.test_reject_code_without_side_effects) ... ok
+test_reply_no_action (test_agent.AgentTests.test_reply_no_action) ... ok
+test_failure_no_resume (test_demo.ControlFlowTests.test_failure_no_resume) ... ok
+test_manual_owner_blocks_model (test_demo.ControlFlowTests.test_manual_owner_blocks_model) ... ok
+test_read_does_not_interrupt (test_demo.ControlFlowTests.test_read_does_not_interrupt) ... ok
+test_stop_and_land_do_not_resume (test_demo.ControlFlowTests.test_stop_and_land_do_not_resume) ... ok
+test_target_lost_no_resume (test_demo.ControlFlowTests.test_target_lost_no_resume) ... ok
+test_temporary_move_resumes (test_demo.ControlFlowTests.test_temporary_move_resumes) ... ok
+test_unknown_and_grounded (test_demo.ControlFlowTests.test_unknown_and_grounded) ... ok
+test_cancel_late_model_program (test_independent.IndependentTests.test_cancel_late_model_program) ... ok
+test_frame_threshold_and_duplicate (test_independent.IndependentTests.test_frame_threshold_and_duplicate) ... ok
+test_history_contains_true_results (test_independent.IndependentTests.test_history_contains_true_results) ... ok
+test_model_parser_and_usage (test_independent.IndependentTests.test_model_parser_and_usage) ... ok
+test_multipart (test_independent.IndependentTests.test_multipart) ... ok
+test_speech_failure_does_not_repeat_action (test_independent.IndependentTests.test_speech_failure_does_not_repeat_action) ... ok
+test_transport_rejects_plain_http_and_embedded_key (test_independent.IndependentTests.test_transport_rejects_plain_http_and_embedded_key) ... ok
+test_visual_intent_is_read_only (test_independent.IndependentTests.test_visual_intent_is_read_only) ... ok
+test_voice_pipeline (test_independent.IndependentTests.test_voice_pipeline) ... ok
+test_voice_transcription_and_tts_payload (test_independent.IndependentTests.test_voice_transcription_and_tts_payload) ... ok
+test_wav_roundtrip (test_independent.IndependentTests.test_wav_roundtrip) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.006s
+
+OK

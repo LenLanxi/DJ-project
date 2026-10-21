@@ -1,0 +1,126 @@
+离线脚本+模拟无人机（不是AI）
+{
+  "request": "还有多少电",
+  "plan": {
+    "kind": "program",
+    "code": "drone.get_battery()"
+  },
+  "execution": {
+    "accepted": true,
+    "simulated": true,
+    "result": "[模拟] 当前电量为80%。",
+    "state": {
+      "battery": 80,
+      "height_cm": 0,
+      "connected": true,
+      "flying": false,
+      "owner": null,
+      "following": false,
+      "target_visible": true,
+      "timestamp": 1792548380.0375361,
+      "simulated": true
+    }
+  },
+  "reply": "[模拟] 当前电量为80%。",
+  "planner_usage": {}
+}
+{
+  "request": "起飞",
+  "plan": {
+    "kind": "program",
+    "code": "drone.takeoff()"
+  },
+  "execution": {
+    "accepted": true,
+    "simulated": true,
+    "result": "[模拟] 模拟起飞完成",
+    "state": {
+      "battery": 80,
+      "height_cm": 80,
+      "connected": true,
+      "flying": true,
+      "owner": null,
+      "following": false,
+      "target_visible": true,
+      "timestamp": 1792548380.0376284,
+      "simulated": true
+    }
+  },
+  "reply": "[模拟] 模拟起飞完成",
+  "planner_usage": {}
+}
+{
+  "request": "跟着我",
+  "plan": {
+    "kind": "program",
+    "code": "drone.start_follow()"
+  },
+  "execution": {
+    "accepted": true,
+    "simulated": true,
+    "result": "[模拟] 已开始跟随",
+    "state": {
+      "battery": 80,
+      "height_cm": 80,
+      "connected": true,
+      "flying": true,
+      "owner": "follow",
+      "following": true,
+      "target_visible": true,
+      "timestamp": 1792548380.0378006,
+      "simulated": true
+    }
+  },
+  "reply": "[模拟] 已开始跟随",
+  "planner_usage": {}
+}
+{
+  "request": "向前走30厘米",
+  "plan": {
+    "kind": "program",
+    "code": "drone.move_forward(30)"
+  },
+  "execution": {
+    "accepted": true,
+    "simulated": true,
+    "result": "[模拟] 模拟前进30厘米完成；已恢复模拟跟随",
+    "state": {
+      "battery": 80,
+      "height_cm": 80,
+      "connected": true,
+      "flying": true,
+      "owner": "follow",
+      "following": true,
+      "target_visible": true,
+      "timestamp": 1792548380.0378942,
+      "simulated": true
+    }
+  },
+  "reply": "[模拟] 模拟前进30厘米完成；已恢复模拟跟随",
+  "planner_usage": {}
+}
+{
+  "request": "降落",
+  "plan": {
+    "kind": "program",
+    "code": "drone.land()"
+  },
+  "execution": {
+    "accepted": true,
+    "simulated": true,
+    "result": "[模拟] 模拟降落完成",
+    "state": {
+      "battery": 80,
+      "height_cm": 0,
+      "connected": true,
+      "flying": false,
+      "owner": null,
+      "following": false,
+      "target_visible": true,
+      "timestamp": 1792548380.0380123,
+      "simulated": true
+    }
+  },
+  "reply": "[模拟] 模拟降落完成",
+  "planner_usage": {}
+}
