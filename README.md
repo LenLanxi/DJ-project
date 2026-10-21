@@ -4,7 +4,11 @@
 
 \## 启动步骤
 
-1\. 安装 Python 3.9 以上
+## ⚠️ 请务必使用 Python 3.11 版本运行本项目！
+
+> **原因**：OpenCV / NumPy 对 Python 3.13 的支持尚不完善 —— `numpy==1.26.4` 没有 3.13 的预编译 wheel，而 `opencv-python==4.8.0.76` 又依赖 numpy 1.x 的 ABI。用 3.13 会出现依赖装不上或运行时崩溃。
+
+1\. 安装 Python 3.11（推荐 3.11.9）
 
 2\. 项目根目录运行：`pip install -r requirements.txt`
 
