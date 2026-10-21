@@ -2,6 +2,7 @@
 import time
 import threading
 from .contract import CommandResult, ControlResult, StatusResult, FrameResult
+from . import _driver
 
 # ====== 全局变量与线程锁 ======
 _current_owner = None
@@ -95,6 +96,7 @@ def _mock_move(owner: str, action_name: str, param: int) -> CommandResult:
     
     print(f"[假飞行][动作] {owner} 执行 {action_name}: {param}")
     # 真实 djitellopy 这里是阻塞的，所以 is_blocking=True
+    _driver.execute(action_name, param)
     return CommandResult(ok=True, status="completed", reason="", is_blocking=True)
 
 def takeoff(owner: str) -> CommandResult:
@@ -102,6 +104,7 @@ def takeoff(owner: str) -> CommandResult:
     if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
     _flight_state = "flying"
     print(f"[假飞行][动作] {owner} 执行 起飞")
+    _driver.execute("takeoff")
     return CommandResult(ok=True, status="completed")
 
 def land(owner: str) -> CommandResult:
