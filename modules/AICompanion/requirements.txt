@@ -1,0 +1,3 @@
+# Offline/core flows use Python 3.10+ stdlib only.
+# For microphone/speaker support: pip install -r requirements-audio.txt
+# For future BGR camera frames: pip install -r requirements-vision.txt

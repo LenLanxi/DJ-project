@@ -1,0 +1,3 @@
+# Only needed to encode future OpenCV BGR frames.
+numpy>=1.26,<3
+opencv-python-headless>=4.8,<5
