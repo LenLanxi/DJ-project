@@ -1,0 +1,14 @@
+{
+  "commit": "6d39131cd427cda66e5142dd06e32861e8cc3f2e",
+  "python311_runtime_tested": true,
+  "current_sdk_checks": 17,
+  "regression_checks": 151,
+  "sdk_gap_reproduction_checks": 4,
+  "source_compatibility_changes": [
+    "test_multiscale: assert decoded ID and geometry across OpenCV versions; assert fallback path only in the deliberately forced fallback test"
+  ],
+  "public_follow_binding_complete": false,
+  "hardware_verified": false,
+  "desktop_opened": false,
+  "original_python314_preserved": true
+}

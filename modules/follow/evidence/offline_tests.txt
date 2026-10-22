@@ -1,0 +1,22 @@
+test_land_ack_with_still_flying_status_does_not_resume_after_explicit_stop (test_team2_ack_semantics.AcknowledgementSemanticsTests.test_land_ack_with_still_flying_status_does_not_resume_after_explicit_stop) ... ok
+test_stop_ack_with_still_flying_status_does_not_resume_after_explicit_stop (test_team2_ack_semantics.AcknowledgementSemanticsTests.test_stop_ack_with_still_flying_status_does_not_resume_after_explicit_stop) ... ok
+test_action_failure_never_recovers (test_team2_integration.Team2IntegrationTests.test_action_failure_never_recovers) ... ok
+test_actual_control_contention_and_bridge_start_stop (test_team2_integration.Team2IntegrationTests.test_actual_control_contention_and_bridge_start_stop) ... ok
+test_brief_loss_zero_then_recovery (test_team2_integration.Team2IntegrationTests.test_brief_loss_zero_then_recovery) ... ok
+test_changed_cached_timestamp_is_rejected (test_team2_integration.Team2IntegrationTests.test_changed_cached_timestamp_is_rejected) ... ok
+test_explicit_stop_cancels_late_completion (test_team2_integration.Team2IntegrationTests.test_explicit_stop_cancels_late_completion) ... ok
+test_handoff_waits_for_completed_and_returns_control (test_team2_integration.Team2IntegrationTests.test_handoff_waits_for_completed_and_returns_control) ... ok
+test_long_loss_requires_start (test_team2_integration.Team2IntegrationTests.test_long_loss_requires_start) ... ok
+test_lost_owner_does_not_stop_new_owner (test_team2_integration.Team2IntegrationTests.test_lost_owner_does_not_stop_new_owner) ... ok
+test_old_lease_and_invalid_channels_rejected_locally (test_team2_integration.Team2IntegrationTests.test_old_lease_and_invalid_channels_rejected_locally) ... ok
+test_raw_empty_video_blocks_start (test_team2_integration.Team2IntegrationTests.test_raw_empty_video_blocks_start) ... ok
+test_stale_and_duplicate_frames (test_team2_integration.Team2IntegrationTests.test_stale_and_duplicate_frames) ... ok
+test_upstream_accepts_out_of_range_speed (test_team2_integration.Team2IntegrationTests.test_upstream_accepts_out_of_range_speed) ... ok
+test_upstream_empty_frame_refreshes_metadata (test_team2_integration.Team2IntegrationTests.test_upstream_empty_frame_refreshes_metadata) ... ok
+test_upstream_follow_is_placeholder (test_team2_integration.Team2IntegrationTests.test_upstream_follow_is_placeholder) ... ok
+test_upstream_release_non_owner_acknowledges_none_incorrectly (test_team2_integration.Team2IntegrationTests.test_upstream_release_non_owner_acknowledges_none_incorrectly) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.689s
+
+OK

@@ -1,0 +1,32 @@
+{
+  "commit": "6d39131cd427cda66e5142dd06e32861e8cc3f2e",
+  "environment": {
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "numpy": "1.26.4",
+    "opencv": "4.8.0"
+  },
+  "agreed_environment_verified": true,
+  "tests_run": 17,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "successful": true,
+  "generated_marker_detected": true,
+  "camera_opened": false,
+  "desktop_opened": false,
+  "hardware_connected": false,
+  "dependencies_installed": false,
+  "known_upstream_gaps_reproduced_by_tests": true,
+  "source_sha256": {
+    "offline_check.py": "69f5d50c9a862207aa1b1f819de362274a2ee5317814d7d78dc268e244a723f4",
+    "r3_follow/__init__.py": "2e1a9746af7a3dd314b5e84fe2b6e0bd17c75f30533970099d7e9ccc547549ff",
+    "r3_follow/core.py": "358a326cb1f0ffe33ca5d399f2b5b9d5db21ef74f54b3e33d6b2c8a021ee3638",
+    "r3_follow/service.py": "a9f658f0e1f6f13f5afa41493a735033e25e927bb25274f404ce3b8ba81cfbb1",
+    "r3_follow/service_ports.py": "cd7f6a6b9abd94cd0f9a57f910d316a7fc58d34656166aacbe20ebf5af2ba0ae",
+    "r3_follow/team2_adapter.py": "36d0bebfaf312cd45ffbfa416a03d730648262a9bb28187b03e3c083d2a088e1",
+    "r3_follow/team2_bridge.py": "4c2f30289844f5e22a0f83b417d6156b93a2ef5ea1c7a6f243c816e207c9b677",
+    "r3_follow/vision.py": "158124066c288e9966f43a41098ab03df2324f6875b2f36b756887caf13d2073",
+    "tests/test_team2_ack_semantics.py": "9fabd31cea07ccca605363a1c382a2eaf6892bd7077775bb504790330a642a12",
+    "tests/test_team2_integration.py": "d1799cb8dbb57b7584ff325f3af677594c24f74670b09cb4eb334ff3b93fb909"
+  }
+}
