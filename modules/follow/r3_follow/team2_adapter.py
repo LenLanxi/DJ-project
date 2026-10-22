@@ -14,8 +14,11 @@ import time
 
 from .service_ports import DeviceStatus, FrameSnapshot, Lease, Result
 
-COMMIT = '6d39131cd427cda66e5142dd06e32861e8cc3f2e'
-HASHES = {'controller.py': 'fb078d6e12c40a0ecf7634d75567fe7c50d6a1db26ce538ad2e8566ca13d2af1', 'contract.py': 'dcd9c098a0b50e51920f76625b0e3e7dae131a92e664b2c718f67bc26d08ed6b', '__init__.py': '13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd', '_driver.py': '02b6a4bbb00d9b9d21b1f2d08866385da6296273e0f8131876788e6a67020429'}
+COMMIT = '7f2468c0ab395afcd2f6071ebf21fa96a0c24359'
+# 2组接入说明（2026-10-22）：controller.py 已改为把 start_follow/stop_follow 委托给
+# 本包 FollowService，故重新钉 controller.py 哈希；contract.py / __init__.py / _driver.py 未变。
+# 差异仅限跟随接口委托与 set_frame_provider 注入点，请 3组 复核后确认。
+HASHES = {'controller.py': '4801a92f38d28ae5044fc878bab595e7aa2fc8b4de0e07768fc45ba0125211c8', 'contract.py': 'dcd9c098a0b50e51920f76625b0e3e7dae131a92e664b2c718f67bc26d08ed6b', '__init__.py': '13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd', '_driver.py': '02b6a4bbb00d9b9d21b1f2d08866385da6296273e0f8131876788e6a67020429'}
 
 
 def load_reviewed_stub(repository):
