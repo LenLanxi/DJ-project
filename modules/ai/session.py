@@ -38,6 +38,10 @@ class Session:
                             or outer.cancelled.is_set()):
                         return {'accepted': False, 'simulated': True, 'result': '本轮已取消，未执行迟到程序'}
                 # 锁已释放：真机阻塞动作在锁外执行，急停线程不会被挡住。
+                drone = self.demo.drone
+                if hasattr(drone, 'turn_guard'):
+                    with drone.turn_guard(lambda: epoch != outer.epoch or outer.closed or outer.cancelled.is_set()):
+                        return outer.agent.runner.run(code)
                 return outer.agent.runner.run(code)
         turn = Agent(self.agent.client, GuardedRunner(), self.agent.vision)
         turn.history = list(self.agent.history)
@@ -87,5 +91,13 @@ class Session:
             self.closed = True
             self.epoch += 1
             self.cancelled.set()
+        # Closing a turn is also a device-control boundary. Invalidate follow
+        # and send stop before waiting for a previously blocking worker.
+        drone = getattr(getattr(self.agent.runner, 'demo', None), 'drone', None)
+        if drone is not None:
+            state = drone.get_status()
+            if state.get('following') or state.get('owner') == 'model':
+                self._stop_follow_safely()
+                self.agent.runner.run('drone.stop_motion()')
         self.worker.shutdown(wait=True, cancel_futures=True)
         self.priority.shutdown(wait=True, cancel_futures=True)

@@ -1,0 +1,24 @@
+{
+  "motion_marker_1.png": {
+    "expected_center": [
+      181.41143798828125,
+      126.59355163574219
+    ],
+    "generation": {
+      "size": 87.49443713035498,
+      "blur": 13,
+      "direction": 2
+    }
+  },
+  "motion_marker_19.png": {
+    "expected_center": [
+      182.17974853515625,
+      126.77314758300781
+    ],
+    "generation": {
+      "size": 67.87774963833519,
+      "blur": 9,
+      "direction": 2
+    }
+  }
+}

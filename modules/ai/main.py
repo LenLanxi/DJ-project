@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--config')
     parser.add_argument('--image', help='本地测试图片；允许文字或语音提出看图问题')
     parser.add_argument('--devices', action='store_true')
+    parser.add_argument('--sdk-stub-root', help='显式使用已核对的三组联合模拟SDK；不连接飞机')
     args = parser.parse_args()
     try:
         config = load(args.config)
@@ -35,7 +36,17 @@ def main():
         if args.image and not args.live:
             raise ValueError('--image需要--live及视觉模型，离线样例不会识别图片')
         visual = (lambda question: VisionService(client).ask(args.image, question)) if args.image else None
-        agent = Agent(client, vision=visual)
+        runner = None
+        if args.sdk_stub_root:
+            import sys
+            sys.path.insert(0, str(Path(args.sdk_stub_root).resolve()/'modules'/'follow'))
+            from r3_follow.team2_adapter import load_reviewed_stub
+            load_reviewed_stub(args.sdk_stub_root)
+            from drone_sdk.ai_bridge import UnifiedDrone
+            from program_runner import Runner
+            from demo_text import Demo
+            runner = Runner(Demo(UnifiedDrone()), allow_simulated_sdk=True)
+        agent = Agent(client, runner=runner, vision=visual)
     except (ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
         print('启动失败：', exc); return
     session = Session(agent)

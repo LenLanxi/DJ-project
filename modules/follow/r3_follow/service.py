@@ -28,7 +28,10 @@ class FollowService:
         self.port = port
         self.clock, self.wall = monotonic, wall_clock
         self.tracker = tracker if tracker is not None else MarkerTracker()
-        self.controller = FollowController(recovery_window=recovery_window)
+        # Same gradual request start as the desktop demo. Faults/loss/stop still
+        # bypass the ramp and issue zero immediately; no old target prediction.
+        self.controller = FollowController(recovery_window=recovery_window,
+                                           max_request_rate=.8, require_geometry=True)
         self.lock = threading.RLock()
         self.vision_lock = threading.Lock()
         self.shutdown = threading.Event()
@@ -39,6 +42,7 @@ class FollowService:
         self.generation = 0
         self.last_frame_id = -1
         self.last_timestamp = None
+        self.frame_ready = False
         self.last_send = -math.inf
         self.last_channels = None
         self.last_reason = "not_started"
@@ -65,7 +69,8 @@ class FollowService:
             released = self.port.release_control(lease)
             if released.status == "completed":
                 self.lease = None
-            if stopped.status != "completed" or released.status != "completed":
+            # stop is a send acknowledgement, not physical hover confirmation.
+            if not stopped.ok or released.status != "completed":
                 self.last_reason = "cleanup_unconfirmed"
                 self._record("cleanup_failed", stop=stopped.status, release=released.status)
                 return Result("failed", self.last_reason)
@@ -76,7 +81,11 @@ class FollowService:
             self._record("cleanup_failed", error=str(exc))
             return Result("failed", self.last_reason)
 
-    def _fault(self, reason):
+    def _fault(self, reason, *, invalid_frame=False):
+        # A recent old detection must not authorize restart after a bad/missing
+        # frame. Only a newly accepted frame can clear this latch.
+        if invalid_frame:
+            self.frame_ready = False
         self.controller.stop()
         self._cancel_ticket()
         self.last_reason = reason
@@ -107,13 +116,13 @@ class FollowService:
                         if packet.timestamp != self.last_timestamp:
                             raise ValueError("cached_frame_timestamp_changed")
                         if packet.stale or packet.frame is None:
-                            self._fault("frame_unavailable")
+                            self._fault("frame_unavailable", invalid_frame=True)
                         return False
                 age = wall - packet.timestamp
                 if packet.stale or packet.frame is None or not 0 <= age <= .5:
                     with self.lock:
                         if not self.closed:
-                            self._fault("frame_unavailable_or_expired")
+                            self._fault("frame_unavailable_or_expired", invalid_frame=True)
                     return False
                 observation = self.tracker.detect(packet.frame, packet.frame_id,
                                                   now - age, source="team2-simulation")
@@ -122,27 +131,32 @@ class FollowService:
                         return False
                     self.last_frame_id, self.last_timestamp = packet.frame_id, packet.timestamp
                     if not self.controller.observe(observation):
-                        self._fault("invalid_observation")
+                        self._fault("invalid_observation", invalid_frame=True)
                         return False
+                    self.frame_ready = True
                     self._record("observation", frame_id=packet.frame_id,
                                  found=observation.found, reason=observation.reason)
                     return True
             except Exception as exc:
                 with self.lock:
                     if not self.closed:
-                        self._fault("vision_error: " + str(exc))
+                        self._fault("vision_error: " + str(exc), invalid_frame=True)
                 return False
 
     def calibrate_reference(self):
         with self.lock:
             if self.closed:
                 return Result("failed", "closed")
+            if not self.frame_ready:
+                return Result("failed", "new_valid_frame_required")
             ok, reason = self.controller.calibrate(self.clock())
             return Result("completed" if ok else "failed", reason)
 
     def _start(self):
         if self.closed:
             return Result("failed", "closed")
+        if not self.frame_ready:
+            return Result("failed", "new_valid_frame_required")
         if self.lease is not None:
             return Result("failed", "lease_cleanup_required")
         try:
@@ -262,15 +276,24 @@ class FollowService:
                 channels = tuple(max(-30, min(30, value)) for value in channels)
                 now = self.clock()
                 urgent_zero = channels == (0, 0, 0, 0) and channels != self.last_channels
+                urgent_depth_stop = (self.controller.distance_guard.blocked
+                                     and self.last_channels is not None
+                                     and self.last_channels[1] != 0 and channels[1] == 0)
                 if now - self.last_send < .1 - 1e-9 and not urgent_zero:
-                    return
+                    if not urgent_depth_stop:
+                        return
+                    # Immediately clear depth even if lateral motion remains.
+                    # Do not increase another axis before its normal deadline.
+                    channels = (self.last_channels[0], 0, 0, 0)
                 result = self.port.update_velocity(self.lease, left_right=channels[0],
                     forward_back=channels[1], up_down=0, yaw=0)
                 if not result.ok:
                     self._fault("velocity_rejected: " + result.reason)
                     return
                 self.last_send, self.last_channels = now, channels
-                self._record("motion_request", channels=channels, status=result.status)
+                self._record("motion_request", channels=channels, status=result.status,
+                             distance_guard=self.controller.distance_guard.status(),
+                             urgent_depth_stop=urgent_depth_stop)
             except Exception as exc:
                 self._fault("control_error: " + str(exc))
 
@@ -286,8 +309,12 @@ class FollowService:
                         reference_size=self.controller.reference_size,
                         lease=asdict(self.lease) if self.lease else None,
                         last_reason=self.last_reason, closed=self.closed,
+                        control_profile=self.controller.status()["control_profile"],
+                        distance_guard=self.controller.distance_guard.status(),
+                        max_request_rate=self.controller.max_request_rate,
                         simulation_only=True, hardware_verified=False,
                         background_running=any(t.is_alive() for t in self.workers),
+                        frame_ready=self.frame_ready,
                         frame_id=self.last_frame_id)
 
     def start_background(self):
@@ -307,12 +334,13 @@ class FollowService:
             for worker in self.workers:
                 worker.start()
 
-    def close(self):
+    def close(self, wait=True):
         with self.lock:
             result = self.stop_follow("closed")
             self.closed = True
             self.shutdown.set()
-        for worker in self.workers:
-            if worker is not threading.current_thread():
-                worker.join(timeout=.25)
+        if wait:
+            for worker in self.workers:
+                if worker is not threading.current_thread():
+                    worker.join(timeout=.25)
         return result

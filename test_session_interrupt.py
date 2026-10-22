@@ -1,3 +1,4 @@
+from simulation_test_support import settle_landing, settle_workers
 """4组 session.py 的急停延迟测试（在 2组 真阻塞驱动下）。
 
 test_concurrency.py 验证的是 2组 SDK 自身不会被动作卡住；
@@ -57,6 +58,12 @@ class SessionInterruptTest(unittest.TestCase):
             controller.release_control(owner)
         self.assertTrue(controller.request_control("model").ok)
         controller.land("model")
+        settle_landing(controller)
+        deadline = time.monotonic() + 1
+        while UnifiedDrone().get_status().get('landing_pending', False):
+            self.assertLess(time.monotonic(), deadline, 'Prior landing not confirmed')
+            time.sleep(.002)
+        self.assertTrue(controller.request_control('model').ok)
         self.assertTrue(controller.takeoff("model").ok)
         controller.release_control("model")
         self.sessions = []
@@ -71,6 +78,7 @@ class SessionInterruptTest(unittest.TestCase):
         owner = controller.get_status().control_owner
         if owner not in ("none", None):
             controller.land(owner)
+            settle_landing(controller)
             controller.release_control(owner)
 
     def _make_session(self):
@@ -97,7 +105,8 @@ class SessionInterruptTest(unittest.TestCase):
                         "interrupt() 被阻塞动作卡住 %.1f ms" % (elapsed * 1000))
         done = stopped.result(timeout=2.0)
         self.assertTrue(done.get("accepted") is True, done)
-        self.assertEqual(done.get("result"), "[模拟] 已紧急悬停", done)
+        self.assertIn("请求已发送", done.get("result", ""), done)
+        self.assertIn("尚未确认", done.get("result", ""), done)
 
         turn.result(timeout=ACTION_BLOCK_SECONDS + 5.0)   # 动作最终返回，不泄漏线程
         self.assertFalse(session.busy)

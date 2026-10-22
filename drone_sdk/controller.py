@@ -1,160 +1,192 @@
-# drone_sdk/controller.py
-import time
+"""Offline SDK candidate. This module cannot connect to a drone.
+
+Public owner arguments remain compatible. Reviewed callers additionally send
+control_epoch/command_epoch to reject stale same-owner tasks. Legacy callers
+without these fields do NOT gain ABA protection merely by upgrading the SDK.
+"""
+import math
 import threading
+import time
 from .contract import CommandResult, ControlResult, StatusResult, FrameResult
 from . import _driver, follow_integration
 
-# ====== 全局变量与线程锁 ======
+SIMULATED = True
+_velocity_lock = threading.RLock()
 _current_owner = None
-_flight_state = "landed"
-_frame_counter = 0
-_last_velocity_time = 0
-_velocity_lock = threading.Lock() # 保护并发访问的锁
+_control_epoch = _command_epoch = 0
+_flight_state = 'landed'
+_landing_deadline = None
+_landing_delay = .05
+_active_action = None
+_last_velocity_time = 0.
+_frame_lock = threading.RLock()
+_frame = FrameResult(None, 0, 0., True)
 
-# ====== 看门狗后台线程 ======
+def _advance():
+    global _flight_state, _landing_deadline
+    if _landing_deadline is not None and time.monotonic() >= _landing_deadline:
+        _flight_state, _landing_deadline = 'landed', None
+
+def _zero(reason):
+    global _last_velocity_time
+    _last_velocity_time = 0.
+    _driver.set_velocity((0, 0, 0, 0), reason)
+
+def _check(owner, control_epoch=None, command_epoch=None, *, allow_landing=False):
+    _advance()
+    if _current_owner != owner or owner not in ('follow', 'model'): return 'no_control'
+    if control_epoch is not None and control_epoch != _control_epoch: return 'obsolete_control'
+    if command_epoch is not None and command_epoch != _command_epoch: return 'obsolete_command'
+    if _flight_state == 'landing' and not allow_landing: return 'landing_in_progress'
+    return ''
+
+def _watchdog_tick():
+    with _velocity_lock:
+        _advance()
+        if _last_velocity_time and time.monotonic() - _last_velocity_time > .5:
+            _zero('watchdog_timeout')
+
 def _watchdog_thread():
-    global _last_velocity_time, _current_owner
     while True:
-        time.sleep(0.1) # 每0.1秒检查一次
-        with _velocity_lock:
-            # 如果当前有控制权，且超过0.5秒没收到新速度指令
-            if _current_owner is not None and _last_velocity_time > 0:
-                if (time.time() - _last_velocity_time) > 0.5:
-                    print(f"\n[假飞行][看门狗] 超过0.5秒未更新速度，自动归零悬停！")
-                    _last_velocity_time = 0 # 重置标记，防止一直刷屏
+        time.sleep(.02)
+        _watchdog_tick()
 
-# 启动后台守护线程
-_watchdog = threading.Thread(target=_watchdog_thread, daemon=True)
+_watchdog = threading.Thread(target=_watchdog_thread, daemon=True, name='sdk-simulator-watchdog')
 _watchdog.start()
 
-# ====== 只读接口 ======
-def get_frame() -> FrameResult:
-    """获取画面快照，不阻塞。"""
-    global _frame_counter
-    _frame_counter += 1
-    # 模拟假画面
-    return FrameResult(frame=None, frame_id=_frame_counter, timestamp=time.time(), stale=False)
+def publish_frame(packet):
+    """Explicit generated-frame injection. Preserve capture identity/time."""
+    global _frame
+    if (not isinstance(packet, FrameResult) or type(packet.frame_id) is not int
+            or packet.frame_id < 0 or type(packet.timestamp) not in (int, float)
+            or not math.isfinite(packet.timestamp) or type(packet.stale) is not bool):
+        raise ValueError('invalid_frame_metadata')
+    with _frame_lock:
+        if packet.frame_id < _frame.frame_id: raise ValueError('frame_id_went_backwards')
+        if packet.frame_id == _frame.frame_id:
+            if packet.timestamp != _frame.timestamp: raise ValueError('cached_frame_timestamp_changed')
+            return
+        _frame = FrameResult(None if packet.frame is None else packet.frame.copy(),
+                             packet.frame_id, packet.timestamp, packet.stale)
 
-def get_status() -> StatusResult:
-    """获取当前状态。"""
-    with _velocity_lock:
-        return StatusResult(
-            battery=88, 
-            height_cm=0 if _flight_state == "landed" else 120,
-            connected=True, 
-            flight_state=_flight_state,
-            control_owner=_current_owner or "none",
-            timestamp=time.time()
-        )
+def get_frame():
+    with _frame_lock:
+        stale = _frame.stale or _frame.frame is None or not 0 <= time.time()-_frame.timestamp <= 1.
+        return FrameResult(None if stale else _frame.frame.copy(), _frame.frame_id,
+                           _frame.timestamp, stale)
 
-# ====== 控制权接口 ======
-def request_control(owner: str) -> ControlResult:
-    """申请控制权。控制权交接时，强制清除旧速度。"""
-    global _current_owner, _last_velocity_time
+def get_status():
     with _velocity_lock:
-        if _current_owner is not None and _current_owner != owner:
-            return ControlResult(ok=False, current_owner=_current_owner, reason="busy")
-        
+        _advance()
+        return StatusResult(88, 0 if _flight_state == 'landed' else 120, True,
+            _flight_state, _current_owner or 'none', time.time(), _control_epoch,
+            _command_epoch, _driver.snapshot()['velocity'], True)
+
+def request_control(owner):
+    global _current_owner, _control_epoch, _command_epoch
+    with _velocity_lock:
+        _advance()
+        reason = ('invalid_owner' if owner not in ('follow', 'model') else
+                  'landing_in_progress' if _flight_state == 'landing' else
+                  'busy' if _current_owner not in (None, owner) else '')
+        if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
         if _current_owner != owner:
-            print(f"\n[假飞行][控制权] 切换至 {owner}，旧速度请求已强制清零")
-            _last_velocity_time = 0
-            
-        _current_owner = owner
-        return ControlResult(ok=True, current_owner=owner)
+            _zero('owner_changed')
+            _control_epoch += 1
+            _command_epoch += 1
+            _current_owner = owner
+        return ControlResult(True, owner, '', _control_epoch, _command_epoch)
 
-def release_control(owner: str) -> ControlResult:
-    """释放控制权。释放时强制清除旧速度。"""
-    global _current_owner, _last_velocity_time
+def release_control(owner, *, control_epoch=None):
+    global _current_owner, _control_epoch, _command_epoch, _active_action
     with _velocity_lock:
-        if _current_owner == owner:
-            print(f"\n[假飞行][控制权] {owner} 释放控制权，速度强制归零悬停")
-            _last_velocity_time = 0
-            _current_owner = None
-        return ControlResult(ok=True, current_owner="none")
+        reason = _check(owner, control_epoch)
+        if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
+        _zero('owner_released')
+        _current_owner = None
+        _control_epoch += 1
+        _command_epoch += 1
+        _active_action = None
+        return ControlResult(True, 'none', '', _control_epoch, _command_epoch)
 
-# ====== 连续速度控制 (3组重点) ======
-def update_velocity(owner: str, left_right: int, forward_back: int, up_down: int, yaw: int) -> CommandResult:
-    """连续控制，新指令覆盖旧指令，带看门狗。"""
+def update_velocity(owner, left_right, forward_back, up_down, yaw, *, control_epoch=None, command_epoch=None):
     global _last_velocity_time
+    channels = (left_right, forward_back, up_down, yaw)
     with _velocity_lock:
-        if _current_owner != owner: 
-            return CommandResult(ok=False, reason="no_control")
-        
-        _last_velocity_time = time.time() # 刷新看门狗时间
-        # 模拟打印，防止刷屏，这里简单过滤一下全0的情况
-        if left_right or forward_back or up_down or yaw:
-            print(f"[假飞行][速度] {owner} 速度更新: 左右{left_right}, 前后{forward_back}, 上下{up_down}, 偏航{yaw}")
-        return CommandResult(ok=True, status="accepted", is_blocking=False)
+        reason = _check(owner, control_epoch, command_epoch)
+        if not reason and any(type(v) is not int or not -100 <= v <= 100 for v in channels): reason = 'invalid_channels'
+        if not reason and any(channels) and _flight_state != 'flying': reason = 'is_landed'
+        if not reason and _active_action is not None: reason = 'action_busy'
+        if reason: return CommandResult(False, 'failed', reason, False)
+        _driver.set_velocity(channels, 'velocity_update')
+        _last_velocity_time = time.monotonic() if any(channels) else 0.
+        return CommandResult(True, 'accepted', '', False)
 
-# ====== 基础动作 (阻塞式) ======
-def _mock_move(owner: str, action_name: str, param: int) -> CommandResult:
-    if _current_owner != owner:
-        return CommandResult(ok=False, status="failed", reason="no_control")
-    if _flight_state == "landed":
-        return CommandResult(ok=False, status="failed", reason="is_landed")
-    
-    print(f"[假飞行][动作] {owner} 执行 {action_name}: {param}")
-    # 真实 djitellopy 这里是阻塞的，所以 is_blocking=True
-    _driver.execute(action_name, param)
-    return CommandResult(ok=True, status="completed", reason="", is_blocking=True)
+def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=None):
+    global _flight_state, _active_action
+    with _velocity_lock:
+        reason = _check(owner, control_epoch, command_epoch)
+        if not reason and _active_action is not None: reason = 'action_busy'
+        if not reason and action != 'takeoff' and _flight_state != 'flying': reason = 'is_landed'
+        if not reason and action == 'takeoff' and _flight_state != 'landed': reason = 'already_airborne'
+        if not reason and action not in ('takeoff', 'rotate') and (type(param) is not int or not 20 <= param <= 500): reason = 'invalid_distance'
+        if not reason and action == 'rotate' and (type(param) is not int or not -360 <= param <= 360 or param == 0): reason = 'invalid_degrees'
+        if reason: return CommandResult(False, 'failed', reason)
+        _zero('discrete_action_started')
+        token = (_control_epoch, _command_epoch, object())
+        _active_action = token
+    try:
+        ok = _driver.execute(action, param)
+    except Exception:
+        ok = False
+    with _velocity_lock:
+        if _active_action != token or token[:2] != (_control_epoch, _command_epoch):
+            return CommandResult(False, 'failed', 'action_cancelled')
+        _active_action = None
+        if ok is not True:
+            _zero('action_failed')
+            return CommandResult(False, 'failed', 'driver_failed')
+        if action == 'takeoff': _flight_state = 'flying'
+        return CommandResult(True, 'completed')
 
-def takeoff(owner: str) -> CommandResult:
-    global _flight_state
-    if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
-    _flight_state = "flying"
-    print(f"[假飞行][动作] {owner} 执行 起飞")
-    _driver.execute("takeoff")
-    return CommandResult(ok=True, status="completed")
+def takeoff(owner, **grant): return _mock_move(owner, 'takeoff', **grant)
 
-def land(owner: str) -> CommandResult:
-    global _flight_state
-    if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
-    _flight_state = "landed"
-    print(f"[假飞行][动作] {owner} 执行 降落")
-    return CommandResult(ok=True, status="completed")
+def land(owner, *, control_epoch=None, command_epoch=None):
+    global _flight_state, _landing_deadline, _command_epoch, _active_action
+    with _velocity_lock:
+        reason = _check(owner, control_epoch, command_epoch, allow_landing=True)
+        if reason: return CommandResult(False, 'failed', reason, False)
+        if _flight_state != 'landing':
+            _command_epoch += 1
+            _active_action = None
+            _zero('land')
+            _driver.interrupt('land')
+            if _flight_state != 'landed':
+                _flight_state = 'landing'
+                _landing_deadline = time.monotonic() + _landing_delay
+        return CommandResult(True, 'accepted', '', False)
 
-def stop_motion(owner: str) -> CommandResult:
-    """最高优先级：紧急悬停。"""
-    if _current_owner != owner: return CommandResult(ok=False, reason="no_control")
-    print(f"[假飞行][紧急] {owner} 执行 紧急悬停")
-    return CommandResult(ok=True, status="completed")
+def stop_motion(owner, *, control_epoch=None, command_epoch=None):
+    global _command_epoch, _active_action
+    with _velocity_lock:
+        reason = _check(owner, control_epoch, command_epoch)
+        if reason: return CommandResult(False, 'failed', reason, False)
+        _command_epoch += 1
+        _active_action = None
+        _zero('stop_motion')
+        _driver.interrupt('stop_motion')
+        return CommandResult(True, 'accepted', '', False)
 
-def move_forward(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "前进", cm)
-def move_back(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "后退", cm)
-def move_left(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "左移", cm)
-def move_right(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "右移", cm)
-def move_up(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "上升", cm)
-def move_down(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "下降", cm)
-def rotate(owner: str, degrees: int) -> CommandResult: return _mock_move(owner, "旋转", degrees)
+def move_forward(owner, cm, **grant): return _mock_move(owner, 'forward', cm, **grant)
+def move_back(owner, cm, **grant): return _mock_move(owner, 'back', cm, **grant)
+def move_left(owner, cm, **grant): return _mock_move(owner, 'left', cm, **grant)
+def move_right(owner, cm, **grant): return _mock_move(owner, 'right', cm, **grant)
+def move_up(owner, cm, **grant): return _mock_move(owner, 'up', cm, **grant)
+def move_down(owner, cm, **grant): return _mock_move(owner, 'down', cm, **grant)
+def rotate(owner, degrees, **grant): return _mock_move(owner, 'rotate', degrees, **grant)
 
-# ====== 跟随专用接口（委托 3组 FollowService） ======
-_follow = follow_integration.FollowIntegration(lambda: _current_owner or "none")
-
-
-def start_follow(timeout: float = follow_integration.FIRST_FRAME_TIMEOUT) -> ControlResult:
-    """启动 3组 跟随后台线程。控制权由 3组 服务内部申请，调用方不要预先申请。"""
-    result = _follow.start(timeout=timeout)
-    if result.ok:
-        print("\n[假飞行][跟随] 3组跟随服务已启动")
-    else:
-        print(f"\n[假飞行][跟随] 启动失败: {result.reason}")
-    return result
-
-
-def stop_follow() -> ControlResult:
-    """停止 3组 跟随：发 0 速度悬停、释放控制权、关闭后台线程。"""
-    result = _follow.stop()
-    if result.ok:
-        print("\n[假飞行][跟随] 3组跟随服务已停止，已悬停并释放控制权")
-    else:
-        print(f"\n[假飞行][跟随] 停止未确认: {result.reason}")
-    return result
-
-
-def is_following() -> bool:
-    return _follow.is_following()
-
-
-def set_frame_provider(provider) -> None:
-    """注入画面来源。真机由 _driver 提供，测试用合成画面。"""
-    _follow.set_frame_provider(provider)
+_follow = follow_integration.FollowIntegration(lambda: _current_owner or 'none')
+def start_follow(timeout=follow_integration.FIRST_FRAME_TIMEOUT): return _follow.start(timeout)
+def stop_follow(): return _follow.stop()
+def is_following(): return _follow.is_following()
+def set_frame_provider(provider): _follow.set_frame_provider(provider)

@@ -1,3 +1,4 @@
+from simulation_test_support import settle_landing, settle_workers
 """Integration-wrapper sequence for acknowledgements, never physical flight."""
 from pathlib import Path
 import time
@@ -9,7 +10,9 @@ from r3_follow.team2_adapter import Team2StubPort
 from r3_follow.team2_bridge import Team3FollowBridge
 from r3_follow.vision import synthetic_frame
 
-REPO = Path(__file__).resolve().parents[2]/'integrations'/'DJ-project'
+ROOT = Path(__file__).resolve().parents[1]
+REPO = (ROOT.parents[1] if (ROOT.parents[1] / 'drone_sdk').is_dir()
+        else ROOT.parent / 'tmp' / 'team2_b9f37f9')
 
 
 class AcknowledgementSemanticsTests(unittest.TestCase):
@@ -37,6 +40,7 @@ class AcknowledgementSemanticsTests(unittest.TestCase):
         owner = self.sdk.get_status().control_owner
         if owner not in ('none', None):
             self.sdk.land(owner)
+            settle_landing(self.sdk)
             self.sdk.release_control(owner)
 
     def frame(self):

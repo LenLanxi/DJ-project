@@ -1,0 +1,7 @@
+# Default development/test environment: Python 3.11.
+# Shared SDK pins from reviewed group-2 commit 6d39131.
+numpy==1.26.4
+opencv-python==4.8.0.76
+djitellopy==2.5.0
+# The full team environment also has group-4 audio dependencies.
+# Use the reviewed team repository requirements when integrating all groups.

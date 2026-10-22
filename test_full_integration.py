@@ -1,3 +1,4 @@
+from simulation_test_support import settle_landing, settle_workers
 """终极跨组集成测试：2组统一 SDK + 3组跟随 + 4组 AI 交互。
 
 真实整机场景（全部为模拟，不连硬件）：
@@ -71,6 +72,7 @@ class FullIntegrationTest(unittest.TestCase):
             controller.release_control(owner)
         self.assertTrue(controller.request_control("model").ok)
         controller.land("model")
+        settle_landing(controller)
         self.assertTrue(controller.takeoff("model").ok)
         controller.release_control("model")
         self.feed = SyntheticFeed()
@@ -82,6 +84,7 @@ class FullIntegrationTest(unittest.TestCase):
         owner = controller.get_status().control_owner
         if owner not in ("none", None):
             controller.land(owner)
+            settle_landing(controller)
             controller.release_control(owner)
 
     # ---------- 辅助 ----------

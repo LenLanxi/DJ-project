@@ -39,9 +39,119 @@ class MotionRequest:
     simulation_only: bool = True
 
 
+def marker_shape(corners):
+    """Image geometry only: no camera calibration, physical angle or distance.
+
+    Ratios and adjacent-edge cosines are invariant to image rotation and uniform
+    scaling. They conservatively reject visibly foreshortened/sheared quads;
+    a passing quad is NOT proof of front-facing pose or accurate depth.
+    """
+    try:
+        if len(corners) != 4 or any(len(p) != 2 for p in corners):
+            return None
+        pts = [(float(x), float(y)) for x, y in corners]
+        if not all(math.isfinite(v) for p in pts for v in p):
+            return None
+        edges = [(pts[(i+1) % 4][0]-pts[i][0],
+                  pts[(i+1) % 4][1]-pts[i][1]) for i in range(4)]
+        lengths = [math.hypot(*e) for e in edges]
+        if min(lengths) < 1:
+            return None
+        crosses = [edges[i][0]*edges[(i+1) % 4][1]
+                   - edges[i][1]*edges[(i+1) % 4][0] for i in range(4)]
+        if not (all(c > 0 for c in crosses) or all(c < 0 for c in crosses)):
+            return None
+        a, b = (lengths[0]+lengths[2])/2, (lengths[1]+lengths[3])/2
+        return {"axis_ratio": min(a, b)/max(a, b),
+                "opposite_ratio": min(min(lengths[i], lengths[i+2]) /
+                                      max(lengths[i], lengths[i+2]) for i in (0, 1)),
+                "max_corner_cosine": max(abs(sum(edges[i][j]*edges[(i+1) % 4][j]
+                                                   for j in (0, 1))) /
+                                         (lengths[i]*lengths[(i+1) % 4]) for i in range(4))}
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+class ApparentSizeGuard:
+    """Suppress both forward/back requests when apparent size is ambiguous.
+
+    Strict geometry is required by camera GUI and background service. Scalar
+    mathematical simulations may omit corners; once geometry is used it cannot
+    silently fall back to scalar-only input. Thresholds are conservative image
+    heuristics, not calibrated angle limits.
+    """
+    def __init__(self, required=False):
+        self.enabled = required
+        self.shape = None
+        self.blocked = required
+        self.reason = "geometry_missing" if required else "scalar_simulation_only"
+        self.good_since = self.last_good = None
+        self.good_count = 0
+
+    @staticmethod
+    def suitable(shape, strict=False):
+        return (shape is not None and shape["axis_ratio"] >= (.90 if strict else .85)
+                and shape["opposite_ratio"] >= (.90 if strict else .85)
+                and shape["max_corner_cosine"] <= (.12 if strict else .20))
+
+    def block(self, reason):
+        if self.enabled:
+            self.blocked, self.reason = True, reason
+            self.good_since = self.last_good = None
+            self.good_count = 0
+
+    def observe(self, obs):
+        # Called only for accepted NEW observations; ticks/duplicates do not
+        # count as repeated confirmation.
+        try:
+            has_corners = len(obs.corners) > 0
+        except TypeError:
+            has_corners = obs.corners is not None
+        if has_corners:
+            if not self.enabled:
+                self.enabled = True
+                self.block("geometry_confirmation_pending")
+        if not self.enabled:
+            return
+        self.shape = marker_shape(obs.corners) if obs.found else None
+        if not obs.found:
+            self.block("target_unavailable")
+        elif self.shape is None:
+            self.block("geometry_missing_or_invalid")
+        elif not self.suitable(self.shape):
+            self.block("shape_ambiguous")
+        elif self.blocked:
+            if not self.suitable(self.shape, strict=True):
+                self.block("waiting_for_front_facing_target")
+                return
+            if self.last_good is None or obs.acquired_at-self.last_good > .2 + 1e-9:
+                self.good_since, self.good_count = obs.acquired_at, 0
+            self.last_good = obs.acquired_at
+            self.good_count += 1
+            self.reason = "waiting_for_stable_shape"
+            if self.good_count >= 3 and obs.acquired_at-self.good_since >= .2 - 1e-9:
+                self.blocked, self.reason = False, "clear"
+
+    def calibrate(self, obs):
+        # The controller has already accepted this observation. A button press
+        # must not count the same frame twice toward automatic re-entry.
+        if self.enabled and not self.suitable(self.shape, strict=True):
+            return False
+        if self.enabled:
+            self.blocked, self.reason = False, "clear"
+            self.good_since = self.last_good = None
+            self.good_count = 0
+        return True
+
+    def status(self):
+        return {"profile": "apparent_size_shape_guard_v1", "enabled": self.enabled,
+                "forward_allowed": not self.blocked, "reason": self.reason,
+                "shape": self.shape}
+
+
 class FollowController:
     def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
-                 max_request_rate=None):
+                 max_request_rate=None, require_geometry=False):
         if max_age <= 0 or not math.isfinite(max_age):
             raise ValueError("max_age must be finite and positive")
         self.target_id = target_id
@@ -68,6 +178,7 @@ class FollowController:
         self._invalid = False
         self.last_request = MotionRequest(self.state)
         self.last_stop_reason = ""
+        self.distance_guard = ApparentSizeGuard(required=require_geometry)
 
     def _valid(self, obs):
         if not isinstance(obs, Observation):
@@ -95,6 +206,7 @@ class FollowController:
         """Only newer frames from the same source may replace current data."""
         if not self._valid(obs):
             self._invalid = True
+            self.distance_guard.block("invalid_input")
             return False
         if self._source is not None and obs.source != self._source:
             self._invalid = True
@@ -110,6 +222,7 @@ class FollowController:
             self.state = State.STALE
             self.last_stop_reason = "frame_gap"
             self._clear_recovery()
+            self.distance_guard.block("frame_gap")
         if self.state == State.RECOVERING:
             if not obs.found and obs.reason not in ("", "not_found"):
                 self.state = State.LOST
@@ -128,6 +241,7 @@ class FollowController:
         self._last_frame_id = obs.frame_id
         self.observation = obs
         self._invalid = False
+        self.distance_guard.observe(obs)
         return True
 
     def _clear_recovery(self):
@@ -159,6 +273,8 @@ class FollowController:
             return False, "Pause or stop before calibrating"
         if self._issue(now):
             return False, "A fresh valid target is required"
+        if not self.distance_guard.calibrate(self.observation):
+            return False, "Front-facing marker geometry required for reference"
         self.reference_size = self.observation.size_ratio
         self._zero("reference_updated")
         return True, "Reference size saved"
@@ -182,6 +298,7 @@ class FollowController:
 
     def pause(self):
         self._clear_recovery()
+        self.distance_guard.block("paused")
         if self.state in (State.TRACKING, State.RECOVERING):
             self.state = State.PAUSED
         return self._zero("paused_or_inactive")
@@ -193,6 +310,7 @@ class FollowController:
 
     def stop(self):
         self._clear_recovery()
+        self.distance_guard.block("stopped")
         self.state = State.STOPPED
         return self._zero("stopped")
 
@@ -200,6 +318,8 @@ class FollowController:
         return {"state": str(self.state), "target_id": self.target_id,
                 "reference_size": self.reference_size, "request": self.last_request,
                 "last_stop_reason": self.last_stop_reason,
+                "control_profile": "local_deadzone_transition_v1",
+                "distance_guard": self.distance_guard.status(),
                 "max_request_rate": self.max_request_rate}
 
     def tick(self, now):
@@ -211,6 +331,7 @@ class FollowController:
             if issue in (State.STALE, State.INVALID):
                 self.state = issue
                 self._clear_recovery()
+                self.distance_guard.block(str(issue))
                 return self._zero(str(issue))
             if now-self._loss_at >= self.recovery_window:
                 self.state = State.LOST
@@ -231,6 +352,7 @@ class FollowController:
         if issue:
             self.state = issue  # latched; a fresh detection does not auto-start
             self._clear_recovery()
+            self.distance_guard.block(str(issue))
             reason = (self.observation.reason if issue == State.LOST and self.observation
                       and self.observation.reason else str(issue))
             return self._zero(reason)
@@ -243,9 +365,17 @@ class FollowController:
             # floating-point ulps apart. Keep the deadzone symmetric.
             if abs(error) <= 0.12 + 1e-12:
                 return 0.0
-            return max(-0.3, min(0.3, 0.6 * error))
+            # Smooth only |error| in (0.12, 0.16), where the old deadzone
+            # jumped immediately to 0.072. Outside that narrow transition,
+            # retain the original 0.6 gain and 0.3 cap. No temporal filtering
+            # or stored target positions; loss and stale frames still stop.
+            weight = min(1.0, (abs(error) - 0.12) / 0.04)
+            magnitude = min(0.3, 0.6 * abs(error)) * weight
+            return math.copysign(magnitude, error)
 
-        desired = (adjustment(x_error), adjustment(scale_error))
+        # Ambiguous size is not a new distance measurement. Drop any OLD
+        # forward/back request before the ramp, while retaining lateral logic.
+        desired = (adjustment(x_error), 0.0 if self.distance_guard.blocked else adjustment(scale_error))
         if self.max_request_rate is not None:
             elapsed = 0 if self._motion_at is None else max(0, min(.1, now-self._motion_at))
             step = self.max_request_rate * elapsed
@@ -256,5 +386,6 @@ class FollowController:
                 return previous + max(-step, min(step, target-previous))
             desired = tuple(ramp(old, new) for old, new in zip(self._motion_values, desired))
             self._motion_values, self._motion_at = desired, now
-        self.last_request = MotionRequest(self.state, *desired, "current_observation")
+        reason = "distance_guard: " + self.distance_guard.reason if self.distance_guard.blocked else "current_observation"
+        self.last_request = MotionRequest(self.state, *desired, reason)
         return self.last_request

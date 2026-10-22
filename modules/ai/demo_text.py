@@ -28,12 +28,24 @@ class Demo:
         if text not in actions:
             return '未识别固定指令，没有执行动作。' + HELP
         was_following = drone.is_following()
-        if was_following:
+        owns_follow = drone.get_status().get('owner') == 'follow'
+        ticket = None
+        ticket_handoff = hasattr(drone, 'pause_follow_for_action')
+        if text in ('降落', '停在这里'):
+            # Also invalidate a paused action's ticket when following=False.
             result = drone.stop_follow()
+            if not result['ok']:
+                return '[模拟] 停止跟随未确认，未继续执行动作'
+        if was_following or owns_follow:
+            result = (drone.pause_follow_for_action() if ticket_handoff and
+                      text == '前进30厘米' else drone.stop_follow())
+            ticket = result.get('ticket')
             if not result['ok']:
                 return '[模拟] 无法暂停跟随，取消动作'
         result = drone.request_control('model')
         if not result['ok']:
+            if ticket is not None:
+                drone.finish_follow_action(ticket, 'failed')
             return '[模拟] ' + result['message'] + '；未执行动作'
         result = None
         try:
@@ -47,10 +59,17 @@ class Demo:
             stopped = drone.stop_motion('model')
             message = '模拟执行异常：' + str(exc) + '；' + stopped['message'] + '；不恢复跟随'
         finally:
-            drone.release_control('model')
+            released = drone.release_control('model')
         if result['ok'] and was_following and text == '前进30厘米':
-            resumed = drone.start_follow()
+            if not released['ok'] or (ticket_handoff and result.get('status') != 'completed'):
+                if ticket is not None:
+                    drone.finish_follow_action(ticket, 'failed')
+                return '[模拟] ' + message + '；动作完成或控制权释放未确认，不恢复跟随'
+            resumed = (drone.finish_follow_action(ticket, 'completed') if ticket_handoff
+                       else drone.start_follow())
             message += '；' + ('已恢复模拟跟随' if resumed['ok'] else '未恢复跟随：' + resumed['message'])
+        elif ticket is not None:
+            drone.finish_follow_action(ticket, 'failed')
         return '[模拟] ' + message
 
 if __name__ == '__main__':

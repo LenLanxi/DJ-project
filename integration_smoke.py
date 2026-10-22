@@ -1,3 +1,4 @@
+from simulation_test_support import settle_landing, settle_workers
 """集成冒烟测试：4组 AI 框架（modules/ai） ↔ 2组统一 SDK（drone_sdk）。
 
 全部为模拟，不连接任何无人机。4组代码不做任何修改。
@@ -7,6 +8,7 @@
 """
 
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -87,6 +89,11 @@ def main():
         check("非法语法被拦截", r["accepted"] is False, r)
 
         print("\n=== 4. 跟随接口（已委托 3组 FollowService） ===")
+        deadline = time.monotonic() + 1
+        while drone.get_status().get('landing_pending', False):
+            if time.monotonic() >= deadline:
+                raise AssertionError('Landing acknowledgement lacks fresh landed status')
+            time.sleep(.002)
         controller.set_frame_provider(None)
         blocked = drone.start_follow()
         check("无画面来源时拒绝开始跟随", blocked["ok"] is False, blocked)

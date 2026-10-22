@@ -1,3 +1,4 @@
+from simulation_test_support import settle_landing, settle_workers
 """并发安全回归测试：阻塞动作进行中，急停接口必须毫秒级返回。
 
 背景：真机上 move_forward / takeoff 会阻塞数秒。若急停路径和动作路径共用
@@ -27,11 +28,14 @@ class BlockingActionConcurrencyTest(unittest.TestCase):
         controller.stop_follow()
         _driver.set_simulated_delay(0)
         self.assertTrue(controller.request_control("model").ok)
+        controller.land('model')
+        settle_landing(controller)
         self.assertTrue(controller.takeoff("model").ok)
 
     def tearDown(self):
         _driver.set_simulated_delay(0)
         controller.land("model")
+        settle_landing(controller)
         controller.release_control("model")
 
     def _start_blocking_move(self):
@@ -75,7 +79,8 @@ class BlockingActionConcurrencyTest(unittest.TestCase):
         finally:
             thread.join(timeout=5)
         self.assertFalse(thread.is_alive(), "动作线程未在 5 秒内结束")
-        self.assertTrue(outcome["result"].ok)
+        self.assertFalse(outcome["result"].ok)
+        self.assertEqual(outcome["result"].reason,"action_cancelled")
         self.assertGreaterEqual(
             outcome["wall"], ACTION_BLOCK_SECONDS, "动作应确实阻塞过，否则测试无意义")
 
@@ -101,6 +106,7 @@ class BlockingActionConcurrencyTest(unittest.TestCase):
         self.assertTrue(controller.stop_motion("model").ok)
         self.assertEqual(controller.get_status().flight_state, "flying")
         self.assertTrue(controller.land("model").ok)
+        settle_landing(controller)
         self.assertEqual(controller.get_status().flight_state, "landed")
 
 

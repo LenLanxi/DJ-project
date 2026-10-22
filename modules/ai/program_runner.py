@@ -32,9 +32,14 @@ def validate(code):
     return name
 
 class Runner:
-    def __init__(self, demo=None):
+    def __init__(self, demo=None, *, allow_simulated_sdk=False):
         self.demo = demo or Demo()
-        if type(self.demo.drone) is not MockDrone:
+        allowed = type(self.demo.drone) is MockDrone
+        if allow_simulated_sdk:
+            from drone_sdk.ai_bridge import UnifiedDrone
+            from drone_sdk import controller
+            allowed = type(self.demo.drone) is UnifiedDrone and controller.SIMULATED is True
+        if not allowed:
             raise ValueError('此版本执行器仅允许本地模拟器')
 
     def run(self, code):

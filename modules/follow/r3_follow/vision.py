@@ -22,6 +22,19 @@ class MarkerTracker:
         motion_parameters.perspectiveRemovePixelPerCell = 8
         motion_parameters.perspectiveRemoveIgnoredMarginPerCell = .25
         self.motion_detector = cv2.aruco.ArucoDetector(dictionary, motion_parameters)
+        # Last-resort current-frame contrast normalization. It uses the SAME
+        # dictionary and decoding tolerances; it never repairs/predicts bits.
+        self.contrast_enhancer = cv2.createCLAHE(clipLimit=2., tileGridSize=(8, 8))
+        # An independent edge/line quad extractor for foreshortened markers.
+        # OpenCV's AprilTag quad extraction can decode our SAME ArUco dictionary;
+        # this does not change the printed marker or add an AprilTag dependency.
+        # The last-resort CURRENT-frame decode requires exact dictionary bits.
+        side_parameters = cv2.aruco.DetectorParameters()
+        side_parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_APRILTAG
+        side_parameters.perspectiveRemovePixelPerCell = 8
+        side_parameters.perspectiveRemoveIgnoredMarginPerCell = .25
+        side_parameters.errorCorrectionRate = 0.
+        self.side_detector = cv2.aruco.ArucoDetector(dictionary, side_parameters)
         self.last_diagnostics = {}
 
     def detect(self, frame, frame_id, acquired_at, source="camera"):
@@ -87,7 +100,21 @@ class MarkerTracker:
             corners, ids, rejected = detect_with(
                 self.motion_detector, reduced, "downscaled_cell_interior", .5)
             method = "downscaled_cell_interior"
+        if ids is None and min(height, width) >= 240 and max(height, width) <= 960:
+            # Work at half size: full-resolution enhancement amplifies grain
+            # and made failed-frame processing substantially slower in testing.
+            enhanced = self.contrast_enhancer.apply(reduced)
+            corners, ids, rejected = detect_with(
+                self.motion_detector, enhanced, "downscaled_local_contrast", .5)
+            method = "downscaled_local_contrast"
+        if ids is None and max(height, width) <= 960:
+            # Mild spatial edge emphasis only. No temporal tracking, prediction,
+            # identity relabelling or reuse of an earlier frame's coordinates.
+            sharpened = cv2.addWeighted(gray, 1.8, cv2.GaussianBlur(gray, (0, 0), 1), -.8, 0)
+            corners, ids, rejected = detect_with(self.side_detector, sharpened, "edge_quad_exact")
+            method = "edge_quad_exact"
         self.last_diagnostics = {"detector_method": method,
+            "recognition_profile": "aruco_edge_quad_v014_candidate",
             "detected_ids": [] if ids is None else [int(v) for v in ids.flatten()],
             "rejected_candidates": len(rejected),
             "attempts": attempts,
@@ -114,8 +141,18 @@ class MarkerTracker:
         x2, y2 = np.minimum(np.ceil(points.max(axis=0)).astype(int) + 1, (width, height))
         roi = gray[y1:y2, x1:x2]
         if roi.size:
+            edge_margin = float(min(points[:, 0].min(), points[:, 1].min(),
+                                    width - 1 - points[:, 0].max(),
+                                    height - 1 - points[:, 1].max()))
+            # An advisory framing margin, not a detection/flight threshold.
+            suggested_margin = max(8., float(side) * .15)
             self.last_diagnostics["target_quality"] = {
                 "side_px": float(side),
+                "min_side_px": float(np.linalg.norm(points-np.roll(points, -1, axis=0), axis=1).min()),
+                "max_side_px": float(np.linalg.norm(points-np.roll(points, -1, axis=0), axis=1).max()),
+                "edge_margin_px": edge_margin,
+                "suggested_edge_margin_px": suggested_margin,
+                "near_image_edge": edge_margin < suggested_margin,
                 "roi_contrast_std": float(roi.std()),
                 "roi_sharpness": float(cv2.Laplacian(roi, cv2.CV_64F).var())}
         return Observation(**base, found=True, center_x=float(center[0]),

@@ -15,6 +15,8 @@ class ControlResult:
     ok: bool
     current_owner: Optional[str] = None
     reason: str = ""
+    control_epoch: int = 0
+    command_epoch: int = 0
 
 @dataclass
 class StatusResult:
@@ -24,6 +26,10 @@ class StatusResult:
     flight_state: str # "landed", "flying", "unknown"
     control_owner: str
     timestamp: float
+    control_epoch: int = 0
+    command_epoch: int = 0
+    velocity: tuple = (0, 0, 0, 0)
+    simulated: bool = True
 
 @dataclass
 class FrameResult:

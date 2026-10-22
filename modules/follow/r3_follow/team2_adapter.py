@@ -1,10 +1,11 @@
-"""Adapter for the reviewed 6d39131 stub only. Not authorized for real flight.
+"""Adapter for the reviewed 7f2468c SDK stub. Not authorized for real flight.
 
 Lease epochs protect this adapter's callers, NOT external ABA owner changes.
 The upstream SDK only exposes an owner string; its missing concurrency guarantees
 cannot be invented by this translation layer.
 """
 import hashlib
+import json
 import importlib
 import math
 from pathlib import Path
@@ -15,21 +16,46 @@ import time
 from .service_ports import DeviceStatus, FrameSnapshot, Lease, Result
 
 COMMIT = '7f2468c0ab395afcd2f6071ebf21fa96a0c24359'
-# 2组接入说明（2026-10-22）：controller.py 已改为把 start_follow/stop_follow 委托给
-# 本包 FollowService，故重新钉 controller.py 哈希；contract.py / __init__.py / _driver.py 未变。
-# 差异仅限跟随接口委托与 set_frame_provider 注入点，请 3组 复核后确认。
-HASHES = {'controller.py': '4801a92f38d28ae5044fc878bab595e7aa2fc8b4de0e07768fc45ba0125211c8', 'contract.py': 'dcd9c098a0b50e51920f76625b0e3e7dae131a92e664b2c718f67bc26d08ed6b', '__init__.py': '13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd', '_driver.py': '02b6a4bbb00d9b9d21b1f2d08866385da6296273e0f8131876788e6a67020429'}
+# Repository b9f37f9 keeps this SDK revision and updates the AI Session.
+# controller imports follow_integration: both must be reviewed before execution.
+# The additional digest names only our reviewed coordination_patch candidate.
+# It does not allow arbitrary SDK changes or authorize real flight.
+CANDIDATE_FOLLOW_HASH = 'ae920775e89cfb2a2e086fd3c7a1ba362774205d57a761a0cfc97d74d3ff9019'
+HASHES = {
+    'controller.py': '4801a92f38d28ae5044fc878bab595e7aa2fc8b4de0e07768fc45ba0125211c8',
+    'follow_integration.py': 'd782846231d3c070a65701b3e74008f04d30dbe390dfddd876ed393198c5dad4',
+    'contract.py': 'dcd9c098a0b50e51920f76625b0e3e7dae131a92e664b2c718f67bc26d08ed6b',
+    '__init__.py': '13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd',
+    '_driver.py': '02b6a4bbb00d9b9d21b1f2d08866385da6296273e0f8131876788e6a67020429',
+}
 
 
 def load_reviewed_stub(repository):
     repository = Path(repository).resolve()
+    consolidated = Path(__file__).with_name('sdk_consolidated_pins.json')
+    pins = json.loads(consolidated.read_text(encoding='utf8')) if consolidated.exists() else {}
+    exact_consolidated = bool(pins) and all(
+        (repository/'drone_sdk'/n).is_file() and
+        hashlib.sha256((repository/'drone_sdk'/n).read_bytes().replace(b'\r\n',b'\n')).hexdigest() == h
+        for n,h in pins.items())
+    candidate_controller = bool(pins) and hashlib.sha256(
+        (repository/'drone_sdk/controller.py').read_bytes().replace(b'\r\n',b'\n')).hexdigest() == pins['controller.py']
+    if candidate_controller and not exact_consolidated:
+        for name, expected in pins.items():
+            file=repository/'drone_sdk'/name
+            if not file.is_file() or hashlib.sha256(file.read_bytes().replace(b'\r\n',b'\n')).hexdigest()!=expected:
+                raise ValueError('Unreviewed SDK source: '+name)
     for name, expected in HASHES.items():
         path = repository/'drone_sdk'/name
         # Ignore Git line endings only; any code change requires review.
         raw = path.read_bytes().replace(b'\r\n', b'\n')
-        if hashlib.sha256(raw).hexdigest() != expected:
+        allowed = {expected}
+        if name == 'follow_integration.py':
+            allowed.add(CANDIDATE_FOLLOW_HASH)
+        if not exact_consolidated and hashlib.sha256(raw).hexdigest() not in allowed:
             raise ValueError(f'Unreviewed SDK source: {name}; review before updating pin')
-    for name in ('drone_sdk','drone_sdk.controller','drone_sdk.contract'):
+    for name in ('drone_sdk', 'drone_sdk.controller', 'drone_sdk.contract',
+                 'drone_sdk._driver', 'drone_sdk.follow_integration'):
         existing = sys.modules.get(name)
         if existing and not Path(existing.__file__).resolve().is_relative_to(repository/'drone_sdk'):
             raise ValueError('Another drone_sdk is already loaded; use a clean process')
@@ -81,7 +107,10 @@ class Team2StubPort:
                 owner=None
             elif owner not in ('follow','model'):
                 raise ValueError('unknown_control_owner')
-            if owner is None:
+            if getattr(self.sdk, 'SIMULATED', False) and hasattr(status, 'control_epoch'):
+                self.epoch = status.control_epoch
+                self.lease = Lease(owner, self.epoch) if owner else None
+            elif owner is None:
                 self.lease=None
             elif self.lease is None or self.lease.owner != owner:
                 self.epoch+=1
@@ -114,7 +143,8 @@ class Team2StubPort:
         with self.lock:
             if not self._owns(lease):
                 return Result('failed','not_owner')
-            result=self.sdk.release_control(lease.owner)
+            extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
+            result=self.sdk.release_control(lease.owner, **extra)
             if result.ok is True and self.get_status().lease is None:
                 self._record('release_acknowledged',owner=lease.owner)
                 return Result('completed')
@@ -126,7 +156,8 @@ class Team2StubPort:
                 return Result('failed','not_owner')
             # Send an explicit zero channel request, not just the upstream print.
             zero=self.update_velocity(lease,left_right=0,forward_back=0,up_down=0,yaw=0)
-            result=self._command(self.sdk.stop_motion(lease.owner))
+            extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
+            result=self._command(self.sdk.stop_motion(lease.owner, **extra))
             self._record('stop_acknowledged',status=result.status)
             return result if zero.ok else zero
 
@@ -140,6 +171,7 @@ class Team2StubPort:
                 return Result('failed','invalid_channels')
             if any(channels) and (state.connected is not True or state.airborne is not True):
                 return Result('failed','connected_airborne_state_required')
-            result=self._command(self.sdk.update_velocity(lease.owner,*channels))
+            extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
+            result=self._command(self.sdk.update_velocity(lease.owner,*channels, **extra))
             self._record('velocity_call',channels=channels,status=result.status,owner=lease.owner)
             return result
