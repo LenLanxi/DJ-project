@@ -129,6 +129,7 @@ def main():
     finally:
         cancel_audio.set()
         session.close()
+        audio_io.close()
         speech_worker.shutdown(wait=True, cancel_futures=True)
 
 if __name__ == '__main__': main()

@@ -1,0 +1,41 @@
+test_container_boundary (test_core.ConfigTests.test_container_boundary) ... ok
+test_realtime_has_vad_no_transcription_chain (test_core.ConfigTests.test_realtime_has_vad_no_transcription_chain) ... ok
+test_host_secrets_and_network_unavailable (test_core.ContainerIntegration.test_host_secrets_and_network_unavailable) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_infinite_loop_timeout (test_core.ContainerIntegration.test_infinite_loop_timeout) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_multi_step_full_python (test_core.ContainerIntegration.test_multi_step_full_python) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_barge_in_discards_late_audio (test_core.EventTests.test_barge_in_discards_late_audio) ... ok
+test_input_stream_does_not_wait_for_model_response (test_core.EventTests.test_input_stream_does_not_wait_for_model_response) ... ok
+test_older_response_done_does_not_clear_current (test_core.EventTests.test_older_response_done_does_not_clear_current) ... ok
+test_pending_response_waits_for_done (test_core.EventTests.test_pending_response_waits_for_done) ... ok
+test_stale_tool_never_starts (test_core.EventTests.test_stale_tool_never_starts) ... ok
+test_tool_deduplicated (test_core.EventTests.test_tool_deduplicated) ... ok
+test_tool_result_returns_actual_failure (test_core.EventTests.test_tool_result_returns_actual_failure) ... ok
+test_busy_manual_owner (test_core.GatewayTests.test_busy_manual_owner) ... ok
+test_cancel_invalidates_new_motion (test_core.GatewayTests.test_cancel_invalidates_new_motion) ... ok
+test_failed_action_not_success (test_core.GatewayTests.test_failed_action_not_success) ... ok
+test_interrupt_does_not_wait_for_blocking_action (test_core.GatewayTests.test_interrupt_does_not_wait_for_blocking_action) ... ok
+test_multi_step_and_follow_resume (test_core.GatewayTests.test_multi_step_and_follow_resume) ... ok
+test_no_docker_no_host_execution (test_core.GatewayTests.test_no_docker_no_host_execution) ... ok
+test_no_fake_camera (test_core.GatewayTests.test_no_fake_camera) ... ok
+test_read_only_does_not_acquire (test_core.GatewayTests.test_read_only_does_not_acquire) ... ok
+test_sdk_units_only (test_core.GatewayTests.test_sdk_units_only) ... ok
+test_stop_never_resumes (test_core.GatewayTests.test_stop_never_resumes) ... ok
+test_unknown_host_function_rejected (test_core.GatewayTests.test_unknown_host_function_rejected) ... ok
+test_dac_latency_subtracted (test_core.PlaybackTests.test_dac_latency_subtracted) ... ok
+test_interrupt_drops_unplayed_audio (test_core.PlaybackTests.test_interrupt_drops_unplayed_audio) ... ok
+test_overflow_is_explicit (test_core.PlaybackTests.test_overflow_is_explicit) ... ok
+test_pcm_alignment (test_core.PlaybackTests.test_pcm_alignment) ... ok
+test_unplayed_item_truncates_to_zero (test_core.PlaybackTests.test_unplayed_item_truncates_to_zero) ... ok
+test_missing_final_result_is_failure (test_protocol.ProtocolTests.test_missing_final_result_is_failure) ... ok
+test_multiple_rpc_calls_and_journal (test_protocol.ProtocolTests.test_multiple_rpc_calls_and_journal) ... ok
+test_program_done_does_not_hide_interface_error (test_protocol.ProtocolTests.test_program_done_does_not_hide_interface_error) ... ok
+test_unknown_host_call_has_no_effect (test_protocol.ProtocolTests.test_unknown_host_call_has_no_effect) ... ok
+test_duplicate_real_frame_rejected (test_vision.VisionTests.test_duplicate_real_frame_rejected) ... ok
+test_invalid_visual_coordinates_rejected (test_vision.VisionTests.test_invalid_visual_coordinates_rejected) ... ok
+test_missing_or_stale_frame_never_reaches_model (test_vision.VisionTests.test_missing_or_stale_frame_never_reaches_model) ... ok
+test_structured_visual_result_does_not_become_code (test_vision.VisionTests.test_structured_visual_result_does_not_become_code) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 0.055s
+
+OK (skipped=3)

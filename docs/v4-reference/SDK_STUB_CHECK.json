@@ -1,0 +1,44 @@
+{
+  "mode": "sdk_stub_only",
+  "source_commit": "aa40228ca9944dd1ca6e58edf776a9082372f4c2",
+  "calls": [
+    {
+      "method": "get_status",
+      "result": {
+        "battery": 88,
+        "height_cm": 0,
+        "connected": true,
+        "flight_state": "landed",
+        "control_owner": "none",
+        "timestamp": 1792582244.964969
+      }
+    },
+    {
+      "method": "takeoff",
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "is_blocking": true
+      }
+    },
+    {
+      "method": "move_forward",
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "is_blocking": true
+      }
+    },
+    {
+      "method": "land",
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "is_blocking": true
+      }
+    }
+  ]
+}

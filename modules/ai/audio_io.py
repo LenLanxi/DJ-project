@@ -49,7 +49,8 @@ def play(data, device=None, cancel=None):
     samples = np.frombuffer(pcm, dtype='<i2').reshape(-1, channels)
     try:
         sd.play(samples, samplerate=rate, device=device, blocking=False)
-        while sd.get_stream().active:
+        stream = sd.get_stream()
+        while stream is not None and stream.active:
             if cancel is not None and cancel.is_set():
                 return False
             time.sleep(0.02)
@@ -58,3 +59,15 @@ def play(data, device=None, cancel=None):
         return True
     finally:
         sd.stop()
+
+
+def close():
+    """释放音频设备。异常路径与退出路径都要调用，避免流泄漏。"""
+    try:
+        import sounddevice as sd
+    except (ImportError, OSError):
+        return
+    try:
+        sd.stop()
+    except (RuntimeError, OSError):
+        pass

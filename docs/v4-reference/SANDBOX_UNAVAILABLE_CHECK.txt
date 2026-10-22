@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "status": "unavailable",
+  "reason": "需要Docker；禁止退回宿主机exec",
+  "simulated": true,
+  "journal": [],
+  "debug": ""
+}
