@@ -23,6 +23,9 @@ _REASON_TEXT = {
     "busy": "控制权被占用",
     "failed": "执行失败",
     "timeout": "执行超时",
+    "follow_no_frame_source": "没有可用画面来源，无法开始跟随",
+    "follow_no_fresh_frame": "没有新鲜画面，无法开始跟随",
+    "follow_calibration_failed": "跟随校准失败",
 }
 
 
@@ -89,16 +92,21 @@ class UnifiedDrone:
 
     # --- 跟随 ---
     def start_follow(self):
-        claimed = _ctl.request_control("follow")
-        if not claimed.ok:
-            return _control_result(claimed)
-        _ctl.start_follow()
+        # 控制权由 3组 跟随服务内部申请，这里不能预先 request_control('follow')，
+        # 否则第二次申请会返回 busy，跟随永远起不来。
+        result = _ctl.start_follow()
+        if not result.ok:
+            message = _REASON_TEXT.get(result.reason, result.reason or "无法开始跟随")
+            return {"ok": False, "message": message, "simulated": SIMULATED}
         return {"ok": True, "message": "已开始跟随", "simulated": SIMULATED}
 
     def stop_follow(self):
+        # 3组 的 stop 内部已完成「0 速度 + 释放控制权」，这里不要再 release 一次。
         result = _ctl.stop_follow()
-        _ctl.release_control("follow")
-        message = "已停止跟随" if result.ok else "停止跟随失败"
+        if result.ok:
+            message = "已停止跟随"
+        else:
+            message = "停止未确认：" + (result.reason or "未知原因")
         return {"ok": result.ok, "message": message, "simulated": SIMULATED}
 
     def is_following(self):

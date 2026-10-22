@@ -2,7 +2,7 @@
 import time
 import threading
 from .contract import CommandResult, ControlResult, StatusResult, FrameResult
-from . import _driver
+from . import _driver, follow_integration
 
 # ====== 全局变量与线程锁 ======
 _current_owner = None
@@ -10,7 +10,6 @@ _flight_state = "landed"
 _frame_counter = 0
 _last_velocity_time = 0
 _velocity_lock = threading.Lock() # 保护并发访问的锁
-_following = False
 
 # ====== 看门狗后台线程 ======
 def _watchdog_thread():
@@ -128,18 +127,34 @@ def move_up(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "上
 def move_down(owner: str, cm: int) -> CommandResult: return _mock_move(owner, "下降", cm)
 def rotate(owner: str, degrees: int) -> CommandResult: return _mock_move(owner, "旋转", degrees)
 
-# ====== 跟随专用接口 ======
-def start_follow() -> ControlResult:
-    global _following
-    _following = True
-    print("\n[假飞行][跟随] 开始跟随模式")
-    return ControlResult(ok=True, current_owner="follow")
+# ====== 跟随专用接口（委托 3组 FollowService） ======
+_follow = follow_integration.FollowIntegration(lambda: _current_owner or "none")
+
+
+def start_follow(timeout: float = follow_integration.FIRST_FRAME_TIMEOUT) -> ControlResult:
+    """启动 3组 跟随后台线程。控制权由 3组 服务内部申请，调用方不要预先申请。"""
+    result = _follow.start(timeout=timeout)
+    if result.ok:
+        print("\n[假飞行][跟随] 3组跟随服务已启动")
+    else:
+        print(f"\n[假飞行][跟随] 启动失败: {result.reason}")
+    return result
+
 
 def stop_follow() -> ControlResult:
-    global _following
-    _following = False
-    print("\n[假飞行][跟随] 停止跟随模式，已悬停")
-    return ControlResult(ok=True, current_owner="none")
+    """停止 3组 跟随：发 0 速度悬停、释放控制权、关闭后台线程。"""
+    result = _follow.stop()
+    if result.ok:
+        print("\n[假飞行][跟随] 3组跟随服务已停止，已悬停并释放控制权")
+    else:
+        print(f"\n[假飞行][跟随] 停止未确认: {result.reason}")
+    return result
+
 
 def is_following() -> bool:
-    return _following
+    return _follow.is_following()
+
+
+def set_frame_provider(provider) -> None:
+    """注入画面来源。真机由 _driver 提供，测试用合成画面。"""
+    _follow.set_frame_provider(provider)

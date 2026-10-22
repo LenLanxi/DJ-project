@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(AI_DIR))
 
 from drone_sdk.ai_bridge import UnifiedDrone  # noqa: E402
+from drone_sdk import controller  # noqa: E402
 import program_runner  # noqa: E402
 from demo_text import Demo  # noqa: E402
 
@@ -85,20 +86,17 @@ def main():
         r = runner.run("drone.import os")
         check("非法语法被拦截", r["accepted"] is False, r)
 
-        print("\n=== 4. 跟随接口（含控制权仲裁） ===")
-        drone.request_control("model")
+        print("\n=== 4. 跟随接口（已委托 3组 FollowService） ===")
+        controller.set_frame_provider(None)
         blocked = drone.start_follow()
-        check("model 占用时 start_follow 被拒", blocked["ok"] is False, blocked)
-        drone.release_control("model")
-
-        started = drone.start_follow()
-        check("空闲时 start_follow 成功", started["ok"] is True, started)
-        check("start_follow 后 owner=follow", drone.get_status()["owner"] == "follow", drone.get_status())
-        check("is_following 为真", drone.is_following() is True)
+        check("无画面来源时拒绝开始跟随", blocked["ok"] is False, blocked)
+        check("拒绝原因对用户可读", "画面" in blocked["message"], blocked)
+        check("拒绝时不会残留控制权", drone.get_status()["owner"] is None, drone.get_status())
 
         stopped = drone.stop_follow()
-        check("stop_follow 成功", stopped["ok"] is True, stopped)
-        check("停止后 owner 被释放", drone.get_status()["owner"] is None, drone.get_status())
+        check("未跟随时 stop_follow 安全返回", stopped["ok"] is True, stopped)
+        check("is_following 为假", drone.is_following() is False)
+        print("      （完整跟随流程见 test_full_integration.py）")
 
         print("\n=== 5. 走通 4组的 AI 全链路（Agent + 离线脚本模型） ===")
         from ai_agent import Agent
