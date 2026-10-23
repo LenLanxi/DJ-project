@@ -1,6 +1,10 @@
-# AI随行小伙伴 · 4组 v0.4 重构版
+# AI随行小伙伴 · 4组 v0.4 耳机适配更新（2026-10-23）
 
 本版本按老师反馈重构。**v0.3仍保留为旧版；本包为新的执行和实时语音架构。**
+
+本次补充：显式耳机设备配置与身份校验、3秒录放自检、近讲麦克风云端降噪、可调VAD、
+双声道输出与音频流故障处理。**现场先读 [HEADSET_TEST.md](HEADSET_TEST.md)。**
+不再自动使用系统默认音频设备；首次运行语音前需完成耳机选择。
 
 ## 三项改变
 
@@ -18,7 +22,7 @@
 - 容器禁网、根文件系统只读、无宿主目录挂载、无Docker socket、无API密钥、非root，限制内存/CPU/进程和任务时限。
 - 没有Docker或镜像时返回unavailable，绝不退回电脑直接exec。
 
-**当前已通过33项离线测试；3项真实容器测试因环境无Docker而跳过。**
+**最新自动化结果见 TEST_RESULTS.txt；3项真实容器测试因环境无Docker而跳过。**
 未验证：容器镜像实跑/隔离效果、真实实时API、耳机音频、实际延迟、费用、真实摄像头、真实飞行及自主导航。
 本包不是“红色帐篷自主导航已经完成”的证明。接口闭环与导航算法的实机效果是不同验收内容。
 
@@ -40,6 +44,13 @@ Docker基础镜像当前以python:3.11-slim为构建入口；验收时记录构�
 
 ## 实时耳机对话
 
+先选择并自检耳机（不需要Docker或API）。下面4、8必须替换为本机实际索引：
+
+```powershell
+py -3.11 test_audio_device.py --list
+py -3.11 test_audio_device.py --input-device 4 --output-device 8 --save-config audio_config.json
+```
+
 配置自己的可用OpenAI API账号和实时模型标识。不要把密钥发群或放进代码。
 聊天订阅不能自动代替API账号配置；本包不会读取ChatGPT登录凭据。
 
@@ -49,11 +60,11 @@ PowerShell配置形式：
 $env:OPENAI_API_KEY="自己的API密钥"
 $env:REALTIME_MODEL="账号支持的Realtime模型标识"
 $env:REALTIME_VOICE="marin"
-python main.py --voice --fixture-vision
+python main.py --voice --fixture-vision --audio-config audio_config.json
 ```
 
 Linux/macOS使用export设置相同环境变量。
-如需选耳机输入/输出设备，可运行 `python -m sounddevice` 查看编号，然后：
+也可用 `python main.py --list-audio-devices` 查看编号，通过命令行显式指定：
 
 ```bash
 python main.py --voice --input-device 1 --output-device 2
@@ -61,7 +72,8 @@ python main.py --voice --input-device 1 --output-device 2
 
 启动后直接说话，不需逐轮按键。要求停止或降落时，模型调用独立interrupt通道。
 用户任何插话都会取消当前程序并请求停止，不自动续飞；重新理解用户下一句需求。
-服务端VAD检测、音频回声、耳机驱动缓冲、网络延迟需要实际测量；此实现没有声学回声消除算法，推荐耳机避免扬声器回录。
+实时语音显式请求近讲麦克风降噪，VAD默认0.7，可在audio_config.json调整。
+服务端VAD检测、音频回声、耳机驱动缓冲、网络延迟需要实际测量；此实现没有声学回声消除算法，使用耳机减少扬声器回录。
 关闭程序后请求停止并释放控制权；这不等价于完成实机降落。真实设备需保留项目已有独立人工接管渠道。
 
 ## 实际图片/摄像头视觉
@@ -156,6 +168,8 @@ https://docs.docker.com/engine/containers/run/
 
 - main.py：实时语音或容器程序入口，无逐轮键盘确认。
 - realtime.py / duplex_audio.py：实时模型事件、双向音频、打断、工具调用。
+- audio_config.py / audio_devices.py：设备锁定、配置校验、WASAPI格式转换。
+- test_audio_device.py / HEADSET_TEST.md：独立3秒录放自检及现场验收流程。
 - sandbox_runner.py / sandbox/：容器任务监督、RPC通道、Python执行。
 - gateway.py / backends.py：控制权、SDK与模拟设备适配。
 - vision.py：结构化视觉观察和帧检查。

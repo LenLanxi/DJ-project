@@ -3,8 +3,24 @@ import asyncio
 import base64
 import json
 import os
+import sys
 import time
+from pathlib import Path
 from urllib.parse import quote
+
+# 音频配置模块统一放在 modules/ai；从 docs/v4-reference 启动时补上路径。
+_AUDIO_MODULES = Path(__file__).resolve().parents[2] / 'modules' / 'ai'
+if str(_AUDIO_MODULES) not in sys.path:
+    sys.path.insert(0, str(_AUDIO_MODULES))
+
+from audio_config import AudioConfig
+
+
+def _env_float(name, default):
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return float(default)
 
 INSTRUCTIONS='''你是AI随行小伙伴，通过耳机用中文简短交流。声音由AI生成。
 默认设备为模拟或待验证SDK，始终如实说明执行环境和结果。
@@ -28,35 +44,30 @@ TOOLS=[{'type':'function','name':'run_program','description':'在独立容器中
        {'type':'function','name':'interrupt','description':'立即取消当前程序并停止运动或降落，不等待普通动作结束',
         'parameters':{'type':'object','properties':{'land':{'type':'boolean'}},'required':['land'],'additionalProperties':False}}]
 
-def _env_float(name, default):
-    try:
-        return float(os.getenv(name, default))
-    except (TypeError, ValueError):
-        return float(default)
-
-
-def session_config(model,voice):
+def session_config(model,voice,audio_config=None):
+    config=audio_config or AudioConfig()
     return {'type':'session.update','session':{'type':'realtime','model':model,
         'output_modalities':['audio'],'instructions':INSTRUCTIONS,'tools':TOOLS,'tool_choice':'auto',
         'audio':{'input':{'format':{'type':'audio/pcm','rate':24000},
-            # 服务端 VAD 只负责切句；是否真的打断播报由客户端 barge_in() 判断，
-            # 因此 interrupt_response 固定为 False：否则飞机噪音会被服务端直接掐断播报。
-            'turn_detection':{'type':'server_vad',
-                              'threshold':_env_float('REALTIME_VAD_THRESHOLD', .6),
-                              'prefix_padding_ms':300,
-                              'silence_duration_ms':int(_env_float('REALTIME_SILENCE_MS', 500)),
+            'noise_reduction':{'type':config.noise_reduction} if config.noise_reduction else None,
+            'turn_detection':{'type':'server_vad','threshold':config.vad_threshold,
+                              'prefix_padding_ms':config.prefix_padding_ms,
+                              'silence_duration_ms':config.silence_duration_ms,
+                              # 服务端只负责切句；是否打断由客户端 barge_in() 判定，
+                              # 否则飞机电机的突发噪声会直接被服务端掐断播报。
                               'create_response':True,'interrupt_response':False}},
             'output':{'format':{'type':'audio/pcm','rate':24000},'voice':voice}}}}
 
 class RealtimeSession:
-    def __init__(self,runner,audio,logger=None):
+    def __init__(self,runner,audio,logger=None,*,audio_config=None):
         self.runner,self.audio=runner,audio
+        self.audio_config=audio_config or AudioConfig()
         self.log=logger or (lambda event:None)
         self.send_lock=asyncio.Lock(); self.ws=None
         self.epoch=0; self.response_epoch={}; self.blocked=set(); self.seen=set()
         self.tool_tasks=set(); self.response_active=False; self.pending_response=False
         self.speech_end=None; self.first_audio=True; self.current_response=None
-        # 打断防抖：冷却时间 + 麦克风电平门限，防止飞机噪音/耳机灵敏度过高误打断
+        # 打断双重保险：VAD 0.7 挡不住电机突发噪声，再加冷却与麦克风电平门限
         self.barge_cooldown=_env_float('BARGE_IN_COOLDOWN_MS', 700)/1000
         self.barge_rms_min=_env_float('BARGE_IN_RMS_MIN', 250)
         self.last_barge_at=0.0
@@ -115,7 +126,7 @@ class RealtimeSession:
                       'rms':round(level,1),'threshold':self.barge_rms_min})
             return
         self.last_barge_at=now
-        # 服务端不再自动打断，这里显式取消当前回答，避免旧音频继续播放。
+        # 服务端不再自动打断，这里显式取消当前回答。
         if self.response_active:
             try: await self.send({'type':'response.cancel'})
             except Exception: pass
@@ -132,7 +143,11 @@ class RealtimeSession:
         self.log({'event':'barge_in','epoch':self.epoch,'played':played})
     async def handle(self,event):
         typ=event.get('type')
-        if typ=='session.updated': self.ready.set()
+        if typ=='session.updated':
+            actual=event.get('session',{}).get('audio',{}).get('input',{})
+            self.log({'event':'audio_session_updated','noise_reduction':actual.get('noise_reduction'),
+                      'turn_detection':actual.get('turn_detection')})
+            self.ready.set()
         elif typ=='input_audio_buffer.speech_started': await self.barge_in()
         elif typ=='input_audio_buffer.speech_stopped':
             self.speech_end=time.monotonic(); self.first_audio=True
@@ -171,7 +186,9 @@ class RealtimeSession:
             error=event.get('error',{})
             raise RuntimeError('Realtime API: '+str(error.get('code','unknown'))+': '+str(error.get('message',''))[:300])
     async def stream_input(self):
-        await self.ready.wait()
+        await asyncio.wait_for(self.ready.wait(),timeout=20)
+        # Do not capture into a finite queue during connection/session negotiation.
+        self.audio.start()
         async for chunk in self.audio.chunks():
             await self.send({'type':'input_audio_buffer.append','audio':base64.b64encode(chunk).decode()})
     async def stream_events(self):
@@ -189,8 +206,7 @@ class RealtimeSession:
             async with connect(url,additional_headers={'Authorization':'Bearer '+key},max_size=2_000_000,
                                open_timeout=20,ping_interval=20) as ws:
                 self.ws=ws
-                self.audio.start()
-                await self.send(session_config(model,voice))
+                await self.send(session_config(model,voice,self.audio_config))
                 receive=asyncio.create_task(self.stream_events())
                 sender=asyncio.create_task(self.stream_input())
                 errors=asyncio.create_task(self.background_error.get())

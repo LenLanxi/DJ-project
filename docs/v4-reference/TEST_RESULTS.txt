@@ -1,3 +1,25 @@
+2026-10-23 v0.4 headset update
+Python: 3.12.14; OS: Linux
+Audio devices are test doubles. No live headset, Realtime API or Docker verification.
+
+test_capture_exact_three_seconds_and_report_level (test_audio_devices.AudioLifecycleTests.test_capture_exact_three_seconds_and_report_level) ... ok
+test_capture_starts_only_after_session_ready (test_audio_devices.AudioLifecycleTests.test_capture_starts_only_after_session_ready) ... ok
+test_finished_callback_reports_disconnect_but_not_normal_close (test_audio_devices.AudioLifecycleTests.test_finished_callback_reports_disconnect_but_not_normal_close) ... ok
+test_self_test_drains_capture_while_playing (test_audio_devices.AudioLifecycleTests.test_self_test_drains_capture_while_playing) ... ok
+test_stopped_and_stalled_streams_fail_instead_of_hanging (test_audio_devices.AudioLifecycleTests.test_stopped_and_stalled_streams_fail_instead_of_hanging) ... ok
+test_invalid_and_misspelled_settings_fail (test_audio_devices.AudioSettingsTests.test_invalid_and_misspelled_settings_fail) ... ok
+test_save_and_load_identity_and_cli_override (test_audio_devices.AudioSettingsTests.test_save_and_load_identity_and_cli_override) ... ok
+test_vad_and_near_field_are_sent_to_server (test_audio_devices.AudioSettingsTests.test_vad_and_near_field_are_sent_to_server) ... ok
+test_close_even_when_abort_raises (test_audio_devices.DeviceTests.test_close_even_when_abort_raises) ... ok
+test_default_mapper_rejected (test_audio_devices.DeviceTests.test_default_mapper_rejected) ... ok
+test_disappeared_device_and_wrong_direction_fail (test_audio_devices.DeviceTests.test_disappeared_device_and_wrong_direction_fail) ... ok
+test_explicit_indices_wasapi_conversion_and_stereo (test_audio_devices.DeviceTests.test_explicit_indices_wasapi_conversion_and_stereo) ... ok
+test_input_closed_if_output_open_fails (test_audio_devices.DeviceTests.test_input_closed_if_output_open_fails) ... ok
+test_no_system_defaults (test_audio_devices.DeviceTests.test_no_system_defaults) ... ok
+test_non_wasapi_does_not_receive_wasapi_settings (test_audio_devices.DeviceTests.test_non_wasapi_does_not_receive_wasapi_settings) ... ok
+test_stale_index_identity_fails_without_fallback (test_audio_devices.DeviceTests.test_stale_index_identity_fails_without_fallback) ... ok
+test_stereo_preserves_samples_and_mono_accounting (test_audio_devices.DeviceTests.test_stereo_preserves_samples_and_mono_accounting) ... ok
+test_unsupported_format_never_opens_other_device (test_audio_devices.DeviceTests.test_unsupported_format_never_opens_other_device) ... ok
 test_container_boundary (test_core.ConfigTests.test_container_boundary) ... ok
 test_realtime_has_vad_no_transcription_chain (test_core.ConfigTests.test_realtime_has_vad_no_transcription_chain) ... ok
 test_host_secrets_and_network_unavailable (test_core.ContainerIntegration.test_host_secrets_and_network_unavailable) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
@@ -36,6 +58,11 @@ test_missing_or_stale_frame_never_reaches_model (test_vision.VisionTests.test_mi
 test_structured_visual_result_does_not_become_code (test_vision.VisionTests.test_structured_visual_result_does_not_become_code) ... ok
 
 ----------------------------------------------------------------------
-Ran 36 tests in 0.055s
+Ran 54 tests in 0.377s
 
 OK (skipped=3)
+
+输入麦克风: [4] USB Mic / Windows WASAPI (1通道, 24000Hz)
+输出耳机: [8] USB Headphones / Windows WASAPI (2通道, 24000Hz)
+输入麦克风: [4] USB Mic / Windows WASAPI (1通道, 24000Hz)
+输出耳机: [8] USB Headphones / Windows WASAPI (2通道, 24000Hz)

@@ -158,6 +158,7 @@ class EventTests(unittest.IsolatedAsyncioTestCase):
     async def test_input_stream_does_not_wait_for_model_response(self):
         class Audio:
             speaker=PlaybackBuffer()
+            def start(self): pass
             async def chunks(self):
                 yield b'\x00\x00'*480
                 yield b'\x01\x00'*480
@@ -176,8 +177,10 @@ class ConfigTests(unittest.TestCase):
     def test_realtime_has_vad_no_transcription_chain(self):
         s=session_config('configured-model','marin')['session']
         self.assertEqual(s['output_modalities'],['audio'])
-        # 服务端 VAD 只切句；打断由客户端 barge_in 判定，避免噪声直接掐断播报
+        # 服务端 VAD 只切句；打断由客户端 barge_in 判定（冷却+电平门限）
         self.assertFalse(s['audio']['input']['turn_detection']['interrupt_response'])
+        self.assertEqual(s['audio']['input']['noise_reduction'],{'type':'near_field'})
+        self.assertEqual(s['audio']['input']['turn_detection']['threshold'],0.7)
         self.assertNotIn('transcription',s['audio']['input'])
 
 @unittest.skipUnless(os.getenv('RUN_DOCKER_TESTS')=='1' and shutil.which('docker'),'requires explicit RUN_DOCKER_TESTS=1 and built Docker image')

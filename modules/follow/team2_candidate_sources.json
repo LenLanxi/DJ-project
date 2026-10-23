@@ -21,7 +21,7 @@
     "modules/ai/pipeline.py": "fe94c2e0e44bf33ca705a93983f718066ff12be71e1f3a49648577a5104449cd",
     "modules/ai/program_runner.py": "6b5b90e018da57547a33b707b6e8c63e19e74b8e80395afb3830a54f73dc5c7e",
     "modules/ai/session.py": "0cceab1b4ebe46219226da35b672b2bae4ff919d5220d24d5d30e3fe6baaab4c",
-    "modules/ai/settings.py": "17598bdd9cba0fda75881a7ad2043412ae820e9c7520309033fa5fe3dc762255",
+    "modules/ai/settings.py": "9c0b2c3391c511e28fb306e7b0fd0ac572cdfac29ee8250acebd8059125afdc8",
     "modules/ai/test_agent.py": "91bdb73869145c0cf14af85e512bc7ba1944f88c64c0778b35ee94b598cc22c8",
     "modules/ai/test_demo.py": "607d44216a5634a145f87732421604d567985de8092b34486866e80472235bf3",
     "modules/ai/test_independent.py": "519537fefcdb83b9b288d1679c8390a29caf071914e3b42efa3e890ae8c141fe",
