@@ -36,6 +36,7 @@ if AI_DIR not in sys.path:
 
 import audio_config
 import audio_io
+import local_stt
 from model_client import ModelClient
 from voice_service import VoiceService
 
@@ -135,10 +136,26 @@ def transcribe(args, wav):
             return text, 'api'
         except Exception as exc:
             emit('STT', 'API 调用失败：%s' % exc)
+            emit('STT', '尝试本地 faster-whisper')
+    if not args.no_local_stt and local_stt.installed():
+        try:
+            started = time.monotonic()
+            engine = local_stt.LocalWhisper(args.whisper_model).warmup()
+            text = engine.transcribe(wav)
+            elapsed = (time.monotonic() - started) * 1000
+            if not text:
+                raise RuntimeError('本地模型没有识别到文字')
+            emit('STT', '识别文本：%s（来源：本地 faster-whisper %s，耗时 %.0fms，音频 %.2fs）'
+                 % (text, os.path.basename(local_stt.resolve_model(args.whisper_model)),
+                    elapsed, engine.last_info.get('duration', 0.0)))
+            return text, 'local'
+        except Exception as exc:
+            emit('STT', '本地转写失败：%s' % exc)
             emit('STT', '降级为键盘输入（Mock）')
     else:
         missing = [name for name in ('AI_STT_URL', 'AI_STT_MODEL') if not os.getenv(name)]
-        emit('STT', '未配置 %s，降级为键盘输入（Mock）' % '/'.join(missing))
+        emit('STT', '未配置 %s 且本地 faster-whisper 不可用，降级为键盘输入（Mock）'
+             % '/'.join(missing))
     text = mock_transcript(args)
     emit('STT', '识别文本：%s（来源：Mock 键盘）' % text)
     return text, 'mock'
@@ -215,6 +232,11 @@ def one_turn(args, input_device, output_device):
     if args.text:
         wav, text = None, args.text
         emit('录音', '已跳过（--text 模式）')
+    elif args.wav:
+        with open(args.wav, 'rb') as handle:
+            wav = handle.read()
+        pcm, rate, _channels = audio_io.decode_wav(wav)
+        emit('录音', '使用已有录音 %s（%.1f 秒，%dHz）' % (args.wav, len(pcm) / 2.0 / rate, rate))
     else:
         wav, _rate = record(args, input_device)
         if wav is None:
@@ -268,8 +290,9 @@ def self_check():
     failures = [item for item in checks if not item[1]]
     for name, ok, detail in checks:
         print('[%s] %s%s' % ('PASS' if ok else 'FAIL', name, ('  <- ' + detail) if detail and not ok else ''))
-    print('\n%d/%d 通过；STT=%s LLM=%s TTS=%s' % (
-        len(checks) - len(failures), len(checks), stt_ready(), llm_ready(), tts_ready()))
+    print('\n%d/%d 通过；STT-API=%s 本地STT=%s LLM=%s TTS=%s' % (
+        len(checks) - len(failures), len(checks), stt_ready(),
+        local_stt.installed() and local_stt.model_cached(), llm_ready(), tts_ready()))
     return 0 if not failures else 1
 
 
@@ -283,6 +306,10 @@ def parse_args(argv=None):
     parser.add_argument('--seconds', type=float, default=3.0, help='录音时长（1~20 秒）')
     parser.add_argument('--turns', type=int, default=1, help='连续跑几轮')
     parser.add_argument('--text', default='', help='跳过录音+STT，直接用这句文本')
+    parser.add_argument('--wav', default='', help='用已有 WAV 文件代替现场录音（便于复现）')
+    parser.add_argument('--no-local-stt', action='store_true', help='禁用本地 faster-whisper')
+    parser.add_argument('--whisper-model', default=None,
+                        help='本地模型名或目录（默认取 AI_LOCAL_STT_MODEL / small）')
     parser.add_argument('--mock-text', default='', help='Mock STT 时直接使用这句，不提示输入')
     parser.add_argument('--no-play', action='store_true', help='不播放合成语音')
     parser.add_argument('--audio-config', default=None, help='默认读取仓库根目录 audio_config.json')
@@ -310,8 +337,10 @@ def main(argv=None):
         emit('提示', '先跑：python test_audio_device.py --list，然后 '
                      'python test_audio_device.py --input-device N --output-device M --save-config audio_config.json')
         return 2
+    stt_desc = 'API' if stt_ready() else (
+        '本地 faster-whisper' if (not args.no_local_stt and local_stt.installed()) else 'Mock')
     emit('配置', 'STT=%s  LLM=%s(%s)  TTS=%s' % (
-        '已配置' if stt_ready() else 'Mock',
+        stt_desc,
         '已配置' if llm_ready() else 'Mock',
         os.getenv('AI_MODEL') or '-',
         '已配置' if tts_ready() else 'Windows SAPI'))

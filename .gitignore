@@ -234,3 +234,5 @@ auto_integration_report.json
 current_frame_fixed.jpg
 current_frame_raw_rgb.jpg
 live_test.jpg
+# === 本地 STT 模型与临时录音（体积大，不入库）===
+models/

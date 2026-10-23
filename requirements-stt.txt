@@ -1,0 +1,7 @@
+# Local STT (optional): faster-whisper, CPU only, no API key needed.
+# Install:
+#   .venv\Scripts\python.exe -m pip install -r requirements-stt.txt ^
+#       -i https://pypi.tuna.tsinghua.edu.cn/simple
+# Model files are NOT in this repo (models/ is gitignored, ~460 MB for small).
+# See SETUP_NEW_PC.md for the ModelScope download commands.
+faster-whisper>=1.0,<2

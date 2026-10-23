@@ -56,6 +56,17 @@ def main():
     speech_worker = __import__('concurrent.futures', fromlist=['ThreadPoolExecutor']).ThreadPoolExecutor(max_workers=1)
     def output(text):
         with output_lock: print('\n' + text, flush=True)
+    def transcribe(wav):
+        # 先走已配置的 STT API；没配或失败时回落本地 faster-whisper（无需 Key）
+        try:
+            return voice.transcribe(wav)
+        except Exception as exc:
+            output('语音识别 API 未就绪：' + str(exc))
+            import local_stt
+            if not local_stt.installed():
+                raise
+            output('改用本地 faster-whisper 识别……')
+            return local_stt.LocalWhisper().transcribe(wav)
     def speak(text, audio_event):
         if audio_event.is_set(): return
         try:
@@ -114,7 +125,7 @@ def main():
                     speech_worker.submit(lambda: None).result()
                     input('按回车开始录音，持续%s秒：' % config['record_seconds'])
                     wav = audio_io.record(config['record_seconds'], config['input_device'])
-                    text = voice.transcribe(wav)
+                    text = transcribe(wav)
                     print('识别结果：' + text)
                     if input('确认发送？输入 y：').lower() != 'y':
                         print('已取消，未调用模型和动作'); continue

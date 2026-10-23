@@ -113,6 +113,12 @@
 
 &#x20;  - 录音按设备原生采样率（本机耳机 16k/24k/44.1k 实测均可用）。
 
+&#x20;  - STT 优先级：`AI_STT_URL` 接口 → **本地 faster-whisper**（无需 Key）→ 键盘 Mock；本地模型放 `models/whisper/small`（已 gitignore）。
+
+&#x20;  - 本地模型从魔搭下载（huggingface 在当前网络被重置），命令见 `SETUP\_NEW\_PC.md` 第 4 节。
+
+> 新电脑冷启动（Python 版本 / 依赖镜像 / 模型下载 / 音频配置 / 双机注意事项）：见 [SETUP\_NEW\_PC.md](SETUP\_NEW\_PC.md)。
+
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 
 &#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）
