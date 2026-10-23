@@ -119,6 +119,24 @@
 
 > 新电脑冷启动（Python 版本 / 依赖镜像 / 模型下载 / 音频配置 / 双机注意事项）：见 [SETUP\_NEW\_PC.md](SETUP\_NEW\_PC.md)。
 
+3.10 未知指令安全兜底（听不懂绝不乱动）：
+
+&#x20;  - 规则：听不懂 / 不在动作库 / 大模型输出非法格式 / 代码被白名单拦下 → **不执行任何动作**，统一回复并播报「抱歉，我没听清，请再说一遍」。
+
+&#x20;  - 实现：`ai_agent.PROMPT` 增加硬性约束；`program_runner` 白名单拦截后统一话术；新增 `spoken` 字段专供 TTS（控制台仍保留技术细节）。
+
+&#x20;  - `demo_text.Demo` 的未知指令同样返回该话术，并保证不触碰飞机。
+
+&#x20;  - 回归：`python test\_unknown\_command.py`（7 项，离线，含"模型生成未授权代码"与"多语句"两种攻击面）。
+
+&#x20;  - 要听到播报需配置 `speak_replies: true`；未配置 TTS Key 时自动降级 Windows SAPI（base64 传文本，避免 GBK/UTF-8 乱码）。
+
+3.11 离线语音冒烟（不用麦克风、不发声）：
+
+&#x20;  `python test\_voice\_loop.py --stt-smoke`  —— SAPI 合成「向前飞」→ AGC/VAD → 本地 whisper → 断言识别正确
+
+&#x20;  - 本地 STT 前端：AGC 目标 `-20dBFS`（上限 `+24dB`）、VAD 静音 `300ms`/门限 `0.5`；可用 `AI\_LOCAL\_STT\_AGC`、`AI\_LOCAL\_STT\_AGC\_MAX\_DB`、`AI\_LOCAL\_STT\_VAD\_THRESHOLD` 调整。
+
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 
 &#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）

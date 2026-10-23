@@ -165,10 +165,24 @@ $PY = ".\.venv\Scripts\python.exe"
 & $PY test_ground_real.py --self-check        # 期望 13/13（安全限制）
 & $PY test_live_view.py --self-check          # 期望 7/7（占位帧/色彩/探针）
 & $PY test_voice_loop.py --self-check         # 期望 9/9（语音链路）
+& $PY test_voice_loop.py --stt-smoke          # 期望 PASS（SAPI合成→本地识别）
+& $PY test_unknown_command.py                 # 期望 7/7（听不懂就问、绝不乱动）
 & $PY run_auto_integration.py --self-test     # 期望 17/17（拦截+抓帧）
 & $PY run_final_real_sim.py --self-check      # 期望 6/6（跨组联调逻辑）
 & $PY test_concurrency.py                     # 期望 3 项（急停 50ms 内）
 ```
+
+### 8.1 让「听不懂就反问」真正出声
+
+`speak_replies` 默认是 `false`（不播报）。演示前创建一个配置（不入库）：
+
+```powershell
+'{"record_seconds": 4, "speak_replies": true}' | Set-Content config.demo.json -Encoding utf8
+cd modules\ai
+..\..\.venv\Scripts\python.exe main.py --live --config ..\..\config.demo.json --sdk-stub-root ..\..
+```
+
+然后把 `config.demo.json` 加进 `.gitignore` 或直接删掉即可（不含密钥，但仍属本机配置）。
 
 真机（拆桨叶）顺序：
 ```powershell

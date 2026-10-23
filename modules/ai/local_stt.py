@@ -12,6 +12,7 @@
     HF_ENDPOINT            首次下载走镜像，例如 https://hf-mirror.com
 """
 import io
+import math
 import os
 import re
 import threading
@@ -21,6 +22,16 @@ DEFAULT_DIR = os.getenv('AI_LOCAL_STT_DIR') or os.path.join(ROOT, 'models', 'whi
 DEFAULT_MODEL = os.getenv('AI_LOCAL_STT_MODEL', 'small')
 DEFAULT_COMPUTE = os.getenv('AI_LOCAL_STT_COMPUTE', 'int8')
 DEFAULT_LANGUAGE = os.getenv('AI_LOCAL_STT_LANG', 'zh')
+
+# --- 前端处理（AGC / VAD）---
+AGC_ENABLED = os.getenv('AI_LOCAL_STT_AGC', '1') not in ('0', 'false', 'False')
+AGC_TARGET_DB = float(os.getenv('AI_LOCAL_STT_AGC_TARGET_DB', '-20'))    # 目标 RMS
+AGC_MAX_DB = float(os.getenv('AI_LOCAL_STT_AGC_MAX_DB', '24'))           # 最大放大倍数
+VAD_ENABLED = os.getenv('AI_LOCAL_STT_VAD', '1') not in ('0', 'false', 'False')
+VAD_MIN_SILENCE_MS = int(os.getenv('AI_LOCAL_STT_VAD_MIN_SILENCE_MS', '300'))
+VAD_PAD_MS = int(os.getenv('AI_LOCAL_STT_VAD_PAD_MS', '200'))
+VAD_THRESHOLD = float(os.getenv('AI_LOCAL_STT_VAD_THRESHOLD', '0.5'))
+BEAM_SIZE = int(os.getenv('AI_LOCAL_STT_BEAM', '1'))
 
 _lock = threading.Lock()
 _models = {}
@@ -59,6 +70,40 @@ def clean_text(text):
     if not text:
         return ''
     return re.sub(r'\s+', ' ', text.strip().strip(_TRIM)).strip()
+
+
+def normalize_wav(wav, target_db=None, max_gain_db=None):
+    """自动增益：把音量拉到目标 RMS（不影响音色），返回 (新WAV, 应用增益dB, RMS信息)。
+
+    - 先转 float、去直流、混为单声道；
+    - 增益受目标 RMS 与最大放大倍数限制，再受峰值 0.98 削波保护约束；
+    - 全程静音（rms < 1e-5）直接原样返回，避免把底噪放大成"人声"。
+    """
+    target_db = AGC_TARGET_DB if target_db is None else target_db
+    max_gain_db = AGC_MAX_DB if max_gain_db is None else max_gain_db
+    if not AGC_ENABLED:
+        return wav, 0.0, {}
+    import numpy as np
+    from audio_io import decode_wav, wav_bytes
+    pcm, rate, channels = decode_wav(wav)
+    samples = np.frombuffer(pcm, dtype='<i2').astype(np.float32) / 32768.0
+    if channels > 1:
+        samples = samples.reshape(-1, channels).mean(axis=1)
+    if samples.size == 0:
+        return wav, 0.0, {}
+    samples = samples - float(samples.mean())
+    rms = float(np.sqrt((samples ** 2).mean()))
+    peak = float(np.abs(samples).max())
+    info = {'rms_db': round(20 * math.log10(max(rms, 1e-9)), 1),
+            'peak_db': round(20 * math.log10(max(peak, 1e-9)), 1)}
+    if rms <= 1e-5 or peak <= 1e-5:
+        return wav, 0.0, info
+    gain = min(10 ** (target_db / 20.0) / rms, 10 ** (max_gain_db / 20.0))
+    if peak * gain > 0.98:
+        gain = 0.98 / peak
+    info['gain_db'] = round(20 * math.log10(gain), 1) if gain > 0 else 0.0
+    boosted = np.clip(samples * gain, -1.0, 1.0)
+    return wav_bytes((boosted * 32767).astype('<i2').tobytes(), rate), info['gain_db'], info
 
 
 def installed():
@@ -110,17 +155,22 @@ class LocalWhisper:
 
     def transcribe(self, wav):
         model = _load(self.name, self.compute_type)
+        boosted, gain_db, level = normalize_wav(wav)
         # 传字节流让 faster-whisper 用 ffmpeg 解码并重采样到 16k，
         # 避免把 44.1k 的数组按 16k 解释（会导致语速/音调错误）
         segments, info = model.transcribe(
-            io.BytesIO(wav), language=self.language, beam_size=1,
-            vad_filter=True, condition_on_previous_text=False,
+            io.BytesIO(boosted), language=self.language, beam_size=BEAM_SIZE,
+            vad_filter=VAD_ENABLED,
+            vad_parameters=dict(min_silence_duration_ms=VAD_MIN_SILENCE_MS,
+                                speech_pad_ms=VAD_PAD_MS, threshold=VAD_THRESHOLD),
+            condition_on_previous_text=False, without_timestamps=True,
             initial_prompt=INITIAL_PROMPT if self.language.startswith('zh') else None)
         raw = ''.join(segment.text for segment in segments).strip()
         text = clean_text(to_simplified(raw))
         self.last_info = {'language': getattr(info, 'language', self.language),
                           'duration': round(float(getattr(info, 'duration', 0.0)), 2),
-                          'raw': raw, 'converted': clean_text(raw) != raw}
+                          'gain_db': gain_db, 'level': level,
+                          'vad': VAD_ENABLED, 'raw': raw, 'converted': clean_text(raw) != raw}
         return text
 
 
@@ -128,8 +178,11 @@ def describe():
     if not installed():
         return '未安装（pip install faster-whisper）'
     state = '已缓存' if model_cached() else '未缓存（首次运行需下载）'
-    return 'faster-whisper %s，模型=%s（%s），目录=%s' % (
-        _version(), DEFAULT_MODEL, state, DEFAULT_DIR)
+    return ('faster-whisper %s，模型=%s（%s），目录=%s，AGC=%s(目标%.0fdB/上限%.0fdB)，'
+            'VAD=%s(静音%dms/门限%.2f)' % (
+                _version(), DEFAULT_MODEL, state, DEFAULT_DIR,
+                'on' if AGC_ENABLED else 'off', AGC_TARGET_DB, AGC_MAX_DB,
+                'on' if VAD_ENABLED else 'off', VAD_MIN_SILENCE_MS, VAD_THRESHOLD))
 
 
 def _version():

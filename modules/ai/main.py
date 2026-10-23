@@ -74,6 +74,16 @@ def main():
             if not audio_event.is_set():
                 audio_io.play(wav, config['output_device'], audio_event)
         except (ValueError, RuntimeError, OSError) as exc:
+            # TTS 未配置/失败：降级到 Windows SAPI（离线，无需 Key）
+            try:
+                import offline_tts
+                if offline_tts.available() and not audio_event.is_set():
+                    offline_tts.speak(text[:2000])
+                    output('语音合成未配置或失败（' + str(exc) + '），已用 Windows SAPI 离线播报')
+                    return
+            except Exception as fallback_exc:
+                output('语音播放未完成：' + str(exc) + '；降级也失败：' + str(fallback_exc) + '；文字结果仍有效')
+                return
             output('语音播放未完成：' + str(exc) + '；文字结果仍有效')
     def show(future, started, audio_event):
         try:
@@ -89,7 +99,7 @@ def main():
                 except OSError:
                     output('日志保存失败；以上执行结果仍有效，请勿因此重复执行动作')
             if args.live and config['speak_replies'] and not record.get('cancelled'):
-                speech_worker.submit(speak, str(record.get('reply', record.get('result', ''))), audio_event)
+                speech_worker.submit(speak, str(record.get('spoken') or record.get('reply', record.get('result', ''))), audio_event)
         except Exception as exc:
             output('本轮未完成（不自动重试）：' + str(exc))
     print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')

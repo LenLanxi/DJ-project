@@ -26,7 +26,8 @@ class Demo:
             '前进30厘米': lambda: drone.move_forward('model', 30),
         }
         if text not in actions:
-            return '未识别固定指令，没有执行动作。' + HELP
+            # 未知/听写错误的指令：绝不执行动作，并且必须让 TTS 能播报这句反问
+            return '抱歉，我没听清，请再说一遍；未识别固定指令，没有执行动作。' + HELP
         was_following = drone.is_following()
         owns_follow = drone.get_status().get('owner') == 'follow'
         ticket = None

@@ -144,10 +144,14 @@ def transcribe(args, wav):
             text = engine.transcribe(wav)
             elapsed = (time.monotonic() - started) * 1000
             if not text:
-                raise RuntimeError('本地模型没有识别到文字')
-            emit('STT', '识别文本：%s（来源：本地 faster-whisper %s，耗时 %.0fms，音频 %.2fs）'
+                raise RuntimeError('本地模型没有识别到文字（可能只有底噪，VAD 已过滤）')
+            info = engine.last_info
+            level = info.get('level') or {}
+            emit('STT', '识别文本：%s（来源：本地 faster-whisper %s，耗时 %.0fms，音频 %.2fs，'
+                        'AGC %+.1fdB，输入 RMS %s dBFS，VAD=%s）'
                  % (text, os.path.basename(local_stt.resolve_model(args.whisper_model)),
-                    elapsed, engine.last_info.get('duration', 0.0)))
+                    elapsed, info.get('duration', 0.0), info.get('gain_db', 0.0),
+                    level.get('rms_db', '?'), 'on' if info.get('vad') else 'off'))
             return text, 'local'
         except Exception as exc:
             emit('STT', '本地转写失败：%s' % exc)
@@ -188,14 +192,8 @@ def ask_llm(args, text):
 
 def speak_sapi(text):
     """Windows 自带语音合成：无需任何 Key，离线可用。"""
-    script = ('Add-Type -AssemblyName System.Speech;'
-              '$s = New-Object System.Speech.Synthesis.SpeechSynthesizer;'
-              '$s.Rate = 1;'
-              '$s.Speak([Console]::In.ReadToEnd())')
-    completed = subprocess.run(['powershell', '-NoProfile', '-Command', script],
-                               input=text, text=True, capture_output=True, timeout=120)
-    if completed.returncode != 0:
-        raise RuntimeError((completed.stderr or completed.stdout or 'SAPI 调用失败').strip()[:200])
+    import offline_tts
+    offline_tts.speak(text)
 
 
 def speak(args, text, device):
@@ -300,9 +298,37 @@ def namespace_no_play(text):
     return argparse.Namespace(no_play=True, text=text)
 
 
+def stt_smoke(args):
+    """离线语音链路冒烟：SAPI 合成“向前飞” → AGC/VAD → 本地 whisper → 断言识别结果。"""
+    if not local_stt.installed():
+        print('[FAIL] 未安装 faster-whisper（pip install -r requirements-stt.txt）')
+        return 1
+    import offline_tts
+    path = os.path.join(tempfile.gettempdir(), 'voice_loop_smoke.wav')
+    try:
+        offline_tts.synthesize_to_wav('向前飞', path)
+    except Exception as exc:
+        print('[FAIL] SAPI 合成失败：%s' % exc)
+        return 1
+    wav = open(path, 'rb').read()
+    started = time.monotonic()
+    engine = local_stt.LocalWhisper(args.whisper_model).warmup()
+    text = engine.transcribe(wav)
+    info = engine.last_info
+    level = info.get('level') or {}
+    print('[STT] 识别文本：%s（耗时 %.0fms，AGC %+.1fdB，输入 RMS %s dBFS，VAD=%s）'
+          % (text, (time.monotonic() - started) * 1000, info.get('gain_db', 0.0),
+             level.get('rms_db', '?'), 'on' if info.get('vad') else 'off'))
+    ok = '向前飞' in text
+    print('[%s] 合成语音「向前飞」被正确识别' % ('PASS' if ok else 'FAIL'))
+    return 0 if ok else 1
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='有线耳机 + 真实语音 API 端到端测试（不连飞机）')
     parser.add_argument('--self-check', action='store_true', help='离线自检，不碰声卡、不联网')
+    parser.add_argument('--stt-smoke', action='store_true',
+                        help='离线语音冒烟：SAPI 合成“向前飞”再本地识别（不发声、不用麦克风）')
     parser.add_argument('--seconds', type=float, default=3.0, help='录音时长（1~20 秒）')
     parser.add_argument('--turns', type=int, default=1, help='连续跑几轮')
     parser.add_argument('--text', default='', help='跳过录音+STT，直接用这句文本')
@@ -327,6 +353,8 @@ def main(argv=None):
     args = parse_args(argv)
     if args.self_check:
         return self_check()
+    if args.stt_smoke:
+        return stt_smoke(args)
     if not 1 <= args.seconds <= 20:
         emit('错误', '--seconds 必须在 1~20 之间')
         return 2
