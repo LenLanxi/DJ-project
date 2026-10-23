@@ -21,7 +21,8 @@
 
 真机模式按键（窗口或终端都行）
     v 3组速度演示   c 4组动作演示   d 释放控制权
-    w 电机怠速开    s 电机停        b 打印状态      q/ESC 退出
+    s 急停归零      b 打印状态      q/ESC 退出
+    w 只打印提示：标准 Tello 固件不支持 motoron，电机验证请走 takeoff
 """
 import argparse
 import os
@@ -64,7 +65,7 @@ TAG_OF = {'update_velocity': '3组', 'takeoff': '4组', 'rotate': '4组', 'land'
           'start_follow': '跟随', 'stop_follow': '跟随'}
 TAG_OF.update({name: '4组' for name in ACTIONS})
 WINDOW = 'Ground Test Monitor'
-HELP = 'v=3组速度  c=4组动作  d=释放控制权  w/s=电机  b=状态  q=退出'
+HELP = 'v=3组速度  c=4组动作  d=释放控制权  s=急停归零  b=状态  w=提示  q=退出'
 
 _ANSI = False
 _OUT = None
@@ -491,14 +492,14 @@ def format_snapshot(snapshot, fps=None):
     return text
 
 
-def annotate(frame, snapshot, motors, fps):
+def annotate(frame, snapshot, fps):
     import cv2
     lines = [
         ('GROUND MONITOR - NO TAKEOFF', (0, 0, 255)),
         ('battery %s%%  height %scm  link %s  owner %s' % (
             snapshot['battery'], snapshot['height_cm'],
             'ok' if snapshot['link_ok'] else 'FAIL', snapshot['owner']), (0, 255, 0)),
-        ('motors %s  %.1ffps' % ('ON' if motors else 'off', fps), (0, 255, 0)),
+        ('video %.1ffps  (motoron 不支持，电机验证走 takeoff)' % (fps,), (0, 255, 0)),
         (HELP, (255, 255, 0)),
     ]
     for index, (text, color) in enumerate(lines):
@@ -691,7 +692,6 @@ def run_real(args, throttle):
 
     drone = ai_bridge.UnifiedDrone()
     owner = None
-    motors = False
     deadline = time.time() + args.seconds if args.seconds else None
     last_count, last_time = -1, time.time()
     fps, next_status = 0.0, time.time() + args.status_interval
@@ -712,7 +712,7 @@ def run_real(args, throttle):
                     if last_count >= 0:
                         fps = (count - last_count) / max(1e-6, now - last_time)
                     last_count, last_time = count, now
-                    cv2.imshow(WINDOW, annotate(frame, poller.snapshot(), motors, fps))
+                    cv2.imshow(WINDOW, annotate(frame, poller.snapshot(), fps))
                     window_created = True
                 # 15ms 退让：既保证按键响应，又绝不让渲染循环吃满 CPU
                 pressed = cv2.waitKey(15) & 0xFF
@@ -739,12 +739,13 @@ def run_real(args, throttle):
                     owner = _release(drone, owner)
                     poller.refresh()
                 elif key == 'w':
-                    motors = _driver.motors_on()
-                    emit('电机', '怠速开：%s' % ('已确认' if motors else '指令未确认'))
+                    emit('电机', '标准 Tello 不支持 motoron（固件回 error）；'
+                                '验证电机请用 takeoff，启动时加 --allow-real-takeoff')
                 elif key == 's':
-                    _driver.motors_off()
-                    motors = False
-                    emit('电机', '已停止')
+                    _driver.set_velocity((0, 0, 0, 0), 'manual_stop')
+                    # motoroff 标准 Tello 会回 error，可能等满 12s 超时，放到后台线程免得卡住急停
+                    threading.Thread(target=_driver.motors_off, daemon=True).start()
+                    emit('急停', '已发送 rc 0 0 0 0，并在后台补发 motoroff（标准 Tello 会忽略）')
             if deadline and time.time() >= deadline:
                 break
     except KeyboardInterrupt:

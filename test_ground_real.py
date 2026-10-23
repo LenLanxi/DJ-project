@@ -3,7 +3,8 @@
 安全约定（本脚本强制遵守）
   * 从不发送 takeoff / throwfly，起飞相关动作一律不接线；
   * 必须显式加 --props-removed 才会连接真机，防止误连接带桨叶的飞机；
-  * 'w' 只发 motoron（电机怠速转），'s' 发 motoroff；
+  * 标准 Tello 固件不支持 Motor On（`motoron` 回 error），'w' 只打印提示；
+    电机验证请走 test_ground_real 之外的 takeoff 流程（main.py --allow-real-takeoff）。
   * 退出时自动 motoroff + streamoff + 断开，任何异常都会走到清理分支。
 
 用法
@@ -11,7 +12,7 @@
     python test_ground_real.py --props-removed         # 真机地面测试
     python test_ground_real.py --props-removed --no-video --seconds 20
 
-按键：w 电机怠速 / s 电机停 / b 打印状态 / r 重启视频流 / q 或 ESC 退出
+按键：w 提示（不支持 motoron） / s 急停归零 / b 打印状态 / r 重启视频流 / q 或 ESC 退出
 """
 import argparse
 import os
@@ -20,7 +21,7 @@ import time
 
 import drone_sdk._driver as driver
 
-KEY_HELP = "w=电机怠速  s=电机停  b=打印状态  r=重启视频流  q/ESC=退出"
+KEY_HELP = "w=提示  s=急停归零  b=打印状态  r=重启视频流  q/ESC=退出"
 
 
 def disable_quick_edit():
@@ -115,14 +116,14 @@ def print_health(info):
         print('最近错误：%s' % info['last_error'])
 
 
-def overlay(frame, info, motors, fps):
+def overlay(frame, info, fps):
     import cv2
     lines = [
         'GROUND TEST - NO TAKEOFF',
         'battery %s%%  height %scm  speed %scm/s' % (
             info['battery'], info['height_cm'], info['speed_cm_s']),
-        'link %s  motors %s  fps %.1f' % (
-            'ok' if info['link_ok'] else 'FAULT', 'ON' if motors else 'off', fps),
+        'link %s  fps %.1f  (motoron 不支持)' % (
+            'ok' if info['link_ok'] else 'FAULT', fps),
         KEY_HELP,
     ]
     for index, text in enumerate(lines):
@@ -151,7 +152,6 @@ def run(args):
     if not video:
         args.no_video = True
 
-    motors = False
     deadline = time.time() + args.seconds if args.seconds else None
     last_frame = time.time() - 1.0
     misses = 0
@@ -186,20 +186,18 @@ def run(args):
                 time.sleep(0.5)
                 continue
             misses = 0
-            cv2.imshow('Tello Ground Test (no takeoff)', overlay(frame, info, motors, fps))
+            cv2.imshow('Tello Ground Test (no takeoff)', overlay(frame, info, fps))
             key = cv2.waitKey(15) & 0xFF
             if deadline and now >= deadline:
                 break
             if key in (ord('q'), 27):
                 break
             if key == ord('w'):
-                print('发送电机怠速指令（最长等待 %ds 确认）……' % driver.COMMAND_DEADLINE_S['land'])
-                motors = driver.motors_on()
-                print('电机怠速：%s' % ('已开启' if motors else '指令未确认'))
+                print('标准 Tello 固件不支持 motoron（turn_motor_on 会回 error）。')
+                print('电机验证请走 takeoff：main.py --real-drone --allow-real-takeoff')
             elif key == ord('s'):
-                driver.motors_off()
-                motors = False
-                print('电机：已停止')
+                driver.set_velocity((0, 0, 0, 0), 'manual_stop')
+                print('已发送 rc 0 0 0 0（急停归零）。')
             elif key == ord('b'):
                 print_health(driver.health())
             elif key == ord('r'):
@@ -227,7 +225,7 @@ def main(argv=None):
         print('确认桨叶已拆下后重新运行：python test_ground_real.py --props-removed')
         return 2
     disable_quick_edit()
-    print('地面测试启动：本脚本不含任何起飞指令，w 只做电机怠速。')
+    print('地面测试启动：本脚本不含任何起飞指令；标准 Tello 不支持 motoron，电机验证请走 takeoff。')
     return run(args)
 
 

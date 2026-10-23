@@ -371,7 +371,11 @@ def _keepalive_loop(tello, stop):
 
 
 def motors_on():
-    """Spin the motors in idle (cooling) mode; never lifts off by itself."""
+    """Spin the motors in idle (cooling) mode; never lifts off by itself.
+
+    Standard Tello firmware does not implement Motor On and answers ``error``;
+    use ``takeoff`` to verify the motors on real hardware.
+    """
     with _lock: tello = _tello
     _record('motor_test', state='on')
     if tello is None: return False

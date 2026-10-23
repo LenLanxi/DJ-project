@@ -2,7 +2,7 @@
   "commit": "b9f37f9d857e95fae2071b597fa2fa2bf89705fb",
   "sha256_lf": {
     "drone_sdk/__init__.py": "13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd",
-    "drone_sdk/_driver.py": "cc55c8a42299f40c372591321fda5d83d2c4841e9f80a1c6f812b508fbfbaad6",
+    "drone_sdk/_driver.py": "70868eadb2461b98757e15fab63de4f2efa8a1199bdfbe08ca08196a64c91b79",
     "drone_sdk/ai_bridge.py": "bd4ed723fdce4583337063a82a4ee299c01693bc5476992efc46bcfe3e8e5ae5",
     "drone_sdk/contract.py": "463d3da6cf79895f1cf6d6818674ba77e7d88525562e0d338ed3a05c68a89787",
     "drone_sdk/controller.py": "182d288f80a5140c689691a16b4821b8c928092253f41de9187d73d2dc6dfbff",
