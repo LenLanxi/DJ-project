@@ -1,6 +1,8 @@
 """Unified terminal entry. The aircraft is ALWAYS a local mock."""
 import argparse
 import json
+import os
+import sys
 import time
 import threading
 from pathlib import Path
@@ -14,7 +16,7 @@ from settings import load
 import audio_io
 
 HELP = '''输入文字与模拟飞机互动。命令：
- /voice 录音（回车开始，固定时长，转写后需确认）
+ /voice 录音（回车开始，固定时长，识别后直接执行；加 --voice-confirm 可二次确认）
  /image 图片路径 | 问题   本地测试图片问答
  /stop 停止模拟运动；/land 模拟降落（均绕过模型）
  /mute 停止当前播报；/reset 清空对话；/status 查看模拟状态；/quit 退出
@@ -27,6 +29,10 @@ def main():
     parser.add_argument('--image', help='本地测试图片；允许文字或语音提出看图问题')
     parser.add_argument('--devices', action='store_true')
     parser.add_argument('--sdk-stub-root', help='显式使用已核对的三组联合模拟SDK；不连接飞机')
+    parser.add_argument('--voice-confirm', action='store_true',
+                        help='录音识别后二次确认（默认直接执行，减少现场拖节奏）')
+    parser.add_argument('--voice-confirm-timeout', type=float, default=3.0,
+                        help='配合 --voice-confirm：等待秒数，超时自动执行（0=一直等）')
     args = parser.parse_args()
     try:
         config = load(args.config)
@@ -104,11 +110,51 @@ def main():
             output('本轮未完成（不自动重试）：' + str(exc))
     print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
     print('语音由AI合成；本版本不能连接真实无人机。\n' + HELP)
+
+    def confirm_execute(recognized, timeout):
+        """--voice-confirm 时才二次确认；默认直接执行。超时可自动放行。"""
+        if not args.voice_confirm:
+            return True
+        suffix = ('（%.0f 秒后自动执行）' % timeout) if timeout and timeout > 0 else ''
+        prompt = '确认执行「%s」？按 y 确认，其它键取消%s：' % (recognized[:30], suffix)
+        if timeout and timeout > 0 and os.name == 'nt':
+            import msvcrt
+            print(prompt, end='', flush=True)
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                if msvcrt.kbhit():
+                    char = msvcrt.getwch()
+                    print(char, flush=True)
+                    return char.lower() == 'y'
+                time.sleep(.05)
+            print(' [超时，自动执行]', flush=True)
+            return True
+        return input(prompt).strip().lower() == 'y'
+
+    empty_streak, last_empty = 0, 0.0
+    try:
+        interactive = bool(sys.stdin and sys.stdin.isatty())
+    except Exception:
+        interactive = False
     try:
         while True:
             try: text = input('你：').strip()
-            except EOFError: break
-            if not text: continue
+            except (EOFError, KeyboardInterrupt): break
+            except OSError as exc:          # 控制台句柄异常：绝不能 continue，否则会死循环刷屏
+                output('读取输入失败，已退出会话：' + str(exc)); break
+            if not text:
+                # 交互式终端里空回车是正常操作，直接重画提示符；
+                # 只有输入流非终端（管道/重定向）快速返回空串时才判定为跑飞
+                if interactive:
+                    continue
+                now = time.monotonic()
+                empty_streak = empty_streak + 1 if now - last_empty < .2 else 0
+                last_empty = now
+                if empty_streak >= 3:
+                    output('检测到输入流异常（连续空输入），已安全退出，避免死循环')
+                    break
+                continue
+            empty_streak = 0
             if text in ('/quit', '退出'): break
             if text == '/mute': cancel_audio.set(); continue
             if text in ('/stop', '/land'):
@@ -128,7 +174,7 @@ def main():
                 continue
             try:
                 if text == '/voice':
-                    if not args.live: raise ValueError('语音识别需要--live及语音API配置')
+                    if not args.live: raise ValueError('语音识别需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
                     if session.busy: raise ValueError('请先等待当前任务结束')
                     cancel_audio.set()
                     # Sounddevice allows one recorder/player at a time. Wait for prior speech to end.
@@ -137,7 +183,10 @@ def main():
                     wav = audio_io.record(config['record_seconds'], config['input_device'])
                     text = transcribe(wav)
                     print('识别结果：' + text)
-                    if input('确认发送？输入 y：').lower() != 'y':
+                    if not text.strip():
+                        print('没有识别到有效内容，未执行任何动作；请再说一遍')
+                        continue
+                    if not confirm_execute(text, args.voice_confirm_timeout):
                         print('已取消，未调用模型和动作'); continue
                 if text.startswith('/image '):
                     if not args.live: raise ValueError('图片问答需要--live及支持视觉的模型')
@@ -154,10 +203,13 @@ def main():
                 started = time.monotonic()
                 f = session.submit(text)
                 f.add_done_callback(lambda f, s=started, e=cancel_audio: show(f, s, e))
-            except (ValueError, RuntimeError, OSError, EOFError) as exc:
+            except (ValueError, RuntimeError, OSError) as exc:
+                # EOFError 不在这里吞：输入流结束必须让主循环退出，否则会刷屏死循环
                 output('未继续处理：' + str(exc))
     except KeyboardInterrupt:
         print('\n结束会话')
+    except EOFError:
+        print('\n输入流已结束（EOF），退出会话')
     finally:
         cancel_audio.set()
         session.close()

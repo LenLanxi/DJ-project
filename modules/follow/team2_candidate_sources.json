@@ -16,7 +16,7 @@
     "modules/ai/diagnose.py": "2bb44b775161d19bf5c3300a2170a025125da3779c0e65f541b73a271c77ed40",
     "modules/ai/drone_adapter.py": "5d1c23d0de00ac9d4f63dca9f91c4bb566a6513724804c066b6a283f1d35f550",
     "modules/ai/http_transport.py": "0d9c6b9102eab07190ffb4f88cedea8c37e04aba73576ce345dad743664eaf7d",
-    "modules/ai/main.py": "907ad2a12a135ed5048f4c0aba2a2a9728c24ea7c626d7c984cecb6a035df6d4",
+    "modules/ai/main.py": "2a2fb159c7eb13c8ecf44a6536d9382a030894d42caf263b3bac49966fa7494f",
     "modules/ai/model_client.py": "1a3ca920e71c7cc77b9f704e4d2650f994e4867523a9aacdd36c1b10314e5438",
     "modules/ai/pipeline.py": "fe94c2e0e44bf33ca705a93983f718066ff12be71e1f3a49648577a5104449cd",
     "modules/ai/program_runner.py": "6b5b90e018da57547a33b707b6e8c63e19e74b8e80395afb3830a54f73dc5c7e",
