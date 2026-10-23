@@ -6,7 +6,8 @@ explicitly (test_ground_real.py does that). Records prove software ordering,
 never physical stopping, landing or motor state.
 
 Real-mode safety contract
-  * speed hard ceiling 150 cm/s (MAX_SPEED_CM_S); firmware accepts 10..100 cm/s
+  * speed hard ceiling 100 cm/s (MAX_SPEED_CM_S), identical to the firmware
+    'speed' range 10..100; anything faster is rejected instead of clamped
   * 2.5 m ceiling (MAX_HEIGHT_CM): an ascent is clamped to the remaining room
     and rejected once less than 20 cm is left
   * RC channels are clamped to +/-100 and forced to 0 while on the ground
@@ -22,8 +23,7 @@ import time
 
 SIMULATED = True
 
-MAX_SPEED_CM_S = 150
-FIRMWARE_SPEED_LIMIT = 100
+MAX_SPEED_CM_S = 100
 MIN_SPEED_CM_S = 10
 DEFAULT_SPEED_CM_S = 50
 MAX_HEIGHT_CM = 250
@@ -252,9 +252,8 @@ def set_speed(cm_s):
     if type(cm_s) is not int or not MIN_SPEED_CM_S <= cm_s <= MAX_SPEED_CM_S:
         raise ValueError('speed_out_of_range:%s' % (cm_s,))
     with _lock: _speed_cm_s, tello = cm_s, _tello
-    firmware_speed = min(cm_s, FIRMWARE_SPEED_LIMIT)
-    if tello is None: return firmware_speed
-    ok, _error = _call_real(lambda: tello.set_speed(firmware_speed),
+    if tello is None: return cm_s
+    ok, _error = _call_real(lambda: tello.set_speed(cm_s),
                             action='speed', deadline=12.0)
     return ok
 

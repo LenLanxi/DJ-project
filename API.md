@@ -112,7 +112,7 @@
 
 > 默认仍是模拟模式（`SIMULATED=True`），离线测试行为不变；只有 `\_driver.connect()` 成功后才切到真机模式。
 
-\- \*\*限速\*\*: 任何速度请求超过 `MAX\_SPEED\_CM\_S = 150` 直接拒绝（`ValueError`）；下发固件时按 Tello `speed` 命令上限 `100 cm/s` 夹紧。默认地面安全速度 `50 cm/s`。
+\- \*\*限速\*\*: 任何速度请求超过 `MAX\_SPEED\_CM\_S = 100` 直接拒绝（`ValueError`），与 Tello `speed` 命令固件范围 10\~100 完全一致，不再做二次夹紧。默认地面安全速度 `50 cm/s`。
 
 \- \*\*限高 2.5m\*\*: 上升通过 `\_plan\_ascent()` 计算剩余空间，超出部分被夹紧；剩余不足 20cm 时整条上升指令被拒绝（返回 `ok=False`，事件 `height\_limit\_rejected`）。
 

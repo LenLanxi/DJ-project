@@ -13,7 +13,7 @@ land、stop_motion、update_velocity：ok=True时status=accepted，is_blocking=F
 accepted只表示模拟请求已接收，不能宣称实际停止或实际落地。
 基础动作完成返回completed；驱动失败、被取消、失去控制权或参数不符返回failed。
 驱动默认仍为可检查的模拟器；等待中的旧动作被中断后即使晚返回，也返回action_cancelled。
-只有显式调用 drone_sdk/_driver.connect() 才会连接真机（地面测试专用；限速150cm/s、限高2.5m、RC通道±100、指令超时与断连保护，interrupt永不阻塞）。
+只有显式调用 drone_sdk/_driver.connect() 才会连接真机（地面测试专用；限速100cm/s、限高2.5m、RC通道±100、指令超时与断连保护，interrupt永不阻塞）。
 controller 与 get_status 仍上报 simulated=True，真机状态以 _driver.health() 为准；真飞行尚未授权。
 
 本次授权编号（向后兼容的可选字段）

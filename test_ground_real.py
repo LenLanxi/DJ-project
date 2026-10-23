@@ -49,8 +49,8 @@ def self_check():
         check('速度超过 %d cm/s 被拒绝' % driver.MAX_SPEED_CM_S, False, '未抛出 ValueError')
     except ValueError:
         check('速度超过 %d cm/s 被拒绝' % driver.MAX_SPEED_CM_S, True)
-    check('速度按固件上限 %d cm/s 下发' % driver.FIRMWARE_SPEED_LIMIT,
-          driver.set_speed(driver.MAX_SPEED_CM_S) == driver.FIRMWARE_SPEED_LIMIT)
+    check('速度上限 %d cm/s 与固件一致' % driver.MAX_SPEED_CM_S,
+          driver.MAX_SPEED_CM_S == 100 and driver.set_speed(driver.MAX_SPEED_CM_S) == 100)
 
     driver._height_cm = 200
     granted = driver._plan_ascent(80)
