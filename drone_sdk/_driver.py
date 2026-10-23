@@ -18,6 +18,7 @@ Real-mode safety contract
     can never delay an emergency stop
 """
 from collections import deque
+import re
 import threading
 import time
 
@@ -319,11 +320,15 @@ def health():
 def _tello_class(timeout):
     import djitellopy
 
+    # djitellopy 的 send_control_command 被 @enforce_types 校验，timeout 必须是 int
+    timeout = max(1, int(round(float(timeout))))
+
     class _Tello(djitellopy.Tello):
         RESPONSE_TIMEOUT = timeout
         FRAME_GRAB_TIMEOUT = timeout
-        def __init__(self):
-            super().__init__()
+        def __init__(self, host=None):
+            # 基类 __init__ 的 host 默认值在定义时就绑死成 TELLO_IP，必须显式传
+            super().__init__(**({} if host is None else {'host': host}))
             self.retry_count = 1
         def send_control_command(self, command, timeout=timeout):
             return djitellopy.Tello.send_control_command(self, command, timeout=timeout)
@@ -335,19 +340,20 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
     global _tello, SIMULATED, _link_ok, _faults, _last_error, _height_cm, _flying, _keepalive_stop
     with _lock:
         if _tello is not None: return health()
+    if address and not re.match(r'^\d{1,3}(\.\d{1,3}){3}$', str(address)):
+        raise ValueError('invalid_address:%s' % (address,))
     try:
-        tello_class = _tello_class(float(timeout))
+        tello_class = _tello_class(timeout)
     except Exception as exc:
         raise RuntimeError('djitellopy_unavailable: %s' % exc)
-    tello = tello_class()
-    if address: tello.TELLO_IP = address
+    tello = tello_class(str(address) if address else None)
     tello.connect()
     with _lock:
         _tello, SIMULATED = tello, False
         _link_ok, _faults, _last_error = True, 0, ''
         _flying, _height_cm = False, 0
         stop = _keepalive_stop = threading.Event()
-    _record('connected', address=address or tello.TELLO_IP)
+    _record('connected', address=getattr(tello, 'address', (address or 'unknown', 0))[0])
     set_speed(DEFAULT_SPEED_CM_S)
     threading.Thread(target=_keepalive_loop, args=(tello, stop), daemon=True,
                      name='tello-keepalive').start()

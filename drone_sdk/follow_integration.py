@@ -62,10 +62,22 @@ class FollowIntegration:
         return self._fail(reason)
 
     def start(self, timeout=FIRST_FRAME_TIMEOUT):
-        with self._lock:
-            self._retired_workers = [w for w in self._retired_workers if w.is_alive()]
-            if self._retired_workers:
+        deadline = time.monotonic() + max(0., float(timeout))
+        while True:
+            with self._lock:
+                self._retired_workers = [w for w in self._retired_workers if w.is_alive()]
+                retired = list(self._retired_workers)
+                if not retired:
+                    break
+            # A previous stop retires its capture worker without waiting. Give it
+            # the caller's timeout budget to exit, so a restart does not fail on a
+            # worker that is merely finishing teardown. Two providers never overlap.
+            budget = deadline - time.monotonic()
+            if budget <= 0:
                 return self._fail('previous_frame_provider_still_running')
+            for worker in retired:
+                worker.join(min(budget, .05))
+        with self._lock:
             if self._starting or self._closing:
                 return self._fail('follow_start_or_close_busy')
             if self._bridge is not None and self._bridge.is_following():
@@ -83,7 +95,6 @@ class FollowIntegration:
         try:
             if not has_provider and bridge.service.port.get_frame().frame is None:
                 return self._failed_start(bridge, generation, 'follow_no_frame_source')
-            deadline = time.monotonic() + max(0, timeout)
             while True:
                 with self._lock:
                     if not self._current(bridge, generation):

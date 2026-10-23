@@ -2,11 +2,11 @@
   "commit": "b9f37f9d857e95fae2071b597fa2fa2bf89705fb",
   "sha256_lf": {
     "drone_sdk/__init__.py": "13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd",
-    "drone_sdk/_driver.py": "ef505d2f84e80e755a25d65f6310058e46f73b05d435a84e5f3202abc4755f02",
+    "drone_sdk/_driver.py": "69d9a9faca75e11e06bf182de8097e24e134d3e02982416ff80a6a7ce84545a2",
     "drone_sdk/ai_bridge.py": "bd4ed723fdce4583337063a82a4ee299c01693bc5476992efc46bcfe3e8e5ae5",
     "drone_sdk/contract.py": "463d3da6cf79895f1cf6d6818674ba77e7d88525562e0d338ed3a05c68a89787",
     "drone_sdk/controller.py": "182d288f80a5140c689691a16b4821b8c928092253f41de9187d73d2dc6dfbff",
-    "drone_sdk/follow_integration.py": "4268f1030f66b5e9a44893315c0db9197112f9d5ee521e78ef8d6a8324792ee4",
+    "drone_sdk/follow_integration.py": "2e331228d34229e9242b9037ecf02e7b903c63a8674e81191d8dbaa2ade7cd7f",
     "integration_smoke.py": "785e6853e4225c8aea280b7edd95e5bd9fce2abe3b4fbf8bfb0dd79641dd70e4",
     "modules/ai/ai_agent.py": "8a081ab757a2f868ec03a721df61455d76008e97e619be6b529c189f941cf891",
     "modules/ai/audio_io.py": "febfe443d99bd339079970e5805323b720f6d2c35e8f3a40046b6cbf896861fa",
