@@ -69,7 +69,6 @@
 &#x20;  `python run\_auto\_integration.py --props-removed`  真机自动跑：拦截验证 + 抓帧存 `current\_frame\_fixed.jpg` + 报告 `auto\_integration\_report.json`
 
 3.7 图传诊断（黑屏/无画面时先跑这个）：
-
 &#x20;  `python test\_live\_view.py --self-check`           离线自检 7 项
 
 &#x20;  `python test\_live\_view.py --props-removed`        裸 UDP 抓包探针 + 持续拉流 + 实时窗口
@@ -81,6 +80,20 @@
 &#x20;  - 默认用自研 av 解码后端（读超时 2s、自动重连、错误可见）；失败会自动再试 djitellopy 后端对照。
 
 &#x20;  - djitellopy 收到真实帧前会一直返回 `300x400` 全零占位帧——SDK 已把它判为「无画面」，不会再存黑图。
+
+3.8 终极跨组联调（真机画面 + 3组跟随 + 4组离线 AI，20 秒自动收工）：
+
+&#x20;  `python run\_final\_real\_sim.py --self-check`       离线自检 6 项
+
+&#x20;  `python run\_final\_real\_sim.py --props-removed`     真机联调：ArUco 识别、3组算速、4组指令、拦截流水、FPS
+
+&#x20;  - 真帧持续 `publish\_frame` 进 SDK，3组 `MarkerTracker`/`FollowController` 用的是**同一份真画面**。
+
+&#x20;  - 3组算出的速度走 `update\_velocity`，地面必被 `[拦截] 未起飞（地面状态）`；归零请求按设计放行。
+
+&#x20;  - `start\_follow()` 在地面会被 3组自己的飞行状态门禁挡住（`connected\_airborne\_state\_required`），属安全设计。
+
+&#x20;  - 4组离线 `Demo` 发「前进30厘米」：控制权交接 + 动作同样被 `[拦截]`；到点自动释放、关图传、断开。
 
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 

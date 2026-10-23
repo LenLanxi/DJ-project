@@ -397,14 +397,16 @@ def stream_video_only():
     return ok
 
 
-def start_video(backend='av', wait=0.0):
+def start_video(backend=None, wait=0.0):
     """Start the video pipeline.
 
-    backend='av' 使用自研解码线程（默认，错误可见 + 自愈重连）；
-    backend='djitellopy' 保留原版 BackgroundFrameRead 做对照。
-    wait>0 时等第一帧真实画面，超时未拿到就返回 False。
+    backend 默认取 VIDEO_BACKEND='av'（现场已用真机验证出图）；
+    backend='djitellopy' 仅作对照。wait>0 时等第一帧真实画面，超时未拿到返回 False。
     """
     global _video
+    backend = VIDEO_BACKEND if backend is None else backend
+    if backend not in VIDEO_BACKENDS:
+        raise ValueError('invalid_video_backend:%s' % (backend,))
     with _lock: tello = _tello
     if tello is None: return False
     if not stream_video_only(): return False
@@ -443,6 +445,8 @@ def stop_video():
 
 
 _PLACEHOLDER_SHAPE = (300, 400, 3)
+VIDEO_BACKEND = 'av'          # 现场已验证：自研 av 后端（真机实测 720x960 出图）
+VIDEO_BACKENDS = ('av', 'djitellopy')
 VIDEO_URL_OPTIONS = '?overrun_nonfatal=1&fifo_size=50000000'
 
 
