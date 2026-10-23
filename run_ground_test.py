@@ -4,18 +4,28 @@
     python run_ground_test.py --demo              # 假数据跑通全流程，不连飞机
     python run_ground_test.py --props-removed     # 真机地面测试（拆桨叶，不起飞）
 
-监控原理
-  * 在 drone_sdk.controller 层装探针：谁调用 update_velocity（3组）、move_*（4组）、
-    request_control（控制权）、start_follow（跟随），都会被打印出来；
-  * 同时尾随 drone_sdk._driver 的事件流：显示驱动真正下发的 RC、限高夹紧、链路故障；
-  * 任何返回 ok=False 的调用统一用 [拦截] 前缀 + 中文原因打印。
+为什么不卡（v2 架构）
+    上一版在主线程里做「读状态 + 打印 + 取画面 + 等按键」，任何一个阻塞都会让
+    OpenCV 窗口停止泵事件（窗口关不掉、按键无响应）。现在主线程只剩
+    imshow + waitKey，其余全部拆到后台线程：
+      * Output      —— 打印走队列 + 独立线程，stdout 卡住不再阻塞主循环
+      * StatusPoller—— 每 0.5s 后台读一次电量/高度/链路，主线程只读缓存
+      * FrameGrabber—— 后台持续取帧，主线程只拿最新一帧，绝不等待 UDP
+      * KeyReader   —— 终端按键独立线程（窗口模式同样生效）
+      * StallWatchdog—— 主循环心跳超时会打印告警，便于定位真正的卡点
+    同时关闭 Windows 控制台 QuickEdit（点一下终端就会冻结输出）。
 
-真机模式按键
-    v 3组速度指令演示    c 4组动作指令演示    d 释放控制权
-    w 电机怠速开         s 电机停            b 立即打印状态        q/ESC 退出
+监控原理
+    controller 层探针（谁调用了什么、结果如何）+ _driver 事件流（驱动真正下发了什么），
+    ok=False 的调用统一用 [拦截] + 中文原因打印。
+
+真机模式按键（窗口或终端都行）
+    v 3组速度演示   c 4组动作演示   d 释放控制权
+    w 电机怠速开    s 电机停        b 打印状态      q/ESC 退出
 """
 import argparse
 import os
+import queue
 import sys
 import threading
 import time
@@ -45,15 +55,19 @@ REASONS = {
     'not_owner': '不是当前 owner',
 }
 TAG_CODES = {'拦截': '91;1', '3组': '96', '4组': '95', '急停': '93;1', '链路': '91',
-             '状态': '92', '控制权': '94', '跟随': '96', '电机': '93', '错误': '91;1', '演示': '90'}
+             '状态': '92', '控制权': '94', '跟随': '96', '电机': '93', '错误': '91;1',
+             '演示': '90', '卡顿': '91;1'}
 ACTIONS = ('takeoff', 'move_forward', 'move_back', 'move_left', 'move_right',
            'move_up', 'move_down', 'rotate')
 TAG_OF = {'update_velocity': '3组', 'takeoff': '4组', 'rotate': '4组', 'land': '急停',
           'stop_motion': '急停', 'request_control': '控制权', 'release_control': '控制权',
           'start_follow': '跟随', 'stop_follow': '跟随'}
 TAG_OF.update({name: '4组' for name in ACTIONS})
+WINDOW = 'Ground Test Monitor'
+HELP = 'v=3组速度  c=4组动作  d=释放控制权  w/s=电机  b=状态  q=退出'
 
 _ANSI = False
+_OUT = None
 
 
 def enable_ansi(force=False):
@@ -77,6 +91,23 @@ def enable_ansi(force=False):
         _ANSI = False
 
 
+def disable_quick_edit():
+    """QuickEdit 下点一下终端就会暂停输出（表现为整个程序卡死），这里关掉它。"""
+    if os.name != 'nt':
+        return False
+    try:
+        import ctypes
+        handle = ctypes.windll.kernel32.GetStdHandle(-10)
+        mode = ctypes.c_uint32()
+        if not ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        # ENABLE_EXTENDED_FLAGS(0x0080) 打开、ENABLE_QUICK_EDIT_MODE(0x0040) 关闭
+        return bool(ctypes.windll.kernel32.SetConsoleMode(
+            handle, (mode.value | 0x0080) & ~0x0040))
+    except Exception:
+        return False
+
+
 def stamp():
     now = time.time()
     return time.strftime('%H:%M:%S', time.localtime(now)) + '.%03d' % int((now % 1) * 1000)
@@ -86,8 +117,48 @@ def tag(name):
     return '\x1b[%sm[%s]\x1b[0m' % (TAG_CODES.get(name, '0'), name) if _ANSI else '[%s]' % name
 
 
+class Output:
+    """所有打印走独立线程：主线程永不因 stdout 阻塞（QuickEdit/管道/慢终端都会卡）。"""
+
+    def __init__(self):
+        self._queue = queue.Queue()
+        self._thread = threading.Thread(target=self._run, daemon=True, name='printer')
+        self._thread.start()
+
+    def _run(self):
+        while True:
+            line = self._queue.get()
+            if line is None:
+                return
+            try:
+                print(line, flush=True)
+            except Exception:
+                pass
+
+    def put(self, line):
+        self._queue.put(line)
+
+    def close(self, timeout=2.0):
+        self._queue.put(None)
+        self._thread.join(timeout)
+
+
+def output():
+    global _OUT
+    if _OUT is None:
+        _OUT = Output()
+    return _OUT
+
+
+def close_output():
+    global _OUT
+    if _OUT is not None:
+        _OUT.close()
+        _OUT = None
+
+
 def emit(name, text):
-    print('%s %s %s' % (stamp(), tag(name), text), flush=True)
+    output().put('%s %s %s' % (stamp(), tag(name), text))
 
 
 def reason_text(reason):
@@ -95,7 +166,7 @@ def reason_text(reason):
 
 
 class Throttle:
-    """同一条重复消息 0.7 秒内只打一行，避免跟随线程 30Hz 刷屏。"""
+    """同一条重复消息在窗口内只打一行，避免跟随线程 30Hz 刷屏。"""
 
     def __init__(self, window):
         self.window = window
@@ -112,7 +183,7 @@ def describe(name, args, kwargs):
     if name == 'update_velocity' and len(args) >= 5:
         return 'lr=%s fb=%s ud=%s yaw=%s' % args[1:5]
     if name in ACTIONS and name != 'takeoff' and len(args) >= 2:
-        return '%scm' % (args[1],) if name != 'rotate' else '%s度' % (args[1],)
+        return '%s度' % (args[1],) if name == 'rotate' else '%scm' % (args[1],)
     if name in ('request_control', 'release_control') and args:
         return 'owner=%s' % (args[0],)
     return ''
@@ -126,11 +197,16 @@ def describe_result(result):
     return 'ok'
 
 
+TAP_NAMES = ('takeoff', 'land', 'stop_motion', 'move_forward', 'move_back', 'move_left',
+             'move_right', 'move_up', 'move_down', 'rotate', 'update_velocity',
+             'request_control', 'release_control', 'start_follow', 'stop_follow')
+PRINT_PASS = set(ACTIONS) | {'update_velocity', 'start_follow', 'stop_follow', 'land',
+                             'stop_motion', 'request_control', 'release_control'}
+
+
 def install_taps(throttle):
     """把 controller 的公开入口包一层，谁调用、结果如何都会打印。"""
-    for name in ('takeoff', 'land', 'stop_motion', 'move_forward', 'move_back', 'move_left',
-                 'move_right', 'move_up', 'move_down', 'rotate', 'update_velocity',
-                 'request_control', 'release_control', 'start_follow', 'stop_follow'):
+    for name in TAP_NAMES:
         original = getattr(controller, name)
 
         def wrapper(*args, _name=name, _original=original, **kwargs):
@@ -149,9 +225,7 @@ def install_taps(throttle):
             if ok is False:
                 if throttle.allow(('blocked', _name, detail, reason)):
                     emit('拦截', '%s%s 被拦下：%s' % (_name, suffix, reason_text(reason)))
-            elif _name in ACTIONS or _name in ('update_velocity', 'start_follow', 'stop_follow',
-                                               'land', 'stop_motion', 'request_control',
-                                               'release_control'):
+            elif _name in PRINT_PASS:
                 if throttle.allow(('pass', _name, detail)):
                     emit(label, '%s%s → %s' % (_name, suffix, describe_result(result)))
             return result
@@ -257,19 +331,165 @@ class EventTail(threading.Thread):
                                           if k not in ('event', 'monotonic', 'simulated')}))
 
 
-def status_line(source):
-    info = source()
-    emit('状态', '电量 %s%%  高度 %scm  链路 %s  控制权 %s  视频 %s' % (
-        info['battery'], info['height_cm'], 'ok' if info['link_ok'] else 'FAIL',
-        info['owner'], 'on' if info['video'] else 'off'))
-    return info
+class StatusPoller(threading.Thread):
+    """后台读真机状态；主线程只读缓存，绝不碰 UDP。"""
+
+    def __init__(self, interval=.5):
+        super().__init__(daemon=True, name='status-poller')
+        self.interval = interval
+        self._lock = threading.Lock()
+        self._snapshot = dict(battery=None, height_cm=None, link_ok=None, owner='?', video=False)
+        self._halt = threading.Event()
+
+    def run(self):
+        while not self._halt.wait(self.interval):
+            self.refresh()
+
+    def refresh(self):
+        try:
+            health = _driver.health()
+            owner = controller.get_status().control_owner
+            snapshot = dict(battery=health['battery'], height_cm=health['height_cm'],
+                            link_ok=health['link_ok'], owner=owner, video=health['video'])
+        except Exception as exc:
+            snapshot = dict(battery=None, height_cm=None, link_ok=False, owner='?',
+                            video=False, error=str(exc))
+        with self._lock:
+            self._snapshot = snapshot
+        return snapshot
+
+    def snapshot(self):
+        with self._lock:
+            return dict(self._snapshot)
+
+    def stop(self):
+        self._halt.set()
 
 
-def real_status():
-    health = _driver.health()
-    return dict(battery=health['battery'], height_cm=health['height_cm'],
-                link_ok=health['link_ok'], owner=controller.get_status().control_owner,
-                video=health['video'])
+class FrameGrabber(threading.Thread):
+    """后台持续取帧；主线程只拿最新一帧，摄像头卡住也不会拖住 GUI。"""
+
+    def __init__(self):
+        super().__init__(daemon=True, name='frame-grabber')
+        self._lock = threading.Lock()
+        self._frame = None
+        self._count = 0
+        self._halt = threading.Event()
+
+    def run(self):
+        # 30Hz 取帧即可：无节制取帧会把 CPU 打满，OpenCV 窗口就不再响应
+        while not self._halt.wait(1 / 30):
+            try:
+                frame = _driver.get_frame()
+            except Exception:
+                frame = None
+            if frame is None:
+                continue
+            with self._lock:
+                self._frame = frame
+                self._count += 1
+
+    def latest(self):
+        with self._lock:
+            return self._frame, self._count
+
+    def stop(self):
+        self._halt.set()
+
+
+class KeyReader(threading.Thread):
+    """终端按键独立线程（窗口有焦点时由 cv2 收键，两者互不冲突）。"""
+
+    def __init__(self):
+        super().__init__(daemon=True, name='key-reader')
+        self._queue = queue.Queue()
+        self._halt = threading.Event()
+
+    def run(self):
+        while not self._halt.is_set():
+            key = _terminal_key()
+            if key != -1:
+                self._queue.put(chr(key))
+            time.sleep(.02)
+
+    def get(self, timeout=0.0):
+        try:
+            return self._queue.get(timeout=timeout)
+        except queue.Empty:
+            return ''
+
+    def stop(self):
+        self._halt.set()
+
+
+class StallWatchdog(threading.Thread):
+    """主循环心跳超时告警：以后真卡住时能直接看出卡在哪一步。"""
+
+    def __init__(self, limit=2.0):
+        super().__init__(daemon=True, name='stall-watchdog')
+        self.limit = limit
+        self.beat = time.monotonic()
+        self.phase = 'startup'
+        self._halt = threading.Event()
+
+    def tick(self, phase='loop'):
+        self.beat = time.monotonic()
+        self.phase = phase
+
+    def run(self):
+        while not self._halt.wait(.5):
+            idle = time.monotonic() - self.beat
+            if idle > self.limit:
+                emit('卡顿', '主循环已 %.1fs 无响应，最后阶段=%s' % (idle, self.phase))
+                self.beat = time.monotonic()
+
+    def stop(self):
+        self._halt.set()
+
+
+def _terminal_key():
+    """无窗口（--no-video）时用 Windows 终端按键，避免视频失败就失去交互。"""
+    if os.name != 'nt':
+        return -1
+    import msvcrt
+    if not msvcrt.kbhit():
+        return -1
+    raw = msvcrt.getch()
+    if raw in (b'\x00', b'\xe0'):
+        msvcrt.getch()
+        return -1
+    try:
+        return raw.decode('latin1').lower()[0]
+    except Exception:
+        return -1
+
+
+def format_snapshot(snapshot, fps=None):
+    text = '电量 %s%%  高度 %scm  链路 %s  控制权 %s  视频 %s' % (
+        snapshot['battery'], snapshot['height_cm'],
+        'ok' if snapshot['link_ok'] else 'FAIL',
+        snapshot['owner'], 'on' if snapshot['video'] else 'off')
+    if fps:
+        text += '  %.1ffps' % fps
+    if snapshot.get('error'):
+        text += '  错误=%s' % snapshot['error']
+    return text
+
+
+def annotate(frame, snapshot, motors, fps):
+    import cv2
+    lines = [
+        ('GROUND MONITOR - NO TAKEOFF', (0, 0, 255)),
+        ('battery %s%%  height %scm  link %s  owner %s' % (
+            snapshot['battery'], snapshot['height_cm'],
+            'ok' if snapshot['link_ok'] else 'FAIL', snapshot['owner']), (0, 255, 0)),
+        ('motors %s  %.1ffps' % ('ON' if motors else 'off', fps), (0, 255, 0)),
+        (HELP, (255, 255, 0)),
+    ]
+    for index, (text, color) in enumerate(lines):
+        cv2.putText(frame, text, (10, 26 + index * 26), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.58, color, 2 if index == 0 else 1, cv2.LINE_AA)
+    return frame
 
 
 def demo_status():
@@ -278,18 +498,22 @@ def demo_status():
                 owner=status.control_owner, video=controller.get_frame().frame is not None)
 
 
+def status_line(source):
+    snapshot = source()
+    emit('状态', format_snapshot(snapshot))
+    return snapshot
+
+
 def demo_frames(stop):
-    """给监控窗口喂假画面，顺便验证解码后的显示链路。"""
     import numpy as np
-    frame_id, timestamp = 0, time.time()
+    frame_id = 0
     while not stop.wait(1 / 30):
         canvas = np.zeros((360, 640, 3), dtype=np.uint8)
         canvas[:, :, 1] = 30
         left = 40 + int((time.time() * 60) % 480)
         canvas[150:210, left:left + 120] = (0, 140, 255)
         frame_id += 1
-        timestamp = time.time()
-        controller.publish_frame(FrameResult(canvas, frame_id, timestamp, False))
+        controller.publish_frame(FrameResult(canvas, frame_id, time.time(), False))
 
 
 def demo(args, throttle):
@@ -375,11 +599,8 @@ def run_demo_window(args, throttle):
         if frame is None:
             time.sleep(0.05)
             continue
-        cv2.putText(frame, 'DEMO MODE - FAKE FRAMES', (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                    (0, 0, 255), 2, cv2.LINE_AA)
-        cv2.putText(frame, 'q/ESC to quit', (12, 56), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-                    (0, 255, 0), 2, cv2.LINE_AA)
-        cv2.imshow('Ground Test Monitor (demo)', frame)
+        snapshot = demo_status()
+        cv2.imshow('Ground Test Monitor (demo)', annotate(frame, snapshot, False, 0))
         if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
             break
     stop.set()
@@ -388,99 +609,12 @@ def run_demo_window(args, throttle):
     return result[0] or 0
 
 
-def _terminal_key():
-    """无窗口（--no-video）时用 Windows 终端按键，避免现场视频失败就失去交互。"""
-    if os.name != 'nt':
-        return -1
-    import msvcrt
-    if not msvcrt.kbhit():
-        return -1
-    raw = msvcrt.getch()
-    if raw in (b'\x00', b'\xe0'):
-        msvcrt.getch()
-        return -1
-    try:
-        return raw.decode('latin1').lower()[0]
-    except Exception:
-        return -1
-
-
-def run_real(args, throttle):
-    from drone_sdk import _driver as driver
-    driver.set_simulated_delay(0)
-    try:
-        driver.connect(args.address, timeout=args.timeout)
-    except Exception as exc:
-        emit('错误', '连接失败：%s' % exc)
-        emit('演示', '排查：ipconfig 看是否拿到 192.168.10.x，ping 192.168.10.1，'
-                     '关掉手机 Tello App 与其它占用 8889 端口的程序')
-        return 1
-    if not args.no_video and not driver.start_video():
-        emit('错误', '视频流开启失败，降级到状态模式（视频端口 11111 可能被占用）')
-        args.no_video = True
-    status_line(real_status)
-    emit('演示', '监控已开启。v=3组速度演示  c=4组动作演示  d=释放控制权  '
-                 'w/s=电机怠速开关  b=状态  q=退出')
-
-    drone = ai_bridge.UnifiedDrone()
-    owner = None
-    motors = False
-    deadline = time.time() + args.seconds if args.seconds else None
-    next_status = time.time() + args.status_interval
-    while True:
-        now = time.time()
-        if deadline and now >= deadline:
-            break
-        if now >= next_status:
-            status_line(real_status)
-            next_status = now + args.status_interval
-        key = -1
-        if args.no_video:
-            key = _terminal_key()
-            time.sleep(0.05)
-        else:
-            import cv2
-            frame = driver.get_frame()
-            if frame is None:
-                time.sleep(0.1)
-                continue
-            health = driver.health()
-            cv2.putText(frame, 'GROUND MONITOR - NO TAKEOFF', (10, 26), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.62, (0, 0, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, 'battery %s%%  height %scm  link %s  owner %s' % (
-                health['battery'], health['height_cm'],
-                'ok' if health['link_ok'] else 'FAIL', controller.get_status().control_owner),
-                (10, 54), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 1, cv2.LINE_AA)
-            cv2.putText(frame, 'v=3rd speed  c=4th action  d=release  w/s=motor  q=quit',
-                        (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            cv2.imshow('Ground Test Monitor', frame)
-            key = cv2.waitKey(1) & 0xFF
-        if key in (ord('q'), 27):
-            break
-        if key == ord('b'):
-            status_line(real_status)
-        elif key == ord('v'):
-            owner = _demo_speed(drone, owner)
-        elif key == ord('c'):
-            owner = _demo_action(drone, owner)
-        elif key == ord('d'):
-            owner = _release(drone, owner)
-        elif key == ord('w'):
-            motors = driver.motors_on()
-            emit('电机', '怠速开：%s' % ('已确认' if motors else '指令未确认'))
-        elif key == ord('s'):
-            driver.motors_off()
-            motors = False
-            emit('电机', '已停止')
-    _release(drone, owner)
-    if not args.no_video:
-        import cv2
-        cv2.destroyAllWindows()
-    driver.motors_off()
-    driver.stop_video()
-    driver.disconnect()
-    emit('状态', '已断开并清理完成')
-    return 0
+def _release(drone, owner):
+    current = controller.get_status().control_owner
+    if current == 'none':
+        return None
+    result = controller.release_control(current)
+    return None if result.ok else owner
 
 
 def _demo_speed(drone, owner):
@@ -512,12 +646,104 @@ def _demo_action(drone, owner):
     return owner
 
 
-def _release(drone, owner):
-    current = controller.get_status().control_owner
-    if current == 'none':
-        return None
-    result = controller.release_control(current)
-    return None if result.ok else owner
+def connect_failed(exc):
+    emit('错误', '连接失败：%s' % exc)
+    text = str(exc)
+    if '10048' in text or 'only be used once' in text:
+        emit('排查', 'UDP 8889 已被占用（常见于上一个 test_ground_real/run_ground_test 还没关）。'
+                     '先关掉那个窗口；查询命令：Get-NetUDPEndpoint -LocalPort 8889')
+    else:
+        emit('排查', 'ipconfig 看是否拿到 192.168.10.x，ping 192.168.10.1，'
+                     '关掉手机 Tello App 与其它占用 8889 端口的程序')
+
+
+def run_real(args, throttle):
+    try:
+        _driver.connect(args.address, timeout=args.timeout)
+    except Exception as exc:
+        connect_failed(exc)
+        return 1
+    if not args.no_video and not _driver.start_video():
+        emit('错误', '视频流开启失败，降级到状态模式（视频端口 11111 可能被占用）')
+        args.no_video = True
+    emit('演示', '监控已开启。' + HELP)
+
+    poller, grabber, keys, watchdog = StatusPoller(), FrameGrabber(), KeyReader(), StallWatchdog()
+    for thread in (poller, grabber, keys, watchdog):
+        thread.start()
+    snapshot = poller.refresh()
+    emit('状态', format_snapshot(snapshot))
+
+    drone = ai_bridge.UnifiedDrone()
+    owner = None
+    motors = False
+    deadline = time.time() + args.seconds if args.seconds else None
+    last_count, last_time = -1, time.time()
+    fps, next_status = 0.0, time.time() + args.status_interval
+    video = not args.no_video
+    try:
+        while True:
+            watchdog.tick('status' if time.time() >= next_status else 'frame')
+            if time.time() >= next_status:
+                emit('状态', format_snapshot(poller.snapshot(), fps))
+                next_status = time.time() + args.status_interval
+            key = ''
+            if video:
+                import cv2
+                frame, count = grabber.latest()
+                if frame is not None and count != last_count:
+                    now = time.time()
+                    if last_count >= 0:
+                        fps = (count - last_count) / max(1e-6, now - last_time)
+                    last_count, last_time = count, now
+                    cv2.imshow(WINDOW, annotate(frame, poller.snapshot(), motors, fps))
+                # 15ms 退让：既保证按键响应，又绝不让渲染循环吃满 CPU
+                pressed = cv2.waitKey(15) & 0xFF
+                key = '' if pressed == 255 else chr(pressed)
+                if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
+                    emit('状态', '窗口已关闭，准备退出')
+                    break
+            terminal_key = keys.get(0.05 if not video else 0.0)
+            key = key or terminal_key
+            if key:
+                watchdog.tick('key:%s' % key)
+                if key in ('q', '\x1b'):
+                    break
+                if key == 'b':
+                    emit('状态', format_snapshot(poller.refresh(), fps))
+                elif key == 'v':
+                    owner = _demo_speed(drone, owner)
+                    poller.refresh()
+                elif key == 'c':
+                    owner = _demo_action(drone, owner)
+                    poller.refresh()
+                elif key == 'd':
+                    owner = _release(drone, owner)
+                    poller.refresh()
+                elif key == 'w':
+                    motors = _driver.motors_on()
+                    emit('电机', '怠速开：%s' % ('已确认' if motors else '指令未确认'))
+                elif key == 's':
+                    _driver.motors_off()
+                    motors = False
+                    emit('电机', '已停止')
+            if deadline and time.time() >= deadline:
+                break
+    except KeyboardInterrupt:
+        emit('状态', '收到 Ctrl+C，开始清理')
+    finally:
+        if video:
+            import cv2
+            cv2.destroyAllWindows()
+        for thread in (grabber, keys, watchdog, poller):
+            thread.stop()
+        emit('状态', '清理：释放控制权 / 停电机 / 关视频 / 断开')
+        _release(drone, owner)
+        _driver.motors_off()
+        _driver.stop_video()
+        _driver.disconnect()
+        emit('状态', '已断开并清理完成')
+    return 0
 
 
 def parse_args(argv=None):
@@ -527,7 +753,7 @@ def parse_args(argv=None):
     parser.add_argument('--address', default=None, help='飞机 IP，默认 192.168.10.1')
     parser.add_argument('--timeout', type=float, default=_driver.RESPONSE_TIMEOUT_S,
                         help='单条指令响应超时（秒）')
-    parser.add_argument('--no-video', action='store_true', help='不开摄像头窗口')
+    parser.add_argument('--no-video', action='store_true', help='不开摄像头窗口（仍可用终端按键）')
     parser.add_argument('--seconds', type=float, default=0, help='运行 N 秒后自动退出')
     parser.add_argument('--status-interval', type=float, default=2.0, help='状态打印间隔（秒）')
     parser.add_argument('--throttle', type=float, default=0.7, help='重复指令打印的抑制窗口（秒）')
@@ -538,6 +764,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     enable_ansi(args.color)
+    disable_quick_edit()
     if args.demo and args.props_removed:
         print('--demo 与 --props-removed 不能同时使用')
         return 2
@@ -553,10 +780,11 @@ def main(argv=None):
             print('  先跑假数据验证监控逻辑：python run_ground_test.py --demo')
             print('  确认桨叶已拆下后：      python run_ground_test.py --props-removed')
             return 2
-        print('地面联调监控启动：本脚本不含任何起飞指令。')
+        print('地面联调监控启动：本脚本不含任何起飞指令。', flush=True)
         return run_real(args, throttle)
     finally:
         tail.stop()
+        close_output()
 
 
 if __name__ == '__main__':

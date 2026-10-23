@@ -419,15 +419,20 @@ def stop_video():
 
 
 def get_frame():
-    """Latest BGR frame from the drone camera, or None when unavailable."""
+    """Latest frame from the drone camera as BGR, or None when unavailable.
+
+    djitellopy decodes with ``av.VideoFrame.to_image()``, which yields **RGB**
+    (PIL order). The rest of this SDK and OpenCV expect BGR, so the swap happens
+    here exactly once; callers must never convert again.
+    """
     with _lock: reader = _video
     if reader is None: return None
     frame = reader.frame
     if frame is None: return None
+    import numpy
     if frame.ndim == 2:
-        import numpy
         frame = numpy.repeat(frame[:, :, None], 3, axis=2)
-    return frame.copy()
+    return numpy.ascontiguousarray(frame[:, :, ::-1])
 
 
 def disconnect(*, safe=True):

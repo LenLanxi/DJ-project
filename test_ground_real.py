@@ -14,12 +14,29 @@
 按键：w 电机怠速 / s 电机停 / b 打印状态 / r 重启视频流 / q 或 ESC 退出
 """
 import argparse
+import os
 import sys
 import time
 
 import drone_sdk._driver as driver
 
 KEY_HELP = "w=电机怠速  s=电机停  b=打印状态  r=重启视频流  q/ESC=退出"
+
+
+def disable_quick_edit():
+    """Windows 控制台 QuickEdit：点一下终端就会冻结输出，表现得像程序卡死。"""
+    if os.name != 'nt':
+        return False
+    try:
+        import ctypes
+        handle = ctypes.windll.kernel32.GetStdHandle(-10)
+        mode = ctypes.c_uint32()
+        if not ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(ctypes.windll.kernel32.SetConsoleMode(
+            handle, (mode.value | 0x0080) & ~0x0040))
+    except Exception:
+        return False
 
 
 def parse_args(argv=None):
@@ -136,17 +153,28 @@ def run(args):
 
     motors = False
     deadline = time.time() + args.seconds if args.seconds else None
-    last_frame = time.time()
+    last_frame = time.time() - 1.0
     misses = 0
     try:
         while True:
-            info = driver.health()
             if args.no_video:
-                print_health(info)
+                print_health(driver.health())
                 time.sleep(1.0)
                 if deadline and time.time() >= deadline:
                     break
                 continue
+            import cv2
+            now = time.time()
+            # 25fps 上限：无节制渲染会把 CPU 打满，窗口随即失去响应
+            if now - last_frame < 1 / 25:
+                if cv2.waitKey(10) & 0xFF in (ord('q'), 27):
+                    break
+                if deadline and now >= deadline:
+                    break
+                continue
+            fps = 1.0 / max(1e-6, now - last_frame)
+            last_frame = now
+            info = driver.health()
             frame = driver.get_frame()
             if frame is None:
                 misses += 1
@@ -158,12 +186,8 @@ def run(args):
                 time.sleep(0.5)
                 continue
             misses = 0
-            import cv2
-            now = time.time()
-            fps = 1.0 / max(1e-6, now - last_frame)
-            last_frame = now
             cv2.imshow('Tello Ground Test (no takeoff)', overlay(frame, info, motors, fps))
-            key = cv2.waitKey(1) & 0xFF
+            key = cv2.waitKey(15) & 0xFF
             if deadline and now >= deadline:
                 break
             if key in (ord('q'), 27):
@@ -202,6 +226,7 @@ def main(argv=None):
         print('拒绝连接：地面测试必须先拆下桨叶。')
         print('确认桨叶已拆下后重新运行：python test_ground_real.py --props-removed')
         return 2
+    disable_quick_edit()
     print('地面测试启动：本脚本不含任何起飞指令，w 只做电机怠速。')
     return run(args)
 

@@ -60,6 +60,18 @@
 
 &#x20;  - 按键：`v` 3组速度演示，`c` 4组动作演示，`d` 释放控制权，`w`/`s` 电机怠速开关，`b` 状态，`q` 退出。
 
+&#x20;  - 打印走独立线程、取帧与状态也走后台线程，主线程只跑 OpenCV 窗口；渲染上限 25fps，避免 CPU 打满导致窗口失去响应。
+
+3.6 无人值守自动联调（不弹窗、不按键）：
+
+&#x20;  `python run\_auto\_integration.py --self-test`     离线自检 17 项（含 RGB/BGR 断言）
+
+&#x20;  `python run\_auto\_integration.py --props-removed`  真机自动跑：拦截验证 + 抓帧存 `current\_frame\_fixed.jpg` + 报告 `auto\_integration\_report.json`
+
+⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
+
+&#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）
+
 4\. 底层硬限制（真机模式生效）：限速 `100 cm/s`（与固件上限一致，室内 1m/s）、限高 `2.5 m`、RC 通道 ±100、地面强制 0 速度、指令超时+断连保护。详见 `API.md` 4.3。
 
 5\. 离线回归仍全部走模拟模式，真机代码只在 `drone\_sdk/\_driver.py` 的 `connect()` 之后生效。
