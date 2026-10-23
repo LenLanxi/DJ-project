@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "reviewed_commit": "3e57a36791053f5b8b6dc18b026889c568254cb8",
+  "scope": "Offline review requirements, not flight certification or live model accuracy",
+  "cases": [
+    {
+      "id": "T01",
+      "title": "Walking away requests forward motion",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/follow/r3_follow/core.py:361"
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "Losing the marker zeroes velocity",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/follow/r3_follow/core.py:325"
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "Supported temporary action restores follow",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/ai/demo_text.py:64"
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "Failed action never restores follow",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/ai/demo_text.py:55"
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "SDK accepts a full-turn request",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "drone_sdk/controller.py:186"
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "Active AI entry accepts the complete mission program",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "modules/ai/program_runner.py:15"
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "Active AI entry exposes rotation",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "modules/ai/program_runner.py:6"
+      ]
+    },
+    {
+      "id": "T08",
+      "title": "Active AI entry exposes structured target observation",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "modules/ai/program_runner.py:6"
+      ]
+    },
+    {
+      "id": "T09",
+      "title": "Real entry starts the video source",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "modules/ai/main.py:25"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Real entry supplies camera vision to the agent",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "modules/ai/main.py:121"
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "Shared status uses actual battery telemetry",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/controller.py:81"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "Unknown battery blocks takeoff",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "modules/ai/main.py:69"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Known low battery blocks takeoff",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/ai/main.py:69"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Takeoff requires an explicit authorization flag",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "modules/ai/main.py:64"
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "Landing remains pending until the device finishes",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/controller.py:27",
+        "drone_sdk/ai_bridge.py:24"
+      ]
+    },
+    {
+      "id": "T16",
+      "title": "Timed-out device action retains a control barrier",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/_driver.py:156",
+        "modules/ai/demo_text.py:63"
+      ]
+    },
+    {
+      "id": "T17",
+      "title": "Busy command lock does not discard landing",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/_driver.py:275"
+      ]
+    },
+    {
+      "id": "T18",
+      "title": "Frame bridge preserves capture identity",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "run_final_real_sim.py:63"
+      ]
+    },
+    {
+      "id": "T19",
+      "title": "Driver rejects an expired decoded frame",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/_driver.py:570"
+      ]
+    },
+    {
+      "id": "T20",
+      "title": "Docs adapter preserves actual device mode",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "docs/v4-reference/backends.py:62"
+      ]
+    },
+    {
+      "id": "T21",
+      "title": "Docs path cannot bypass the takeoff battery gate",
+      "expected": "known_gap",
+      "category": "integration",
+      "sources": [
+        "docs/v4-reference/backends.py:80",
+        "modules/ai/main.py:69"
+      ]
+    },
+    {
+      "id": "T22",
+      "title": "Failed RC transmission propagates failure",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "drone_sdk/_driver.py:246",
+        "drone_sdk/controller.py:123"
+      ]
+    },
+    {
+      "id": "T23",
+      "title": "Actual device execution is not labelled simulated",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "modules/ai/program_runner.py:50"
+      ]
+    },
+    {
+      "id": "T24",
+      "title": "Static test-image observation cannot authorize real navigation",
+      "expected": "known_gap",
+      "category": "hardening",
+      "sources": [
+        "docs/v4-reference/gateway.py:52",
+        "docs/v4-reference/gateway.py:80"
+      ]
+    },
+    {
+      "id": "T25",
+      "title": "Visual inference rechecks age after the model returns",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/vision.py:33"
+      ]
+    },
+    {
+      "id": "T26",
+      "title": "A visible target has positive width",
+      "expected": "known_gap",
+      "category": "hardening",
+      "sources": [
+        "docs/v4-reference/vision.py:45"
+      ]
+    },
+    {
+      "id": "T27",
+      "title": "Fresh structured visual observation works",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "docs/v4-reference/vision.py:31"
+      ]
+    },
+    {
+      "id": "T28",
+      "title": "Expired input never reaches the visual model",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "docs/v4-reference/vision.py:24"
+      ]
+    },
+    {
+      "id": "T29",
+      "title": "Navigation validates observation age at the motion boundary",
+      "expected": "known_gap",
+      "category": "hardening",
+      "sources": [
+        "docs/v4-reference/gateway.py:80"
+      ]
+    },
+    {
+      "id": "T30",
+      "title": "Normal arrival stop preserves intended follow restoration",
+      "expected": "known_gap",
+      "category": "mission_gap",
+      "sources": [
+        "docs/v4-reference/gateway.py:82",
+        "docs/v4-reference/examples/red_tent.py:17"
+      ]
+    },
+    {
+      "id": "T31",
+      "title": "Control-release failure cannot finish successfully",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/gateway.py:106"
+      ]
+    },
+    {
+      "id": "T32",
+      "title": "Stop failure cannot be silently ignored during cleanup",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/gateway.py:105"
+      ]
+    },
+    {
+      "id": "T33",
+      "title": "Docs handoff retains the original follow reference",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/gateway.py:28",
+        "docs/v4-reference/gateway.py:110"
+      ]
+    },
+    {
+      "id": "T34",
+      "title": "Old docs action cannot reuse a new same-owner grant",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/backends.py:75",
+        "docs/v4-reference/backends.py:80",
+        "drone_sdk/controller.py:35"
+      ]
+    },
+    {
+      "id": "T35",
+      "title": "Explicit emergency stop never restores follow",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "docs/v4-reference/gateway.py:89"
+      ]
+    },
+    {
+      "id": "T36",
+      "title": "Docs route accepts a full rotation",
+      "expected": "pass",
+      "category": "control",
+      "sources": [
+        "docs/v4-reference/gateway.py:73"
+      ]
+    },
+    {
+      "id": "T37",
+      "title": "Blocked network cancellation cannot delay local stop",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/realtime.py:131"
+      ]
+    },
+    {
+      "id": "T38",
+      "title": "Playback truncates the new unplayed item",
+      "expected": "known_gap",
+      "category": "defect",
+      "sources": [
+        "docs/v4-reference/duplex_audio.py:65"
+      ]
+    },
+    {
+      "id": "T39",
+      "title": "Tent sample includes the requested full turn",
+      "expected": "known_gap",
+      "category": "mission_gap",
+      "sources": [
+        "docs/v4-reference/examples/red_tent.py:22"
+      ]
+    },
+    {
+      "id": "T40",
+      "title": "Whitelisted faulty-model output is not an intent guarantee",
+      "expected": "known_gap",
+      "category": "fault_injection",
+      "sources": [
+        "modules/ai/ai_agent.py:13",
+        "modules/ai/ai_agent.py:38"
+      ]
+    },
+    {
+      "id": "T41",
+      "title": "Flight SOP fifty-centimeter command matches its entry",
+      "expected": "known_gap",
+      "category": "documentation",
+      "sources": [
+        "FLIGHT_SOP.md:142",
+        "modules/ai/program_runner.py:28"
+      ]
+    },
+    {
+      "id": "T42",
+      "title": "Tent sample explicitly restores follow after arrival",
+      "expected": "known_gap",
+      "category": "mission_gap",
+      "sources": [
+        "docs/v4-reference/examples/red_tent.py:10"
+      ]
+    },
+    {
+      "id": "T43",
+      "title": "Separate visual credentials are not used for Realtime",
+      "expected": "known_gap",
+      "category": "configuration",
+      "sources": [
+        "docs/v4-reference/realtime.py:199"
+      ]
+    }
+  ]
+}
