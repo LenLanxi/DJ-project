@@ -97,6 +97,22 @@
 
 &#x20;  - 低电量保护：电量 <20% 会告警（固件低电量会拒指令/强制降落），降到 `--battery-min`（默认 10%）自动安全收工；真机掉线也不抛 traceback，统一走清理分支。
 
+3.9 语音链路自检（有线耳机，不连飞机）：
+
+&#x20;  `python test\_voice\_loop.py --self-check`        离线自检 9 项（不碰声卡、不联网）
+
+&#x20;  `python test\_voice\_loop.py`                     对着耳机说 3 秒，跑完 录音→STT→LLM→TTS
+
+&#x20;  `python test\_voice\_loop.py --text 向前飞 --no-play`  只测文字链路
+
+&#x20;  - 四阶段日志：`[录音]` / `[STT]` / `[LLM]` / `[TTS]`，每步括号里标注来源（API / Mock / SAPI）。
+
+&#x20;  - 未配置 STT → 键盘输入 Mock；未配置 TTS → Windows SAPI 离线合成（零 Key，中文音色取决于系统语音包）。
+
+&#x20;  - ⚠ 若语音服务与聊天不是同一家，**必须显式设置 `AI_STT_KEY` / `AI_TTS_KEY`**，否则会回落到 `AI_API_KEY`（等于把聊天 Key 发给语音服务商）。
+
+&#x20;  - 录音按设备原生采样率（本机耳机 16k/24k/44.1k 实测均可用）。
+
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 
 &#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）
