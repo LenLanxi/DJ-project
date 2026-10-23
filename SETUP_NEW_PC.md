@@ -182,6 +182,23 @@ cd modules\ai
 ..\..\.venv\Scripts\python.exe main.py --live --config ..\..\config.demo.json --sdk-stub-root ..\..
 ```
 
+启动横幅会直接告诉你播报状态，**这是最快的自检**：
+
+```
+语音合成播报：开（每轮回复会念出来）      ← 正确
+语音合成播报：关（在配置里设 "speak_replies": true 打开）   ← 忘了加 --config
+```
+
+每轮播报全过程都会打日志，便于定位：
+
+```
+[TTS] 准备播报：抱歉，我没听清，请再说一遍
+[TTS] 语音 API 不可用（ValueError: 缺少AI_TTS_MODEL或AI_TTS_VOICE），改试 Windows SAPI
+[TTS] 已通过 Windows SAPI 播放（离线降级，无需 Key）
+```
+
+> 配置文件读的是 `utf-8-sig`，所以 PowerShell 写的 BOM 不会被当成非法 JSON。
+
 然后把 `config.demo.json` 加进 `.gitignore` 或直接删掉即可（不含密钥，但仍属本机配置）。
 
 真机（拆桨叶）顺序：

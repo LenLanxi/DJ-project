@@ -74,23 +74,27 @@ def main():
             output('改用本地 faster-whisper 识别……')
             return local_stt.LocalWhisper().transcribe(wav)
     def speak(text, audio_event):
-        if audio_event.is_set(): return
+        if audio_event.is_set():
+            output('[TTS] 跳过播报：本轮已被取消')
+            return
         try:
             wav = voice.synthesize(text[:2000])
             if not audio_event.is_set():
                 audio_io.play(wav, config['output_device'], audio_event)
-        except (ValueError, RuntimeError, OSError) as exc:
-            # TTS 未配置/失败：降级到 Windows SAPI（离线，无需 Key）
-            try:
-                import offline_tts
-                if offline_tts.available() and not audio_event.is_set():
-                    offline_tts.speak(text[:2000])
-                    output('语音合成未配置或失败（' + str(exc) + '），已用 Windows SAPI 离线播报')
-                    return
-            except Exception as fallback_exc:
-                output('语音播放未完成：' + str(exc) + '；降级也失败：' + str(fallback_exc) + '；文字结果仍有效')
+            output('[TTS] 已通过语音 API 播放（%d 字节 WAV）' % len(wav))
+            return
+        except Exception as exc:
+            output('[TTS] 语音 API 不可用（%s: %s），改试 Windows SAPI'
+                   % (type(exc).__name__, exc))
+        try:
+            import offline_tts
+            if not offline_tts.available():
+                output('[TTS] 未播报：当前系统不支持 Windows SAPI')
                 return
-            output('语音播放未完成：' + str(exc) + '；文字结果仍有效')
+            offline_tts.speak(text[:2000])
+            output('[TTS] 已通过 Windows SAPI 播放（离线降级，无需 Key）')
+        except Exception as exc:
+            output('[TTS] 播放失败（%s: %s）；文字结果仍有效' % (type(exc).__name__, exc))
     def show(future, started, audio_event):
         try:
             record = future.result()
@@ -104,11 +108,28 @@ def main():
                             f.write(json.dumps(record, ensure_ascii=False) + '\n')
                 except OSError:
                     output('日志保存失败；以上执行结果仍有效，请勿因此重复执行动作')
-            if args.live and config['speak_replies'] and not record.get('cancelled'):
-                speech_worker.submit(speak, str(record.get('spoken') or record.get('reply', record.get('result', ''))), audio_event)
+            speech_text = str(record.get('spoken') or record.get('reply', record.get('result', '')))
+            cancelled = bool(record.get('cancelled'))
+            if not args.live:
+                output('[TTS] 跳过播报：当前是离线样例模式（需 --live）')
+            elif not config['speak_replies']:
+                output('[TTS] 跳过播报：speak_replies=false（在配置里设为 true 就会念出来）')
+            elif cancelled:
+                output('[TTS] 跳过播报：本轮已取消')
+            elif not speech_text.strip():
+                output('[TTS] 跳过播报：没有可播报的文本')
+            else:
+                output('[TTS] 准备播报：' + speech_text[:80])
+                speech_future = speech_worker.submit(speak, speech_text, audio_event)
+                speech_future.add_done_callback(
+                    lambda f: (not f.cancelled()) and f.exception() is not None
+                    and output('[TTS] 播报线程异常：%r' % (f.exception(),)))
         except Exception as exc:
             output('本轮未完成（不自动重试）：' + str(exc))
     print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
+    print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (args.live and config['speak_replies'])
+                            else '关%s' % ('（需 --live）' if not args.live
+                                           else '（config 里设 "speak_replies": true 打开）')))
     print('语音由AI合成；本版本不能连接真实无人机。\n' + HELP)
 
     def confirm_execute(recognized, timeout):

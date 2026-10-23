@@ -15,7 +15,9 @@ DEFAULT = {'record_seconds': 5, 'input_device': None, 'output_device': None,
 def load(path=None):
     values = dict(DEFAULT)
     if path:
-        custom = json.loads(Path(path).read_text(encoding='utf-8'))
+        # utf-8-sig：PowerShell 的 `Set-Content -Encoding utf8` 会写 BOM，
+        # 用 utf-8 读会让 json.loads 直接失败（表现为"启动失败：Unexpected UTF-8 BOM"）
+        custom = json.loads(Path(path).read_text(encoding='utf-8-sig'))
         if not isinstance(custom, dict) or set(custom) - set(DEFAULT):
             raise ValueError('配置只能包含config.example.json中的字段')
         values.update(custom)
