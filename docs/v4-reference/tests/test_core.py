@@ -125,7 +125,8 @@ class EventTests(unittest.IsolatedAsyncioTestCase):
         await self.session.handle({'type':'input_audio_buffer.speech_started'})
         await self.session.handle(event)
         self.assertEqual(self.audio.speaker.size,0)
-        self.assertEqual(self.ws.sent[0]['type'],'conversation.item.truncate')
+        # 新的打断流程：先显式 response.cancel，再 truncate 已播放内容
+        self.assertIn('conversation.item.truncate',[e['type'] for e in self.ws.sent])
     async def test_tool_result_returns_actual_failure(self):
         with patch('sandbox_runner.shutil.which',return_value=None):
             await self.session.call_tool({'name':'run_program','call_id':'c1','arguments':'{"code":"drone.takeoff()"}'},0)
@@ -175,7 +176,8 @@ class ConfigTests(unittest.TestCase):
     def test_realtime_has_vad_no_transcription_chain(self):
         s=session_config('configured-model','marin')['session']
         self.assertEqual(s['output_modalities'],['audio'])
-        self.assertTrue(s['audio']['input']['turn_detection']['interrupt_response'])
+        # 服务端 VAD 只切句；打断由客户端 barge_in 判定，避免噪声直接掐断播报
+        self.assertFalse(s['audio']['input']['turn_detection']['interrupt_response'])
         self.assertNotIn('transcription',s['audio']['input'])
 
 @unittest.skipUnless(os.getenv('RUN_DOCKER_TESTS')=='1' and shutil.which('docker'),'requires explicit RUN_DOCKER_TESTS=1 and built Docker image')

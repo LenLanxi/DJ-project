@@ -6,6 +6,9 @@ numpy==1.26.4
 # ===== Group 4: AI module (modules/ai) =====
 # Voice recording/playback; only needed for /voice input and spoken replies.
 sounddevice>=0.5,<0.6
+# Realtime duplex voice entry (docs/v4-reference): WebSocket client for the
+# Realtime API. Without it `--voice` fails at import time.
+websockets>=15,<17
 
 # Merge notes (already checked; do not re-add):
 # - requirements-audio.txt / requirements-vision.txt ask for numpy>=1.26,<3;

@@ -28,12 +28,24 @@ TOOLS=[{'type':'function','name':'run_program','description':'在独立容器中
        {'type':'function','name':'interrupt','description':'立即取消当前程序并停止运动或降落，不等待普通动作结束',
         'parameters':{'type':'object','properties':{'land':{'type':'boolean'}},'required':['land'],'additionalProperties':False}}]
 
+def _env_float(name, default):
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return float(default)
+
+
 def session_config(model,voice):
     return {'type':'session.update','session':{'type':'realtime','model':model,
         'output_modalities':['audio'],'instructions':INSTRUCTIONS,'tools':TOOLS,'tool_choice':'auto',
         'audio':{'input':{'format':{'type':'audio/pcm','rate':24000},
-            'turn_detection':{'type':'server_vad','threshold':0.5,'prefix_padding_ms':300,
-                              'silence_duration_ms':400,'create_response':True,'interrupt_response':True}},
+            # 服务端 VAD 只负责切句；是否真的打断播报由客户端 barge_in() 判断，
+            # 因此 interrupt_response 固定为 False：否则飞机噪音会被服务端直接掐断播报。
+            'turn_detection':{'type':'server_vad',
+                              'threshold':_env_float('REALTIME_VAD_THRESHOLD', .6),
+                              'prefix_padding_ms':300,
+                              'silence_duration_ms':int(_env_float('REALTIME_SILENCE_MS', 500)),
+                              'create_response':True,'interrupt_response':False}},
             'output':{'format':{'type':'audio/pcm','rate':24000},'voice':voice}}}}
 
 class RealtimeSession:
@@ -44,6 +56,10 @@ class RealtimeSession:
         self.epoch=0; self.response_epoch={}; self.blocked=set(); self.seen=set()
         self.tool_tasks=set(); self.response_active=False; self.pending_response=False
         self.speech_end=None; self.first_audio=True; self.current_response=None
+        # 打断防抖：冷却时间 + 麦克风电平门限，防止飞机噪音/耳机灵敏度过高误打断
+        self.barge_cooldown=_env_float('BARGE_IN_COOLDOWN_MS', 700)/1000
+        self.barge_rms_min=_env_float('BARGE_IN_RMS_MIN', 250)
+        self.last_barge_at=0.0
         self.ready=asyncio.Event()
         self.background_error=asyncio.Queue()
     def track(self,task):
@@ -87,6 +103,22 @@ class RealtimeSession:
             'call_id':call_id,'output':json.dumps(result,ensure_ascii=False)}})
         if epoch==self.epoch: await self.request_response()
     async def barge_in(self):
+        now=time.monotonic()
+        if now-self.last_barge_at < self.barge_cooldown:
+            self.log({'event':'barge_in_ignored','reason':'cooldown',
+                      'cooldown_ms':round(self.barge_cooldown*1000)})
+            return
+        level_getter=getattr(self.audio,'level',None)
+        level=level_getter() if callable(level_getter) else None
+        if level is not None and level < self.barge_rms_min:
+            self.log({'event':'barge_in_ignored','reason':'low_level',
+                      'rms':round(level,1),'threshold':self.barge_rms_min})
+            return
+        self.last_barge_at=now
+        # 服务端不再自动打断，这里显式取消当前回答，避免旧音频继续播放。
+        if self.response_active:
+            try: await self.send({'type':'response.cancel'})
+            except Exception: pass
         self.epoch+=1
         self.blocked.update(self.response_epoch)
         self.runner.cancel()
