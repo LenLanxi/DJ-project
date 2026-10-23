@@ -1,0 +1,13 @@
+{
+  "input_device": null,
+  "output_device": null,
+  "input_name": null,
+  "output_name": null,
+  "input_hostapi": null,
+  "output_hostapi": null,
+  "wasapi_auto_convert": true,
+  "noise_reduction": "near_field",
+  "vad_threshold": 0.7,
+  "prefix_padding_ms": 300,
+  "silence_duration_ms": 600
+}
