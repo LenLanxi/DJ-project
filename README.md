@@ -150,3 +150,12 @@
 
 5\. 离线回归仍全部走模拟模式，真机代码只在 `drone\_sdk/\_driver.py` 的 `connect()` 之后生效。
 
+## 场景验收测试与审查证据
+
+行走跟随、红色帐篷、旋转和恢复跟随的43项离线验收，见
+[ScenarioAcceptance/README.md](ScenarioAcceptance/README.md)。
+原始逐项失败证据与既有测试记录保存在
+[ScenarioAcceptance/Evidence](ScenarioAcceptance/Evidence)。
+历史记录中的失败对应尚未满足的验收条件；当前默认运行将已知缺口标为
+XFAIL，`--strict` 保留原始失败行为。测试入库不代表缺陷已经修复或真机验收通过。
+

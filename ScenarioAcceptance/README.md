@@ -54,9 +54,38 @@ Expected failures are matched by case identifier, so inspect their details:
 a different assertion failure in the same case still needs investigation.
 
 JSON results are written to the ignored `ScenarioAcceptance/Results/` directory.
-They include the tested Git revision and per-case details; generated logs and
-machine-specific paths are not committed. Default runs exit zero when results
-match the reviewed baseline. Strict runs exit nonzero while gaps remain.
+They include the tested Git revision and per-case details. New generated logs
+are not committed. Default runs exit zero when results match the reviewed
+baseline. Strict runs exit nonzero while gaps remain.
+
+## Archived review evidence
+
+The requested historical review records are committed under `Evidence/`,
+separately from the ignored, regenerated `Results/` directory:
+
+| File | Contents |
+| --- | --- |
+| [DocsResults.json](Evidence/DocsResults.json) | T20–T43: 24 cases, 4 passes, 20 assertion failures, 0 execution errors; includes per-case failure details and T34's stale-grant reproduction. |
+| [DocsBaseline.json](Evidence/DocsBaseline.json) | Original docs suite: 54 collected, 51 passes and 3 Docker tests skipped. |
+| [BaselineResults.json](Evidence/BaselineResults.json) | Root/AI/follow and ground self-check records, plus the two acceptance groups; raw acceptance runs intentionally exit 1. |
+
+These files are byte-for-byte copies of the requested local review records
+collected against business-code baseline
+`3e57a36791053f5b8b6dc18b026889c568254cb8`. Their original JSON schema, console
+output and historical Windows traceback paths are preserved. They are evidence,
+not inputs to the tests, and do not require that machine or directory to run.
+The archived results predate the portable runner's XFAIL reporting. A raw
+`failed` result in these records corresponds to a catalogued `known_gap` in the
+current default runner; it does not mean the business defect was fixed. Use
+`--strict` to reproduce ordinary assertion failures with the current scripts.
+The old scope label "Required docs route" identifies the audit group; the
+required component is docs AI vision, while Realtime/sandbox adoption remains
+an integration decision. Archived output does not establish real-flight,
+live-model or Docker acceptance.
+
+The requested `ScenarioTests.py` and `DocsTests.py` are already committed in this
+directory as portable versions. Historical machine-specific scripts are not
+copied over them. Normal runs never overwrite `Evidence/`.
 
 ## T34: old task reuses a new same-owner grant
 
