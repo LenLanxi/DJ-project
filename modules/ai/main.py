@@ -16,6 +16,7 @@ from settings import load
 import audio_io
 
 HELP = '''输入文字与模拟飞机互动。命令：
+ /listen 开关免按键全双工语音（自动 VAD 录音→识别→执行，默认启动时 --always-on 打开）
  /voice 录音（回车开始，固定时长，识别后直接执行；加 --voice-confirm 可二次确认）
  /image 图片路径 | 问题   本地测试图片问答
  /stop 停止模拟运动；/land 模拟降落（均绕过模型）
@@ -110,6 +111,12 @@ def main():
     parser.add_argument('--address', default=None, help='飞机 IP，默认 192.168.10.1')
     parser.add_argument('--min-battery', type=int, default=20,
                         help='真机起飞的最低电量（默认 20%%）')
+    parser.add_argument('--always-on', action='store_true',
+                        help='免按键全双工语音：持续监听，说话自动识别并执行（也可运行时 /listen 开启）')
+    parser.add_argument('--silence-s', type=float, default=1.5,
+                        help='说多长时间的静音算"说完了"（默认 1.5 秒）')
+    parser.add_argument('--max-utterance', type=float, default=10.0,
+                        help='单句最长录音时长（默认 10 秒，防止一直录）')
     args = parser.parse_args()
     try:
         config = load(args.config)
@@ -141,6 +148,9 @@ def main():
     cancel_audio = threading.Event()
     output_lock = threading.Lock()
     speech_worker = __import__('concurrent.futures', fromlist=['ThreadPoolExecutor']).ThreadPoolExecutor(max_workers=1)
+    # set = 暂停监听：TTS 播报、动作执行、以及键盘路径手动录音期间都不该再收声音
+    listen_pause = threading.Event()
+    listener = {'thread': None, 'stop': threading.Event()}
     def output(text):
         with output_lock: print('\n' + text, flush=True)
     def transcribe(wav):
@@ -177,6 +187,7 @@ def main():
         except Exception as exc:
             output('[TTS] 播放失败（%s: %s）；文字结果仍有效' % (type(exc).__name__, exc))
     def show(future, started, audio_event):
+        resumed = False
         try:
             record = future.result()
             record['elapsed_ms'] = round((time.monotonic()-started)*1000)
@@ -201,12 +212,18 @@ def main():
                 output('[TTS] 跳过播报：没有可播报的文本')
             else:
                 output('[TTS] 准备播报：' + speech_text[:80])
+                # 播报期间继续闭嘴，播完（成功或异常）才恢复监听，避免把自己的声音当指令
+                resumed = True
                 speech_future = speech_worker.submit(speak, speech_text, audio_event)
                 speech_future.add_done_callback(
                     lambda f: (not f.cancelled()) and f.exception() is not None
                     and output('[TTS] 播报线程异常：%r' % (f.exception(),)))
+                speech_future.add_done_callback(lambda f: listen_pause.clear())
         except Exception as exc:
             output('本轮未完成（不自动重试）：' + str(exc))
+        finally:
+            if not resumed:
+                listen_pause.clear()
     if args.real_drone:
         print('真实模型+真实飞机' if args.live else '离线样例（不是AI）+真实飞机')
         print('⚠ 真机模式：起飞%s（电量阈值 %d%%）' % (
@@ -218,6 +235,100 @@ def main():
                             else '关%s' % ('（需 --live）' if not args.live
                                            else '（config 里设 "speak_replies": true 打开）')))
     print('语音由AI合成；本版本不能连接真实无人机。\n' + HELP)
+
+    def start_round(text):
+        """提交一轮对话（识别和键盘路径共用），show() 负责在播报结束后恢复监听。"""
+        nonlocal cancel_audio
+        listen_pause.set()
+        cancel_audio.set()
+        cancel_audio = threading.Event()
+        started = time.monotonic()
+        future = session.submit(text)
+        future.add_done_callback(lambda f, s=started, e=cancel_audio: show(f, s, e))
+        return future
+
+    def say_blocking(text):
+        """监听线程里的即时播报：说完再继续听，避免自己打断自己。"""
+        if not (args.live and config['speak_replies']):
+            output('[TTS] 跳过播报：需要 --live 且 speak_replies=true')
+            return
+        output('[TTS] 准备播报：' + text[:80])
+        speak(text, threading.Event())
+
+    def listen_loop(stop_event):
+        """免按键全双工：等唤醒词一样的自然停顿，识别后直接执行，不弹确认。"""
+        from ai_agent import NO_UNDERSTAND
+        output('[监听] 已开启：直接说话即可（说"结束"或输入 /listen 关闭）')
+        while not stop_event.is_set():
+            if listen_pause.is_set() or session.busy:
+                stop_event.wait(0.05)
+                continue
+            try:
+                wav, info = audio_io.listen_once(
+                    config['input_device'], silence_s=args.silence_s,
+                    max_s=args.max_utterance, pause=listen_pause)
+            except RuntimeError as exc:
+                output('[监听] 无法打开麦克风：%s（输入 /listen 可关闭，改用 /voice）' % exc)
+                return
+            except Exception as exc:
+                output('[监听] 采集异常（%s: %s），1 秒后重试' % (type(exc).__name__, exc))
+                stop_event.wait(1.0)
+                continue
+            if wav is None:
+                continue
+            listen_pause.set()          # 识别→执行→播报 全程闭嘴
+            output('[录音] 捕获到 %.1f 秒音频（峰值 %.0f dBFS，自适应门限 %.0f dBFS）'
+                   % (info['speech_s'], info['peak_dbfs'], info['gate_dbfs']))
+            try:
+                text = transcribe(wav)
+            except Exception as exc:
+                output('[STT] 识别失败：%s' % exc)
+                text = ''
+            if stop_event.is_set():
+                return
+            if not text.strip():
+                output('[STT] 没有识别到内容，已忽略；继续监听')
+                say_blocking(NO_UNDERSTAND)
+                listen_pause.clear()
+                continue
+            output('[STT] 识别文本：' + text)
+            if text.strip() in ('结束', '退出', '停止监听', '关闭监听'):
+                output('[监听] 收到结束指令，已关闭监听')
+                stop_event.set()
+                listen_pause.clear()
+                return
+            try:
+                start_round(text)
+            except (ValueError, RuntimeError, OSError) as exc:
+                output('[监听] 未执行：%s' % exc)
+                listen_pause.clear()
+
+    def start_listener():
+        if listener['thread'] is not None and listener['thread'].is_alive():
+            return False
+        if not args.live:
+            output('[监听] 需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
+            return False
+        listener['stop'] = threading.Event()
+        thread = threading.Thread(target=listen_loop, args=(listener['stop'],),
+                                  name='voice-listener', daemon=True)
+        listener['thread'] = thread
+        thread.start()
+        return True
+
+    def stop_listener():
+        listener['stop'].set()
+        listen_pause.set()              # 让正在采集的那一轮立刻返回
+        thread = listener['thread']
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2.0)
+        if not session.busy:
+            listen_pause.clear()
+        output('[监听] 已停止')
+
+    def listener_running():
+        thread = listener['thread']
+        return bool(thread is not None and thread.is_alive())
 
     def confirm_execute(recognized, timeout):
         """--voice-confirm 时才二次确认；默认直接执行。超时可自动放行。"""
@@ -244,81 +355,97 @@ def main():
         interactive = bool(sys.stdin and sys.stdin.isatty())
     except Exception:
         interactive = False
+    if args.always_on and not start_listener():
+        output('[监听] 未能开启，继续用键盘或 /voice 模式')
+    print('免按键语音：%s' % ('开（说话即识别，静音 %.1f 秒判停；输入 /listen 关闭）' % args.silence_s
+                          if listener_running() else '关（输入 /listen 开启）'))
     try:
         while True:
             try: text = input('你：').strip()
             except (EOFError, KeyboardInterrupt): break
             except OSError as exc:          # 控制台句柄异常：绝不能 continue，否则会死循环刷屏
                 output('读取输入失败，已退出会话：' + str(exc)); break
-            if not text:
-                # 交互式终端里空回车是正常操作，直接重画提示符；
-                # 只有输入流非终端（管道/重定向）快速返回空串时才判定为跑飞
-                if interactive:
-                    continue
-                now = time.monotonic()
-                empty_streak = empty_streak + 1 if now - last_empty < .2 else 0
-                last_empty = now
-                if empty_streak >= 3:
-                    output('检测到输入流异常（连续空输入），已安全退出，避免死循环')
-                    break
-                continue
-            empty_streak = 0
-            if text in ('/quit', '退出'): break
-            if text == '/mute': cancel_audio.set(); continue
-            if text in ('/stop', '/land'):
-                cancel_audio.set()
-                try:
-                    started = time.monotonic()
-                    f = session.interrupt(text == '/land')
-                    f.add_done_callback(lambda f, e=cancel_audio, s=started: show(f, s, e))
-                except RuntimeError as exc:
-                    output(str(exc))
-                continue
-            if text == '/status':
-                output(json.dumps(agent.runner.demo.drone.get_status(), ensure_ascii=False)); continue
-            if text == '/reset':
-                if session.busy: output('请等待本轮结束，或使用/stop取消')
-                else: agent.history.clear(); output('对话已清空')
-                continue
+            # 键盘路径也先停一下监听：手动 /voice 录音和常驻监听不能同时占麦克风
+            listen_pause.set()
+            submitted = False
             try:
-                if text == '/voice':
-                    if not args.live: raise ValueError('语音识别需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
-                    if session.busy: raise ValueError('请先等待当前任务结束')
-                    cancel_audio.set()
-                    # Sounddevice allows one recorder/player at a time. Wait for prior speech to end.
-                    speech_worker.submit(lambda: None).result()
-                    input('按回车开始录音，持续%s秒：' % config['record_seconds'])
-                    wav = audio_io.record(config['record_seconds'], config['input_device'])
-                    text = transcribe(wav)
-                    print('识别结果：' + text)
-                    if not text.strip():
-                        print('没有识别到有效内容，未执行任何动作；请再说一遍')
+                if not text:
+                    # 交互式终端里空回车是正常操作，直接重画提示符；
+                    # 只有输入流非终端（管道/重定向）快速返回空串时才判定为跑飞
+                    if interactive:
                         continue
-                    if not confirm_execute(text, args.voice_confirm_timeout):
-                        print('已取消，未调用模型和动作'); continue
-                if text.startswith('/image '):
-                    if not args.live: raise ValueError('图片问答需要--live及支持视觉的模型')
-                    if session.busy: raise ValueError('请等待当前任务结束')
-                    path, _, question = text[7:].partition('|')
-                    reply = VisionService(client).ask(path.strip(), question.strip() or '画面中有什么？')
-                    output('[本地测试图片] ' + reply)
-                    agent.history.extend([{'role':'user','content':'[测试图片问题] ' + question},
-                                          {'role':'assistant','content':'[测试图片回答] ' + reply[:2000]}])
-                    agent.history = agent.history[-12:]
+                    now = time.monotonic()
+                    empty_streak = empty_streak + 1 if now - last_empty < .2 else 0
+                    last_empty = now
+                    if empty_streak >= 3:
+                        output('检测到输入流异常（连续空输入），已安全退出，避免死循环')
+                        break
                     continue
-                cancel_audio.set()
-                cancel_audio = threading.Event()
-                started = time.monotonic()
-                f = session.submit(text)
-                f.add_done_callback(lambda f, s=started, e=cancel_audio: show(f, s, e))
-            except (ValueError, RuntimeError, OSError) as exc:
-                # EOFError 不在这里吞：输入流结束必须让主循环退出，否则会刷屏死循环
-                output('未继续处理：' + str(exc))
+                empty_streak = 0
+                if text in ('/quit', '退出'): break
+                if text == '/listen':
+                    if listener_running(): stop_listener()
+                    else: start_listener()
+                    continue
+                if text == '/mute': cancel_audio.set(); continue
+                if text in ('/stop', '/land'):
+                    cancel_audio.set()
+                    try:
+                        started = time.monotonic()
+                        f = session.interrupt(text == '/land')
+                        submitted = True
+                        f.add_done_callback(lambda f, e=cancel_audio, s=started: show(f, s, e))
+                    except RuntimeError as exc:
+                        output(str(exc))
+                    continue
+                if text == '/status':
+                    output(json.dumps(agent.runner.demo.drone.get_status(), ensure_ascii=False)); continue
+                if text == '/reset':
+                    if session.busy: output('请等待本轮结束，或使用/stop取消')
+                    else: agent.history.clear(); output('对话已清空')
+                    continue
+                try:
+                    if text == '/voice':
+                        if not args.live: raise ValueError('语音识别需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
+                        if session.busy: raise ValueError('请先等待当前任务结束')
+                        cancel_audio.set()
+                        # Sounddevice allows one recorder/player at a time. Wait for prior speech to end.
+                        speech_worker.submit(lambda: None).result()
+                        input('按回车开始录音，持续%s秒：' % config['record_seconds'])
+                        wav = audio_io.record(config['record_seconds'], config['input_device'])
+                        text = transcribe(wav)
+                        print('识别结果：' + text)
+                        if not text.strip():
+                            print('没有识别到有效内容，未执行任何动作；请再说一遍')
+                            continue
+                        if not confirm_execute(text, args.voice_confirm_timeout):
+                            print('已取消，未调用模型和动作'); continue
+                    if text.startswith('/image '):
+                        if not args.live: raise ValueError('图片问答需要--live及支持视觉的模型')
+                        if session.busy: raise ValueError('请等待当前任务结束')
+                        path, _, question = text[7:].partition('|')
+                        reply = VisionService(client).ask(path.strip(), question.strip() or '画面中有什么？')
+                        output('[本地测试图片] ' + reply)
+                        agent.history.extend([{'role':'user','content':'[测试图片问题] ' + question},
+                                              {'role':'assistant','content':'[测试图片回答] ' + reply[:2000]}])
+                        agent.history = agent.history[-12:]
+                        continue
+                    start_round(text)
+                    submitted = True
+                except (ValueError, RuntimeError, OSError) as exc:
+                    # EOFError 不在这里吞：输入流结束必须让主循环退出，否则会刷屏死循环
+                    output('未继续处理：' + str(exc))
+            finally:
+                # 没真正开始一轮（空输入/无效命令/取消）时立刻恢复监听，别把耳朵关死
+                if not submitted:
+                    listen_pause.clear()
     except KeyboardInterrupt:
         print('\n结束会话')
     except EOFError:
         print('\n输入流已结束（EOF），退出会话')
     finally:
+        listener['stop'].set()
+        listen_pause.set()
         cancel_audio.set()
         session.close()
         audio_io.close()

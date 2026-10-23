@@ -104,7 +104,7 @@
 
 3.9 语音链路自检（有线耳机，不连飞机）：
 
-&#x20;  `python test\_voice\_loop.py --self-check`        离线自检 9 项（不碰声卡、不联网）
+&#x20;  `python test\_voice\_loop.py --self-check`        离线自检 15 项（不碰声卡、不联网）
 
 &#x20;  `python test\_voice\_loop.py`                     对着耳机说 3 秒，跑完 录音→STT→LLM→TTS
 
@@ -141,6 +141,17 @@
 &#x20;  `python test\_voice\_loop.py --stt-smoke`  —— SAPI 合成「向前飞」→ AGC/VAD → 本地 whisper → 断言识别正确
 
 &#x20;  - 本地 STT 前端：AGC 目标 `-20dBFS`（上限 `+24dB`）、VAD 静音 `300ms`/门限 `0.5`；可用 `AI\_LOCAL\_STT\_AGC`、`AI\_LOCAL\_STT\_AGC\_MAX\_DB`、`AI\_LOCAL\_STT\_VAD\_THRESHOLD` 调整。
+
+3.12 免按键全双工语音（现场演示用，最"省事"的形态）：
+
+&#x20;  `python main.py --live --always-on --config ..\..\config.demo.json`（真机再加 `--real-drone --allow-real-takeoff`）
+
+&#x20;  - 持续监听麦克风，能量 VAD 自动判"开始说话/说完了"，静音 `--silence-s`（默认 1.5 秒）即停录。
+&#x20;  - 识别结果**直接执行**，不弹 `y` 确认；单句上限 `--max-utterance`（默认 10 秒），防止环境噪声把录音拖长。
+&#x20;  - 防自激：TTS 播报、动作执行、键盘路径手动录音期间一律**关闭采集**（不是清缓冲），播完才重新开麦。
+&#x20;  - 识别为空 → 播报「抱歉，我没听清，请再说一遍」后继续监听；说「结束」或输入 `/listen` 关闭。
+&#x20;  - 门限自适应：`门限 = max(-55dBFS, 底噪 + 6dB)`，可用 `AI\_VAD\_MIN\_DBFS` / `AI\_VAD\_MARGIN\_DB` 现场微调；日志里的 `[录音] … 自适应门限 -55 dBFS` 就是当前值。
+&#x20;  - 采集用 PortAudio **回调**而非阻塞读：Windows WDM-KS 设备不支持阻塞 API（`PaErrorCode -9999`），采样率不支持时自动退回设备原生率（常见 48kHz）。
 
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 

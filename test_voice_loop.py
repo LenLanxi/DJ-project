@@ -248,6 +248,90 @@ def one_turn(args, input_device, output_device):
     return True
 
 
+def always_on_checks(np):
+    """免按键监听（audio_io.listen_once）的离线验证：用假声卡喂合成波形，不碰真麦克风。"""
+    import threading
+
+    class FakeStream:
+        """模拟 PortAudio 输入流：start() 后按块把数据推给回调（真实设备是回调式）。"""
+
+        def __init__(self, blocks, callback):
+            self._blocks, self._callback = list(blocks), callback
+            self._stopped = threading.Event()
+
+        def start(self):
+            def feed():
+                for index, block in enumerate(self._blocks):
+                    if self._stopped.is_set():
+                        return
+                    self._callback(block.reshape(-1, 1), len(block), None, None)
+                    time.sleep(0.001)
+            threading.Thread(target=feed, daemon=True).start()
+
+        def stop(self):
+            self._stopped.set()
+
+        def close(self):
+            self._stopped.set()
+
+    original = audio_io._open_input
+
+    def make(kind):
+        rate, block = 16000, 800                      # 50ms 一块
+        t = np.arange(block, dtype=np.float64)
+        quiet = (np.sin(2 * np.pi * 120 * t / rate) * 4).astype('<i2')     # 约 -70dBFS 底噪
+        speech = (np.sin(2 * np.pi * 220 * t / rate) * 4000).astype('<i2')  # 约 -18dBFS 人声
+        if kind == 'utterance':
+            blocks = [quiet] * 20 + [speech] * 20 + [quiet] * 40            # 1s静音+1s说话+2s静音
+        elif kind == 'silence':
+            blocks = []                                                     # 一点声音都没有
+        else:                                                               # 一直有人在说
+            blocks = [speech] * 400
+        def opener(sd, device, rate_arg, block_ms, callback):
+            stream = FakeStream(blocks, callback)
+            stream.start()
+            return stream, rate, block
+
+        audio_io._open_input = opener
+        return rate, block
+
+    def restore():
+        audio_io._open_input = original
+
+    checks = []
+    try:
+        rate, _ = make('utterance')
+        wav, info = audio_io.listen_once(None, rate=rate, silence_s=1.5)
+        speech = info['speech_s']
+        checks.append(('VAD 检测到人声才开始录（前 1 秒静音被丢弃）', info['reason'] == 'ok'
+                       and wav is not None, str(info)))
+        checks.append(('说完 1.5 秒静音后自动收尾（录音 1.0~3.0 秒）', 1.0 <= speech <= 3.0, str(speech)))
+        pcm, back_rate, channels = audio_io.decode_wav(wav)
+        checks.append(('返回的是可解码的 16k 单声道 WAV',
+                       back_rate == rate and channels == 1 and len(pcm) == int(speech * rate * 2),
+                       '%d/%d/%d' % (back_rate, channels, len(pcm))))
+
+        make('silence')
+        wav, info = audio_io.listen_once(None, rate=16000, silence_s=1.5, wait_s=0.5)
+        checks.append(('一直没人说话时按时返回 None（不吞住线程）',
+                       wav is None and info['reason'] == 'timeout', str(info)))
+
+        make('speech')
+        pause = threading.Event()
+        pause.set()
+        wav, info = audio_io.listen_once(None, rate=16000, silence_s=1.5, pause=pause)
+        checks.append(('暂停标志置位时立刻放弃采集（TTS/动作期间闭嘴）',
+                       wav is None and info['reason'] == 'paused', str(info)))
+
+        make('speech')
+        wav, info = audio_io.listen_once(None, rate=16000, silence_s=1.5, max_s=1.0)
+        checks.append(('一直说不完时被 max_s 截断（有上限，不会无限录）',
+                       info['reason'] == 'ok' and 0.9 <= info['speech_s'] <= 1.3, str(info['speech_s'])))
+    finally:
+        restore()
+    return checks
+
+
 def self_check():
     """离线自检：不碰声卡、不联网，只验证 WAV 编解码与四个阶段的打印。"""
     checks = []
@@ -284,6 +368,9 @@ def self_check():
     check('STT 在无配置时确实是 Mock', stt_source in ('mock', 'arg'), stt_source)
     check('LLM 在无配置时确实是 Mock', llm_source == 'mock', llm_source)
     check('TTS 有降级路径', tts_source in ('sapi', 'skip', 'none', 'api'), tts_source)
+
+    for name, ok, detail in always_on_checks(np):
+        check(name, ok, detail)
 
     failures = [item for item in checks if not item[1]]
     for name, ok, detail in checks:
