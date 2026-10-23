@@ -68,6 +68,20 @@
 
 &#x20;  `python run\_auto\_integration.py --props-removed`  真机自动跑：拦截验证 + 抓帧存 `current\_frame\_fixed.jpg` + 报告 `auto\_integration\_report.json`
 
+3.7 图传诊断（黑屏/无画面时先跑这个）：
+
+&#x20;  `python test\_live\_view.py --self-check`           离线自检 7 项
+
+&#x20;  `python test\_live\_view.py --props-removed`        裸 UDP 抓包探针 + 持续拉流 + 实时窗口
+
+&#x20;  - 先用裸 socket 独占绑定 11111 数包：**0 包 = 网络/防火墙/端口占用**，不是解码问题。
+
+&#x20;  - 再逐帧打印 `shape / mean / 解码线程存活 / 重连次数`，成功才存 `live\_test.jpg`。
+
+&#x20;  - 默认用自研 av 解码后端（读超时 2s、自动重连、错误可见）；失败会自动再试 djitellopy 后端对照。
+
+&#x20;  - djitellopy 收到真实帧前会一直返回 `300x400` 全零占位帧——SDK 已把它判为「无画面」，不会再存黑图。
+
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 
 &#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）

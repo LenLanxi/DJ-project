@@ -228,3 +228,9 @@ Thumbs.db
 
 # 本地音频设备配置（含本机设备索引，因人而异）
 audio_config.json
+
+# === 现场测试产物（不入库）===
+auto_integration_report.json
+current_frame_fixed.jpg
+current_frame_raw_rgb.jpg
+live_test.jpg

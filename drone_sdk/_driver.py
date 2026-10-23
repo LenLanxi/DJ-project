@@ -387,20 +387,43 @@ def motors_off():
     return ok
 
 
-def start_video():
-    global _video
+def stream_video_only():
+    """Send `streamon` without starting a decoder (lets a raw probe bind 11111 first)."""
     with _lock: tello = _tello
     if tello is None: return False
     ok, _error = _call_real(tello.streamon, action='streamon',
                             deadline=COMMAND_DEADLINE_S['land'])
-    if not ok: return False
+    if ok: _record('video_stream_on', origin='streamon_only')
+    return ok
+
+
+def start_video(backend='av', wait=0.0):
+    """Start the video pipeline.
+
+    backend='av' 使用自研解码线程（默认，错误可见 + 自愈重连）；
+    backend='djitellopy' 保留原版 BackgroundFrameRead 做对照。
+    wait>0 时等第一帧真实画面，超时未拿到就返回 False。
+    """
+    global _video
+    with _lock: tello = _tello
+    if tello is None: return False
+    if not stream_video_only(): return False
     try:
-        reader = tello.get_frame_read()
+        if backend == 'djitellopy':
+            reader = tello.get_frame_read()
+        else:
+            reader = _VideoDecoder(tello.get_udp_video_address())
+            reader.start()
     except Exception as exc:
         _link_fault('frame_read: %s' % exc)
         return False
     with _lock: _video = reader
-    _record('video_started', origin='tello_stream')
+    _record('video_started', origin='tello_stream', backend=backend)
+    if wait:
+        frame, stats = await_video(wait)
+        if frame is None:
+            _record('video_no_frame', backend=backend, stats=stats)
+            return False
     return True
 
 
@@ -415,33 +438,177 @@ def stop_video():
     if tello is None: return False
     ok, _error = _call_real(tello.streamoff, action='streamoff',
                             deadline=COMMAND_DEADLINE_S['land'])
+    time.sleep(.2)  # 让解码线程彻底释放 11111 端口
     return ok
+
+
+_PLACEHOLDER_SHAPE = (300, 400, 3)
+VIDEO_URL_OPTIONS = '?overrun_nonfatal=1&fifo_size=50000000'
+
+
+class _VideoDecoder(threading.Thread):
+    """自研 PyAV 解码线程：读超时 + 自动重连 + 错误可见。
+
+    djitellopy 自带的 BackgroundFrameRead 只捕获 av.error.ExitError，其它解码
+    异常会让线程静默退出，之后永远返回 300x400 全零占位帧——现场表现为"黑屏"。
+    这里直接 decode 到 bgr24，既省掉 PIL 的 RGB 中间层，也能把失败原因暴露出来。
+    """
+
+    def __init__(self, url, open_timeout=5, read_timeout=2):
+        super().__init__(daemon=True, name='video-decoder')
+        self.url = url
+        self.open_timeout = open_timeout
+        self.read_timeout = read_timeout
+        self._halt = threading.Event()
+        self._lock = threading.Lock()
+        self._frame = None
+        self.count = 0
+        self.reconnects = 0
+        self.errors = []
+        self.opened = 0
+        self.last_frame_at = 0.0
+        self._container = None
+
+    def _note(self, text):
+        with self._lock:
+            self.errors.append(text)
+            del self.errors[:-6]
+
+    def run(self):
+        import av
+        while not self._halt.is_set():
+            container = None
+            for url in (self.url + VIDEO_URL_OPTIONS, self.url):
+                try:
+                    container = av.open(url, timeout=(self.open_timeout, self.read_timeout))
+                    break
+                except Exception as exc:
+                    self._note('open(%s): %s' % ('opts' if url.endswith('50') else 'plain', exc))
+            if container is None:
+                self._halt.wait(1.0)
+                self.reconnects += 1
+                continue
+            with self._lock:
+                self.opened += 1
+                self._container = container
+            try:
+                for packet in container.decode(video=0):
+                    if self._halt.is_set():
+                        break
+                    try:
+                        frame = packet.to_ndarray(format='bgr24')
+                    except Exception as exc:
+                        self._note('to_ndarray: %s' % exc)
+                        continue
+                    with self._lock:
+                        self._frame = frame
+                        self.count += 1
+                        self.last_frame_at = time.monotonic()
+            except Exception as exc:
+                self._note('decode: %s' % exc)
+            finally:
+                with self._lock:
+                    self._container = None
+                try:
+                    container.close()
+                except Exception:
+                    pass
+            if self._halt.is_set():
+                break
+            self.reconnects += 1
+            self._halt.wait(.3)
+
+    @property
+    def frame(self):
+        with self._lock:
+            return self._frame
+
+    def stats(self):
+        with self._lock:
+            frame = self._frame
+            return dict(backend='av', count=self.count, reconnects=self.reconnects,
+                        opened=self.opened, errors=list(self.errors),
+                        age=round(time.monotonic() - self.last_frame_at, 2) if self.count else None,
+                        shape=list(frame.shape) if frame is not None else None,
+                        mean=round(float(frame.mean()), 2) if frame is not None else None)
+
+    def stop(self, timeout=3.0):
+        """停止解码并等到线程退出。
+
+        绝不从外部线程 close 容器：FFmpeg 正在 decode 时跨线程关闭会直接崩溃
+        (0xC0000005)。这里靠 read_timeout 让 decode 自己返回，再 join。
+        """
+        self._halt.set()
+        if self.is_alive():
+            self.join(timeout)
+
+
+def _is_placeholder(frame):
+    """djitellopy 在收到真实帧之前会一直给出 300x400 的全零数组。"""
+    return tuple(frame.shape) == _PLACEHOLDER_SHAPE and not frame.any()
 
 
 def get_frame():
     """Latest frame from the drone camera as BGR, or None when unavailable.
 
-    djitellopy decodes with ``av.VideoFrame.to_image()``, which yields **RGB**
-    (PIL order). The rest of this SDK and OpenCV expect BGR, so the swap happens
-    here exactly once; callers must never convert again.
+    The av backend decodes straight to BGR; djitellopy's PIL path yields RGB and
+    is swapped here once. Its pre-stream placeholder (300x400 zeros) is reported
+    as None, so callers can wait for a real picture instead of saving a black one.
     """
     with _lock: reader = _video
     if reader is None: return None
     frame = reader.frame
     if frame is None: return None
+    if isinstance(reader, _VideoDecoder): return frame
+    if _is_placeholder(frame): return None
     import numpy
     if frame.ndim == 2:
         frame = numpy.repeat(frame[:, :, None], 3, axis=2)
     return numpy.ascontiguousarray(frame[:, :, ::-1])
 
 
+def video_stats():
+    """Diagnostics for the live stream (backend, counters, errors)."""
+    with _lock: reader = _video
+    if reader is None:
+        return dict(reader=False, backend='none', placeholder=False, shape=None,
+                    mean=None, max=None)
+    if isinstance(reader, _VideoDecoder):
+        stats = reader.stats()
+        stats.update(reader=True, placeholder=False, max=None)
+        return stats
+    frame = reader.frame
+    if frame is None:
+        return dict(reader=True, backend='djitellopy', placeholder=False, shape=None,
+                    mean=None, max=None)
+    import numpy
+    values = numpy.asarray(frame)
+    return dict(reader=True, backend='djitellopy', placeholder=_is_placeholder(frame),
+                shape=list(values.shape), mean=round(float(values.mean()), 2),
+                max=int(values.max()))
+
+
+def await_video(timeout=8.0, interval=.05):
+    """Wait for the first real frame; the zero placeholder never counts."""
+    deadline = time.monotonic() + max(0., float(timeout))
+    while True:
+        frame = get_frame()
+        if frame is not None: return frame, video_stats()
+        if time.monotonic() >= deadline: return None, video_stats()
+        time.sleep(interval)
+
+
 def disconnect(*, safe=True):
     global _tello, _video, _keepalive_stop, SIMULATED, _flying, _height_cm
     with _lock:
         tello, _tello = _tello, None
-        _video = None
+        reader, _video = _video, None
         stop, _keepalive_stop = _keepalive_stop, None
     if stop is not None: stop.set()
+    stopper = getattr(reader, 'stop', None)
+    if callable(stopper):
+        try: stopper()
+        except Exception as exc: _record('video_stop_failed', error=str(exc))
     if tello is None:
         with _lock: SIMULATED = True
         return False

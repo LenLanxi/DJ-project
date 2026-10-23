@@ -167,22 +167,25 @@ def step_limits():
 
 
 def step_video_and_capture(args):
-    """开启视频流，抓一帧真实画面并存成 jpg。"""
-    if not driver.start_video():
-        check('开启视频流', False, 'streamon 未确认')
+    """开启视频流，等第一帧**真实**画面（300x400 占位帧不算）并存成 jpg。"""
+    if not driver.start_video(backend=args.backend):
+        check('开启视频流', False, 'streamon / 解码器启动失败')
         return None
-    frame = None
-    deadline = time.time() + args.frame_timeout
-    while time.time() < deadline:
-        frame = driver.get_frame()
-        if frame is not None:
-            break
-        time.sleep(0.05)
+    stats = driver.video_stats()
+    emit('视频', 'backend=%s 解码器=%s' % (stats.get('backend'), stats.get('reader')))
+    frame, stats = driver.await_video(args.frame_timeout)
     if frame is None:
-        check('抓到真实画面帧', False, '%.1fs 内没有画面（11111 端口/WiFi/其它程序占用）' % args.frame_timeout)
+        check('抓到真实画面帧', False,
+              '%.1fs 内没有真实画面，最后状态=%s（占位帧 shape=300x400 全零不算）'
+              % (args.frame_timeout, stats))
+        errors = stats.get('errors') or []
+        if errors:
+            emit('解码错误', ' | '.join(errors[-3:]))
         return None
     check('抓到真实画面帧', True)
-    check('画面是三通道 BGR', frame.ndim == 3 and frame.shape[2] == 3, str(frame.shape))
+    check('画面尺寸是真实分辨率（非 300x400 占位）',
+          tuple(frame.shape[:2]) != (300, 400), str(frame.shape))
+    check('画面不是全黑', float(frame.mean()) > 0.5, 'mean=%.2f' % float(frame.mean()))
     path = report_path(args, 'current_frame_fixed.jpg')
     saved, detail = save_frame(frame, path)
     check('保存 current_frame_fixed.jpg', saved, detail)
@@ -268,6 +271,8 @@ def parse_args(argv=None):
     parser.add_argument('--timeout', type=float, default=driver.RESPONSE_TIMEOUT_S,
                         help='单条指令响应超时（秒）')
     parser.add_argument('--frame-timeout', type=float, default=8.0, help='等待首帧的秒数')
+    parser.add_argument('--backend', choices=('av', 'djitellopy'), default='av',
+                        help='视频解码后端（默认自研 av，失败可试 djitellopy）')
     parser.add_argument('--output', default='.', help='产物输出目录')
     parser.add_argument('--save-raw', action='store_true', help='额外保存未校正的对照图')
     return parser.parse_args(argv)
