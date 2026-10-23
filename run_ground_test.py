@@ -407,9 +407,10 @@ class KeyReader(threading.Thread):
 
     def run(self):
         while not self._halt.is_set():
-            key = _terminal_key()
-            if key != -1:
-                self._queue.put(chr(key))
+            # _terminal_key() 已经返回 str（无按键时为空串），这里不再做 chr()
+            key = _key_to_text(_terminal_key())
+            if key:
+                self._queue.put(key)
             time.sleep(.02)
 
     def get(self, timeout=0.0):
@@ -447,21 +448,35 @@ class StallWatchdog(threading.Thread):
         self._halt.set()
 
 
+def _key_to_text(key):
+    """把 msvcrt.getch()/字符串/字节/int 统一成单个小写字符；无效返回 ''。"""
+    if key is None:
+        return ''
+    if isinstance(key, str):
+        return key[:1].lower()
+    if isinstance(key, (bytes, bytearray)):
+        try:
+            return bytes(key).decode('latin1', 'ignore')[:1].lower()
+        except Exception:
+            return ''
+    if isinstance(key, int):
+        # msvcrt / cv2 只会给出 0~255 的按键码；-1 或超出范围都视为"无按键"
+        return chr(key).lower() if 0 <= key <= 0xFF else ''
+    return ''
+
+
 def _terminal_key():
     """无窗口（--no-video）时用 Windows 终端按键，避免视频失败就失去交互。"""
     if os.name != 'nt':
-        return -1
+        return ''
     import msvcrt
     if not msvcrt.kbhit():
-        return -1
+        return ''
     raw = msvcrt.getch()
-    if raw in (b'\x00', b'\xe0'):
+    if raw in (b'\x00', b'\xe0'):          # 功能键/方向键：吃掉第二个字节
         msvcrt.getch()
-        return -1
-    try:
-        return raw.decode('latin1').lower()[0]
-    except Exception:
-        return -1
+        return ''
+    return _key_to_text(raw)
 
 
 def format_snapshot(snapshot, fps=None):

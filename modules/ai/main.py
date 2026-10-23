@@ -22,6 +22,76 @@ HELP = '''输入文字与模拟飞机互动。命令：
  /mute 停止当前播报；/reset 清空对话；/status 查看模拟状态；/quit 退出
 离线样例：还有多少电、起飞、跟着我、向前走30厘米、降落'''
 
+def build_real_runner(args):
+    """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。"""
+    root = str(Path(__file__).resolve().parents[2])      # main.py → modules/ai → modules → 仓库根
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    import drone_sdk._driver as drv
+    from drone_sdk.ai_bridge import UnifiedDrone
+    from program_runner import Runner
+    from demo_text import Demo
+
+    try:
+        drv.connect(args.address, timeout=drv.RESPONSE_TIMEOUT_S)
+    except Exception as exc:          # djitellopy 抛的是自定义 TelloException，统一转成 RuntimeError
+        raise RuntimeError('真机连接失败：%s' % exc) from None
+    health = drv.health()
+    print('真机已连接：电量 %s%%  高度 %scm  链路 %s  图传 %s' % (
+        health['battery'], health['height_cm'],
+        'ok' if health['link_ok'] else 'FAIL', 'on' if health['video'] else 'off'))
+    if health['link_ok'] is not True:
+        raise RuntimeError('真机链路异常，请先跑 python test_live_view.py --props-removed')
+    if not health['video']:
+        print('提示：图传未开启（不影响起飞/电机指令，坐标系内的动作将无法验证）')
+
+    drone = UnifiedDrone()
+
+    # 1) 状态换成真实读数（controller.get_status() 的 battery 是模拟常量 88）
+    original_status = drone.get_status
+    def real_status():
+        status = original_status()
+        info = drv.health()
+        status.update(battery=info['battery'], height_cm=info['height_cm'],
+                      connected=info['connected'], flying=info['flying'], simulated=False)
+        return status
+    drone.get_status = real_status
+    drone.get_battery = lambda: drv.health()['battery']
+
+    # 2) 起飞闸门：默认禁止；授权后还要过电量
+    original_takeoff = drone.takeoff
+    def guarded_takeoff(owner):
+        if not args.allow_real_takeoff:
+            print('[安全] 真机起飞被拒绝：启动时加 --allow-real-takeoff 才允许')
+            return dict(ok=False, status='failed', simulated=False,
+                        message='真机起飞未授权（需 --allow-real-takeoff）；未执行动作')
+        battery = drv.health()['battery']
+        if isinstance(battery, int) and battery < args.min_battery:
+            print('[安全] 真机起飞被拒绝：电量 %d%% < %d%%' % (battery, args.min_battery))
+            return dict(ok=False, status='failed', simulated=False,
+                        message='电量 %d%% 低于 %d%%，拒绝起飞' % (battery, args.min_battery))
+        print('[安全] 真机起飞已授权（电量 %s%%，桨叶必须已拆除）' % (battery,))
+        return original_takeoff(owner)
+    drone.takeoff = guarded_takeoff
+
+    print('真机动作授权：起飞=%s，电量阈值 %d%%' % (
+        '允许' if args.allow_real_takeoff else '禁止', args.min_battery))
+    return Runner(Demo(drone), allow_simulated_sdk=True), drone
+
+
+def shutdown_real():
+    """真机模式退出：先停速度、再停电机、关图传、断开。任何异常都不阻塞退出。"""
+    try:
+        import drone_sdk._driver as drv
+        drv.set_velocity((0, 0, 0, 0), 'main_exit')
+        drv.motors_off()
+        drv.stop_video()
+        drv.disconnect()
+        print('[清理] 已停电机、关图传并断开真机')
+    except Exception as exc:
+        print('[清理] 真机清理异常（请手动断电）：%s' % exc)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--live', action='store_true', help='启用已配置的真实模型；飞机仍模拟')
@@ -33,6 +103,13 @@ def main():
                         help='录音识别后二次确认（默认直接执行，减少现场拖节奏）')
     parser.add_argument('--voice-confirm-timeout', type=float, default=3.0,
                         help='配合 --voice-confirm：等待秒数，超时自动执行（0=一直等）')
+    parser.add_argument('--real-drone', action='store_true',
+                        help='连接真实 Tello（drone_sdk._driver.connect）；默认仍是模拟')
+    parser.add_argument('--allow-real-takeoff', action='store_true',
+                        help='真机模式下授权"起飞"（默认拒绝，防止误触）')
+    parser.add_argument('--address', default=None, help='飞机 IP，默认 192.168.10.1')
+    parser.add_argument('--min-battery', type=int, default=20,
+                        help='真机起飞的最低电量（默认 20%%）')
     args = parser.parse_args()
     try:
         config = load(args.config)
@@ -43,6 +120,8 @@ def main():
             raise ValueError('--image需要--live及视觉模型，离线样例不会识别图片')
         visual = (lambda question: VisionService(client).ask(args.image, question)) if args.image else None
         runner = None
+        if args.sdk_stub_root and args.real_drone:
+            raise ValueError('--sdk-stub-root 与 --real-drone 不能同时使用')
         if args.sdk_stub_root:
             import sys
             sys.path.insert(0, str(Path(args.sdk_stub_root).resolve()/'modules'/'follow'))
@@ -52,6 +131,8 @@ def main():
             from program_runner import Runner
             from demo_text import Demo
             runner = Runner(Demo(UnifiedDrone()), allow_simulated_sdk=True)
+        elif args.real_drone:
+            runner, real_drone = build_real_runner(args)
         agent = Agent(client, runner=runner, vision=visual)
     except (ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
         print('启动失败：', exc); return
@@ -126,7 +207,13 @@ def main():
                     and output('[TTS] 播报线程异常：%r' % (f.exception(),)))
         except Exception as exc:
             output('本轮未完成（不自动重试）：' + str(exc))
-    print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
+    if args.real_drone:
+        print('真实模型+真实飞机' if args.live else '离线样例（不是AI）+真实飞机')
+        print('⚠ 真机模式：起飞%s（电量阈值 %d%%）' % (
+            '已授权' if args.allow_real_takeoff else '被禁止，需 --allow-real-takeoff',
+            args.min_battery))
+    else:
+        print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
     print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (args.live and config['speak_replies'])
                             else '关%s' % ('（需 --live）' if not args.live
                                            else '（config 里设 "speak_replies": true 打开）')))
@@ -236,5 +323,7 @@ def main():
         session.close()
         audio_io.close()
         speech_worker.shutdown(wait=True, cancel_futures=True)
+        if args.real_drone:
+            shutdown_real()
 
 if __name__ == '__main__': main()
