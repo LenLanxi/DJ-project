@@ -681,6 +681,7 @@ def run_real(args, throttle):
     last_count, last_time = -1, time.time()
     fps, next_status = 0.0, time.time() + args.status_interval
     video = not args.no_video
+    window_created = False
     try:
         while True:
             watchdog.tick('status' if time.time() >= next_status else 'frame')
@@ -697,10 +698,12 @@ def run_real(args, throttle):
                         fps = (count - last_count) / max(1e-6, now - last_time)
                     last_count, last_time = count, now
                     cv2.imshow(WINDOW, annotate(frame, poller.snapshot(), motors, fps))
+                    window_created = True
                 # 15ms 退让：既保证按键响应，又绝不让渲染循环吃满 CPU
                 pressed = cv2.waitKey(15) & 0xFF
                 key = '' if pressed == 255 else chr(pressed)
-                if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
+                # 首帧到达前窗口还没创建，此时查询会被误判成"已关闭"
+                if window_created and cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
                     emit('状态', '窗口已关闭，准备退出')
                     break
             terminal_key = keys.get(0.05 if not video else 0.0)

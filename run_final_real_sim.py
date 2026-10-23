@@ -22,6 +22,8 @@ import sys
 import threading
 import time
 
+import cv2
+
 import drone_sdk._driver as driver
 from drone_sdk import ai_bridge, controller
 from drone_sdk.contract import FrameResult
@@ -157,7 +159,6 @@ def four_group_action(drone):
 
 
 def draw_overlay(frame, observation, fps, channels, reason):
-    import cv2
     if observation is not None and observation.found and observation.corners:
         points = [(int(x), int(y)) for x, y in observation.corners]
         for index in range(len(points)):
@@ -186,6 +187,14 @@ def run(args, throttle):
     emit('连接', '电量=%s%% 高度=%scm 链路=%s 图传后端=%s' % (
         health['battery'], health['height_cm'], 'ok' if health['link_ok'] else 'FAIL',
         driver.VIDEO_BACKEND))
+    battery = health['battery']
+    if isinstance(battery, int) and battery < 20:
+        emit('电量', '电量仅 %d%%：低电量时固件会拒绝部分指令并强制降落/关机' % battery)
+        emit('电量', '地面测试（不起飞）仍可继续，但可能中途断连；低于 %d%% 时脚本会自动收工'
+             % args.battery_min)
+    if isinstance(battery, int) and battery <= args.battery_min:
+        emit('电量', '电量 %d%% 已低于阈值 %d%%，建议先充电再联调（可加 --battery-min 5 强行继续）'
+             % (battery, args.battery_min))
     if not driver.start_video(wait=args.frame_timeout):
         stats = driver.video_stats()
         emit('错误', '图传未出真实画面：%s' % stats)
@@ -211,11 +220,18 @@ def run(args, throttle):
     window = 'Final Integration (real video)'
     shown = 0
     last_show = 0.0
+    window_created = False
     started_action = False
     follow_attempted = False
 
     try:
         while time.time() < deadline:
+            snapshot = poller.snapshot()
+            current_battery = snapshot.get('battery')
+            if isinstance(current_battery, int) and current_battery <= args.battery_min:
+                emit('电量', '电量降至 %d%%（阈值 %d%%），提前安全收工'
+                     % (current_battery, args.battery_min))
+                break
             packet = controller.get_frame()
             observation = None
             frame = packet.frame
@@ -279,16 +295,17 @@ def run(args, throttle):
 
             if not args.no_window:
                 if frame is not None and now - last_show > 1 / 15:
-                    import cv2
                     last_show = now
                     shown += 1
                     cv2.imshow(window, draw_overlay(frame.copy(), observation, fps,
                                                     last_channels, reason))
+                    window_created = True
                 pressed = cv2.waitKey(15) & 0xFF
                 if pressed in (ord('q'), 27):
                     emit('状态', '手动退出')
                     break
-                if cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE) < 1:
+                # 首帧到达前窗口还没创建，此时查询会被误判成"已关闭"
+                if window_created and cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE) < 1:
                     emit('状态', '窗口被关闭')
                     break
             else:
@@ -297,9 +314,12 @@ def run(args, throttle):
     except KeyboardInterrupt:
         emit('状态', '收到 Ctrl+C，开始清理')
         return 0
+    except Exception as exc:
+        # 真机掉线/固件拒绝时不要把 traceback 抛到现场，统一走清理分支
+        emit('错误', '联调循环异常，安全收工：%s: %s' % (type(exc).__name__, exc))
+        return 1
     finally:
         if not args.no_window:
-            import cv2
             cv2.destroyAllWindows()
         bridge.stop()
         poller.stop()
@@ -361,6 +381,8 @@ def parse_args(argv=None):
     parser.add_argument('--seconds', type=float, default=20.0, help='联调时长（默认 20 秒）')
     parser.add_argument('--marker-id', type=int, default=0, help='ArUco 目标 id（DICT_4X4_50）')
     parser.add_argument('--status-interval', type=float, default=2.0)
+    parser.add_argument('--battery-min', type=int, default=10,
+                        help='电量低于该值自动安全收工（默认 10%%）')
     parser.add_argument('--no-window', action='store_true', help='不弹窗口')
     parser.add_argument('--color', action='store_true', help='强制 ANSI 颜色')
     return parser.parse_args(argv)
