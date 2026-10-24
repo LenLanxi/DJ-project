@@ -17,7 +17,7 @@
     "modules/ai/drone_adapter.py": "5d1c23d0de00ac9d4f63dca9f91c4bb566a6513724804c066b6a283f1d35f550",
     "modules/ai/duplex_audio.py": "c374b81772fa015516a440ed5051222e08088b8ce6e0f4789cb845306f3cbc04",
     "modules/ai/http_transport.py": "0d9c6b9102eab07190ffb4f88cedea8c37e04aba73576ce345dad743664eaf7d",
-    "modules/ai/main.py": "a1abddcb61372dee9de82ac5f882cc2b8842e5600af6f33d3c07a518205d1916",
+    "modules/ai/main.py": "2250acf40d002eb32efdd31e0a5128f5ea071deae63fd99183b8c83c838cc6b1",
     "modules/ai/model_client.py": "1a3ca920e71c7cc77b9f704e4d2650f994e4867523a9aacdd36c1b10314e5438",
     "modules/ai/pipeline.py": "fe94c2e0e44bf33ca705a93983f718066ff12be71e1f3a49648577a5104449cd",
     "modules/ai/program_runner.py": "a0fbd1f729c1758499a5f13490bbe394a47c04fec2a64f21d32c5cec67fc956c",

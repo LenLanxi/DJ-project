@@ -151,6 +151,11 @@
 
 &#x20;  `python main.py --live --always-on --config ..\..\config.demo.json`（真机再加 `--real-drone --allow-real-takeoff`）
 
+&#x20;  - **没有 API Key 也能先验耳机**：`python main.py --offline-voice --always-on --config ..\..\config.demo.json`
+&#x20;    音频链路是真的（本地 whisper + SAPI 播报），理解走离线样例（起飞/跟着我/降落/还有多少电/前进N厘米）；
+&#x20;    配好 `AI_CHAT_URL / AI_API_KEY / AI_MODEL` 后去掉该开关即接真实 DeepSeek。
+&#x20;  - 不接语音时提示「需要 --live 或 --offline-voice」，不会静默吞掉 `/voice` 指令。
+
 &#x20;  - 持续监听麦克风，能量 VAD 自动判"开始说话/说完了"，静音 `--silence-s`（默认 1.5 秒）即停录。
 &#x20;  - 识别结果**直接执行**，不弹 `y` 确认；单句上限 `--max-utterance`（默认 10 秒），防止环境噪声把录音拖长。
 &#x20;  - 防自激：TTS 播报、动作执行、键盘路径手动录音期间一律**关闭采集**（不是清缓冲），播完才重新开麦。

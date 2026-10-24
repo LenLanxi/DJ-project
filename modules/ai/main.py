@@ -196,6 +196,8 @@ def main():
                         help='说多长时间的静音算"说完了"（默认 1.5 秒）')
     parser.add_argument('--max-utterance', type=float, default=10.0,
                         help='单句最长录音时长（默认 10 秒，防止一直录）')
+    parser.add_argument('--offline-voice', action='store_true',
+                        help='离线语音：音频链路（本地 whisper + SAPI 播报）走真声，理解用离线样例，免 API Key')
     parser.add_argument('--realtime',action='store_true',help='使用独立配置的兼容Realtime API，全双工；不回退分段语音')
     parser.add_argument('--program',help='在Docker沙箱执行完整Python文件')
     parser.add_argument('--fixture-vision',action='store_true')
@@ -212,6 +214,8 @@ def main():
 
 
 def _dispatch(args):
+    # 语音链路是否可用：真实模型（--live）或离线样例（--offline-voice，免 Key）
+    voice_ready = bool(args.live or getattr(args, 'offline_voice', False))
     if args.realtime or args.program:
         import asyncio
         try: asyncio.run(run_modern(args))
@@ -307,8 +311,8 @@ def _dispatch(args):
                     output('日志保存失败；以上执行结果仍有效，请勿因此重复执行动作')
             speech_text = str(record.get('spoken') or record.get('reply', record.get('result', '')))
             cancelled = bool(record.get('cancelled'))
-            if not args.live:
-                output('[TTS] 跳过播报：当前是离线样例模式（需 --live）')
+            if not voice_ready:
+                output('[TTS] 跳过播报：当前是离线样例模式（需 --live 或 --offline-voice）')
             elif not config['speak_replies']:
                 output('[TTS] 跳过播报：speak_replies=false（在配置里设为 true 就会念出来）')
             elif cancelled:
@@ -336,8 +340,8 @@ def _dispatch(args):
             args.min_battery))
     else:
         print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
-    print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (args.live and config['speak_replies'])
-                            else '关%s' % ('（需 --live）' if not args.live
+    print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (voice_ready and config['speak_replies'])
+                            else '关%s' % ('（需 --live 或 --offline-voice）' if not voice_ready
                                            else '（config 里设 "speak_replies": true 打开）')))
     print('语音由AI合成；本版本不能连接真实无人机。\n' + HELP)
 
@@ -354,8 +358,8 @@ def _dispatch(args):
 
     def say_blocking(text):
         """监听线程里的即时播报：说完再继续听，避免自己打断自己。"""
-        if not (args.live and config['speak_replies']):
-            output('[TTS] 跳过播报：需要 --live 且 speak_replies=true')
+        if not (voice_ready and config['speak_replies']):
+            output('[TTS] 跳过播报：需要 --live/--offline-voice 且 speak_replies=true')
             return
         output('[TTS] 准备播报：' + text[:80])
         speak(text, threading.Event())
@@ -411,8 +415,8 @@ def _dispatch(args):
     def start_listener():
         if listener['thread'] is not None and listener['thread'].is_alive():
             return False
-        if not args.live:
-            output('[监听] 需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
+        if not voice_ready:
+            output('[监听] 需要 --live（真实模型）或 --offline-voice（离线样例，免 Key）')
             return False
         listener['stop'] = threading.Event()
         thread = threading.Thread(target=listen_loop, args=(listener['stop'],),
@@ -511,7 +515,7 @@ def _dispatch(args):
                     continue
                 try:
                     if text == '/voice':
-                        if not args.live: raise ValueError('语音识别需要 --live（本地 faster-whisper 或 AI_STT_* 接口）')
+                        if not voice_ready: raise ValueError('语音识别需要 --live 或 --offline-voice（本地 faster-whisper）')
                         if session.busy: raise ValueError('请先等待当前任务结束')
                         cancel_audio.set()
                         # Sounddevice allows one recorder/player at a time. Wait for prior speech to end.
