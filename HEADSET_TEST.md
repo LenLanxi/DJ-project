@@ -43,11 +43,14 @@ py -3.11 test_audio_device.py --input-device 4 --output-device 8 --save-config a
 录放成功会把索引、精确设备名称和后端保存到 `audio_config.json`。
 之后可直接重复 `py -3.11 test_audio_device.py`，会自动读取当前目录（或仓库根目录）的配置。
 
-Docker及API配置可用后，启动完整模拟语音会话：
+Docker及API配置可用后，启动完整**模拟**语音会话（正式入口，免按键）：
 
 ```powershell
-py -3.11 docs\v4-reference\main.py --voice --fixture-vision --audio-config audio_config.json --log logs/headset-session.jsonl
+cd C:\Users\Lhy\Desktop\drone-sdk-project\modules\ai
+..\..\.venv\Scripts\python.exe main.py --live --always-on --config ..\..\config.demo.json
 ```
+
+> `docs\v4-reference\main.py`（旧 Realtime 路线）已废弃并被硬性拦截，不要再把它当启动入口。
 
 ## 1. 设备锁定与配置
 
@@ -163,5 +166,6 @@ WASAPI参数、左右声道复制、部分启动失败清理、音频中断/无�
 
 官方依据（2026-10-23核对）：
 - https://python-sounddevice.readthedocs.io/en/latest/api/platform-specific-settings.html
-- https://developers.openai.com/api/reference/resources/realtime/client-events
-- https://developers.openai.com/api/docs/guides/realtime-vad
+- Realtime 协议/VAD 参考资料（早期路线，现已废弃，仅存档）：
+  https://developers.openai.com/api/reference/resources/realtime/client-events
+  https://developers.openai.com/api/docs/guides/realtime-vad

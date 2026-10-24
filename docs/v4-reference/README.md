@@ -1,3 +1,13 @@
+> ## ⚠️ 此目录为早期参考实现，已废弃
+>
+> **不要从这里启动程序，也不要把它当作联调依赖。正式代码请使用 [`modules/ai`](../../modules/ai)（入口 `modules/ai/main.py`）。**
+>
+> - 正式语音全链路（免按键）：`python main.py --live --always-on --config ..\..\config.demo.json`
+> - 真机首飞：`python main.py --live --always-on --real-drone --allow-real-takeoff`
+> - 本目录的 `main.py` 已被硬性拦截（需 `V4_REFERENCE_RUN=1` 才能复现历史行为）。
+> - 本目录不再写死任何厂商地址/密钥：`AI_API_KEY` / `AI_MODEL` / `AI_REALTIME_URL` 全部读环境变量。
+> - `duplex_audio.py` 已迁入 `modules/ai/`，此处不再保留副本。
+
 # AI随行小伙伴 · 4组 v0.4 耳机适配更新（2026-10-23）
 
 本版本按老师反馈重构。**v0.3仍保留为旧版；本包为新的执行和实时语音架构。**
@@ -51,17 +61,22 @@ py -3.11 test_audio_device.py --list
 py -3.11 test_audio_device.py --input-device 4 --output-device 8 --save-config audio_config.json
 ```
 
-配置自己的可用OpenAI API账号和实时模型标识。不要把密钥发群或放进代码。
-聊天订阅不能自动代替API账号配置；本包不会读取ChatGPT登录凭据。
+配置自己的可用模型账号和实时模型标识（统一走 `AI_API_KEY` / `AI_MODEL`，不绑定任何一家厂商）。不要把密钥发群或放进代码。
+聊天订阅不能自动代替API账号配置；本包不会读取任何登录凭据。
 
 PowerShell配置形式：
 
 ```powershell
-$env:OPENAI_API_KEY="自己的API密钥"
-$env:REALTIME_MODEL="账号支持的Realtime模型标识"
-$env:REALTIME_VOICE="marin"
+$env:AI_API_KEY="自己的API密钥"          # 统一变量名，不再使用 OPENAI_API_KEY
+$env:AI_MODEL="deepseek-chat"            # 文本模型
+$env:AI_REALTIME_URL="wss://你们可用的Realtime地址"   # 本仓库不内置任何厂商地址
+$env:AI_REALTIME_MODEL="可选：Realtime 模型标识"      # 不填则回落到 AI_MODEL
+$env:AI_REALTIME_VOICE="可选：音色，留空则由服务商默认"
 python main.py --voice --fixture-vision --audio-config audio_config.json
 ```
+
+> 注：`--voice` 这条 Realtime 路线属于早期参考实现。**DeepSeek 不提供 Realtime WebSocket 接口**，
+> 现场演示请直接用 `modules/ai/main.py --always-on`（本地 faster-whisper + DeepSeek 文本 + Windows SAPI）。
 
 Linux/macOS使用export设置相同环境变量。
 也可用 `python main.py --list-audio-devices` 查看编号，通过命令行显式指定：

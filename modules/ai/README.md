@@ -135,6 +135,8 @@ python -m unittest -v
 - `ai_agent.py`、`program_runner.py`：模型计划、受限程序检查执行与反馈。
 - `session.py`：普通任务与优先中断的模拟调度。
 - `audio_io.py`、`voice_service.py`、`pipeline.py`：音频与语音流水线。
+- `local_stt.py`、`offline_tts.py`：本地 faster-whisper 识别与 Windows SAPI 播报（免 Key 降级）。
+- `duplex_audio.py`：双工采集/播放底层（已从 `docs/v4-reference` 迁入，供 `test_audio_device.py` 使用）。
 - `vision_service.py`：测试图片、帧元数据检查和BGR编码。
 - `settings.py`、`diagnose.py`：配置与本地诊断。
 - `HANDOFF.md`：已确认约定与未确定签名，供技术成员对接。

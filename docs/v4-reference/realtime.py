@@ -46,6 +46,8 @@ TOOLS=[{'type':'function','name':'run_program','description':'在独立容器中
 
 def session_config(model,voice,audio_config=None):
     config=audio_config or AudioConfig()
+    output={'format':{'type':'audio/pcm','rate':24000}}
+    if voice: output['voice']=voice          # 音色由服务商决定，未配置就不传，避免写死某家
     return {'type':'session.update','session':{'type':'realtime','model':model,
         'output_modalities':['audio'],'instructions':INSTRUCTIONS,'tools':TOOLS,'tool_choice':'auto',
         'audio':{'input':{'format':{'type':'audio/pcm','rate':24000},
@@ -56,7 +58,7 @@ def session_config(model,voice,audio_config=None):
                               # 服务端只负责切句；是否打断由客户端 barge_in() 判定，
                               # 否则飞机电机的突发噪声会直接被服务端掐断播报。
                               'create_response':True,'interrupt_response':False}},
-            'output':{'format':{'type':'audio/pcm','rate':24000},'voice':voice}}}}
+            'output':output}}}
 
 class RealtimeSession:
     def __init__(self,runner,audio,logger=None,*,audio_config=None):
@@ -196,11 +198,17 @@ class RealtimeSession:
             await self.handle(json.loads(message))
     async def run(self):
         from websockets.asyncio.client import connect
-        key=os.getenv('OPENAI_API_KEY') or os.getenv('AI_API_KEY','')
-        model=os.getenv('REALTIME_MODEL','')
-        if not key or not model: raise ValueError('缺少OPENAI_API_KEY和REALTIME_MODEL')
-        url='wss://api.openai.com/v1/realtime?model='+quote(model,safe='')
-        voice=os.getenv('REALTIME_VOICE','marin')
+        # 不再写死任何厂商地址：统一走我们自己的环境变量。
+        # Realtime 走 WebSocket，与文本的 AI_CHAT_URL 不是同一个接口，因此单列 AI_REALTIME_URL。
+        key=os.getenv('AI_API_KEY','')
+        model=os.getenv('AI_REALTIME_MODEL') or os.getenv('AI_MODEL','')
+        base=os.getenv('AI_REALTIME_URL','')
+        if not base:
+            raise ValueError('缺少 AI_REALTIME_URL：本目录是早期参考实现，'
+                             '国内可直接用 modules/ai/main.py --always-on（DeepSeek + 本地 whisper）')
+        if not key or not model: raise ValueError('缺少AI_API_KEY和AI_MODEL（或AI_REALTIME_MODEL）')
+        url=base+('&' if '?' in base else '?')+'model='+quote(model,safe='')
+        voice=os.getenv('AI_REALTIME_VOICE','')
         await self.runner.check()
         try:
             async with connect(url,additional_headers={'Authorization':'Bearer '+key},max_size=2_000_000,

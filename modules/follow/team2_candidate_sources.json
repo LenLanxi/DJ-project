@@ -15,6 +15,7 @@
     "modules/ai/demo_vision.py": "f0e82f850ce1ee7e613b7419f0f16360bd639dfc5887a5e56142c4e3dfb1f811",
     "modules/ai/diagnose.py": "2bb44b775161d19bf5c3300a2170a025125da3779c0e65f541b73a271c77ed40",
     "modules/ai/drone_adapter.py": "5d1c23d0de00ac9d4f63dca9f91c4bb566a6513724804c066b6a283f1d35f550",
+    "modules/ai/duplex_audio.py": "ce125485d5fe7773b5b28f9f204b08cbbf1365d5d47615d885f2feda5e8c0038",
     "modules/ai/http_transport.py": "0d9c6b9102eab07190ffb4f88cedea8c37e04aba73576ce345dad743664eaf7d",
     "modules/ai/main.py": "294dcae598a703013a44ceda8ec35be21b9acf584b6e4154d95cca18665a53a0",
     "modules/ai/model_client.py": "1a3ca920e71c7cc77b9f704e4d2650f994e4867523a9aacdd36c1b10314e5438",

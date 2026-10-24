@@ -17,8 +17,26 @@ from backends import MockBackend,SDKBackend
 from gateway import Gateway
 from sandbox_runner import SandboxRunner
 
+DEPRECATED_NOTICE = (
+    '============ 已废弃的运行入口 ============\n'
+    '本目录（docs/v4-reference）是 4 组早期参考实现，仅用于比对设计，不参与联调。\n'
+    '正式代码请使用：modules/ai/main.py\n'
+    '  语音全链路（免按键）：python main.py --live --always-on --config ..\\..\\config.demo.json\n'
+    '  真机：                python main.py --live --always-on --real-drone --allow-real-takeoff\n'
+    '确需复现历史行为：设置环境变量 V4_REFERENCE_RUN=1 后重试。\n'
+    '=========================================')
+
+def deprecated_guard():
+    """主入口只能有一个：这里直接拒绝启动，避免有人误把它当成正式程序跑。"""
+    if os.getenv('V4_REFERENCE_RUN') == '1':
+        print('警告：正在运行已废弃的参考实现（V4_REFERENCE_RUN=1），请勿用于演示或联调。')
+        return
+    print(DEPRECATED_NOTICE)
+    raise SystemExit(2)
+
 async def main():
-    p=argparse.ArgumentParser(description='4组重构版：独立沙箱 + 实时语音')
+    deprecated_guard()
+    p=argparse.ArgumentParser(description='4组重构版：独立沙箱 + 实时语音（已废弃，仅参考）')
     modes=p.add_mutually_exclusive_group(required=True)
     modes.add_argument('--voice',action='store_true',help='耳机实时对话，不需要按键确认')
     modes.add_argument('--program',help='在容器内运行Python文件')
@@ -43,8 +61,9 @@ async def main():
         print('Docker:',bool(shutil.which('docker')))
         for mod in ('websockets','sounddevice','cv2'):
             print(mod+':',bool(importlib.util.find_spec(mod)))
-        print('Realtime账号已配置:',bool(os.getenv('OPENAI_API_KEY') or os.getenv('AI_API_KEY')))
-        print('Realtime模型已配置:',bool(os.getenv('REALTIME_MODEL')))
+        print('Realtime账号已配置:',bool(os.getenv('AI_API_KEY')))
+        print('Realtime模型已配置:',bool(os.getenv('AI_REALTIME_MODEL') or os.getenv('AI_MODEL')))
+        print('Realtime地址已配置:',bool(os.getenv('AI_REALTIME_URL')))
         return
     if not 1<=args.timeout<=600: raise ValueError('timeout须为1至600秒')
     backend=SDKBackend(args.sdk_stub_root,simulated=True) if args.sdk_stub_root else MockBackend()

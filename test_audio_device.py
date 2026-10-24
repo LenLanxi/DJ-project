@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-for extra in (ROOT / 'modules' / 'ai', ROOT / 'docs' / 'v4-reference'):
+for extra in (ROOT / 'modules' / 'ai',):
     if str(extra) not in sys.path:
         sys.path.insert(0, str(extra))
 

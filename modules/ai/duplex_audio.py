@@ -7,21 +7,17 @@
 - 设备索引必须显式指定，不从系统默认设备回退；配置由 audio_config.json 保存。
 - 耳机被拔掉时 finished_callback / 2 秒无回调会置 fault，
   由 chunks() 抛错并安全退出，不自动切换设备。
+
+正式实现位置：本文件已从 docs/v4-reference 迁入 modules/ai，
+不再有跨目录 sys.path 依赖（audio_config / audio_devices 是同目录模块）。
 """
 import array
 import asyncio
 import collections
 import math
 import queue
-import sys
 import threading
 import time
-from pathlib import Path
-
-# 音频配置模块统一放在 modules/ai；从 docs/v4-reference 启动时补上路径。
-_AUDIO_MODULES = Path(__file__).resolve().parents[2] / 'modules' / 'ai'
-if str(_AUDIO_MODULES) not in sys.path:
-    sys.path.insert(0, str(_AUDIO_MODULES))
 
 from audio_config import AudioConfig
 from audio_devices import BLOCK_FRAMES, RATE, describe_endpoints, resolve_endpoints

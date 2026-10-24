@@ -2,11 +2,18 @@ import asyncio
 import base64
 import json
 import os
+import sys
 from pathlib import Path
 import shutil
 import threading
 import unittest
 from unittest.mock import patch
+
+# duplex_audio 已迁入 modules/ai（本目录不再保留副本）
+_AUDIO_MODULES = Path(__file__).resolve().parents[3] / 'modules' / 'ai'
+if str(_AUDIO_MODULES) not in sys.path:
+    sys.path.insert(0, str(_AUDIO_MODULES))
+
 from backends import MockBackend, SDKBackend
 from gateway import Gateway
 from sandbox_runner import SandboxRunner
@@ -194,7 +201,7 @@ class ContainerIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertIn('达到演示',result['debug'])
     async def test_host_secrets_and_network_unavailable(self):
         code="""import os,socket
-assert os.getenv('OPENAI_API_KEY') is None
+assert os.getenv('AI_API_KEY') is None
 assert not os.path.exists('/var/run/docker.sock')
 assert not os.path.exists('/workspace')
 s=socket.socket()
