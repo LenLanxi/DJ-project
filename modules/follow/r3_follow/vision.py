@@ -1,10 +1,19 @@
 """ArUco adapter. No camera ownership and no control logic."""
 import cv2
 import numpy as np
+from time import perf_counter
 from .core import Observation
 
 
 class MarkerTracker:
+    # The extra large-image pass only examines existing rejected quads. The
+    # bounds cap additional decoder calls/pixels, not total detector latency.
+    RESCUE_MAX_INPUT_PIXELS = 3840 * 2160
+    RESCUE_MAX_CANDIDATES = 64
+    RESCUE_MAX_ROIS = 8
+    RESCUE_MAX_ROI_SIDE = 512
+    RESCUE_MAX_PIXELS = 512 * 1024
+
     def __init__(self, target_id=0):
         self.target_id = target_id
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -39,6 +48,7 @@ class MarkerTracker:
 
     def detect(self, frame, frame_id, acquired_at, source="camera"):
         self.last_diagnostics = {}
+        started = perf_counter()
         if (not isinstance(frame, np.ndarray) or frame.dtype != np.uint8
                 or frame.size == 0 or frame.ndim not in (2, 3)
                 or (frame.ndim == 3 and frame.shape[2] not in (3, 4))):
@@ -50,14 +60,38 @@ class MarkerTracker:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGRA2GRAY if frame.shape[2] == 4 else cv2.COLOR_BGR2GRAY)
         attempts = []
         ignored_other_markers = []
-        def detect_with(detector, image, name, scale=1):
+        candidate_quads = []
+        candidate_overflow = False
+        def detect_with(detector, image, name, scale=1, offset=(0, 0), collect=True):
+            nonlocal candidate_overflow
+            attempt_started = perf_counter()
             corners, ids, rejected = detector.detectMarkers(image)
             attempts.append({"method": name, "image_scale": scale,
+                             "image_offset": list(offset),
+                             "input_pixels": int(image.size),
+                             "elapsed_ms": (perf_counter()-attempt_started)*1000,
                              "ids": [] if ids is None else [int(v) for v in ids.flatten()],
                              "rejected_candidates": len(rejected)})
-            if scale != 1:
-                corners = [points / scale for points in corners]
-                rejected = [points / scale for points in rejected]
+            if scale != 1 or offset != (0, 0):
+                shift = np.asarray(offset, dtype=np.float32)
+                corners = [points / scale + shift for points in corners]
+                rejected = [points / scale + shift for points in rejected]
+            if collect and max(height, width) > 960:
+                for quad in rejected:
+                    points = np.asarray(quad[0], dtype=np.float32)
+                    # Duplicate threshold passes should not consume the ROI
+                    # budget. Retain different nearby quads as separate inputs.
+                    if abs(cv2.contourArea(points)) < 64:
+                        continue
+                    if any(np.linalg.norm(points.mean(0)-q.mean(0)) < 3
+                           and abs(cv2.contourArea(points)-cv2.contourArea(q))
+                           < max(32, abs(cv2.contourArea(q))*.15)
+                           for q in candidate_quads):
+                        continue
+                    if len(candidate_quads) >= self.RESCUE_MAX_CANDIDATES:
+                        candidate_overflow = True
+                        break
+                    candidate_quads.append(points)
             # Other IDs are not the selected target. Retain their geometry in
             # diagnostics, then keep searching. Never relabel them as ID0
             # or suppress duplicate target IDs.
@@ -113,8 +147,64 @@ class MarkerTracker:
             sharpened = cv2.addWeighted(gray, 1.8, cv2.GaussianBlur(gray, (0, 0), 1), -.8, 0)
             corners, ids, rejected = detect_with(self.side_detector, sharpened, "edge_quad_exact")
             method = "edge_quad_exact"
+        rescue = {"roi_count": 0, "input_pixels": 0, "budget_exceeded": False}
+        if ids is None and max(height, width) > 960:
+            # Preserve small marker pixels instead of shrinking the entire
+            # camera image. Crop only CURRENT-frame rejected candidates; no
+            # bit repair, predicted position, previous-frame ROI, or ID remap.
+            rois = []
+            rescue["candidate_count"] = len(candidate_quads)
+            if gray.size > self.RESCUE_MAX_INPUT_PIXELS or candidate_overflow:
+                rescue["budget_exceeded"] = True
+            else:
+                for points in candidate_quads:
+                    span = points.max(0)-points.min(0)
+                    margin = max(16, int(np.ceil(span.max()*.4)))
+                    x1, y1 = np.maximum(np.floor(points.min(0)).astype(int)-margin, 0)
+                    x2, y2 = np.minimum(np.ceil(points.max(0)).astype(int)+margin+1,
+                                        (width, height))
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+                    scale = min(1., self.RESCUE_MAX_ROI_SIDE/max(x2-x1, y2-y1))
+                    pixels = round((x2-x1)*scale)*round((y2-y1)*scale)
+                    if (len(rois) >= self.RESCUE_MAX_ROIS
+                            or sum(r[5] for r in rois)+pixels > self.RESCUE_MAX_PIXELS):
+                        rescue["budget_exceeded"] = True
+                        break
+                    rois.append((x1, y1, x2, y2, scale, pixels))
+            rescued = []
+            if not rescue["budget_exceeded"]:
+                for x1, y1, x2, y2, scale, pixels in rois:
+                    crop = gray[y1:y2, x1:x2]
+                    if scale != 1:
+                        crop = cv2.resize(crop, None, fx=scale, fy=scale,
+                                          interpolation=cv2.INTER_AREA)
+                    sharp = cv2.addWeighted(crop, 1.8,
+                        cv2.GaussianBlur(crop, (0, 0), 1), -.8, 0)
+                    new_corners, new_ids, rejected = detect_with(self.side_detector,
+                        sharp, "edge_quad_roi_exact", scale, (int(x1), int(y1)), False)
+                    rescue["roi_count"] += 1
+                    rescue["input_pixels"] += int(crop.size)
+                    # Search EVERY planned ROI, even after the first success.
+                    # One target seen in overlapping crops counts once; two
+                    # distinct targets remain ambiguous and stop following.
+                    if new_ids is not None:
+                        for quad in new_corners:
+                            if not any(np.max(np.linalg.norm(quad[0]-old[0], axis=1))
+                                       < 3 for old in rescued):
+                                rescued.append(quad)
+                if rois:
+                    method = "edge_quad_roi_exact"
+                corners = rescued
+                ids = (np.full((len(rescued), 1), self.target_id, dtype=np.int32)
+                       if rescued else None)
+            # Do not report a single rescued target if another candidate could
+            # not be searched within the bounded budget.
+            if rescue["budget_exceeded"]:
+                corners, ids = [], None
         self.last_diagnostics = {"detector_method": method,
-            "recognition_profile": "aruco_edge_quad_v014_candidate",
+            "recognition_profile": "aruco_edge_quad_bounded_roi_v015_candidate",
+            "large_image_rescue": rescue,
             "detected_ids": [] if ids is None else [int(v) for v in ids.flatten()],
             "rejected_candidates": len(rejected),
             "attempts": attempts,
@@ -126,14 +216,16 @@ class MarkerTracker:
             "rejected_quads_sample": [np.asarray(quad[0]).tolist() for quad in
                 sorted(rejected, key=lambda q: abs(cv2.contourArea(q)), reverse=True)[:6]],
             "image_width": width, "image_height": height,
-            "image_sharpness": float(cv2.Laplacian(gray, cv2.CV_64F).var())}
+            "image_sharpness": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
+            "detect_ms": (perf_counter()-started)*1000}
         matches = [] if ids is None else [i for i, v in enumerate(ids.flatten()) if int(v) == self.target_id]
         base = dict(frame_id=frame_id, acquired_at=acquired_at, source=source,
                     width=width, height=height, target_id=self.target_id)
         if len(matches) != 1:
             return Observation(**base, found=False,
                                reason=("ambiguous_duplicate_id" if matches else
-                                       "not_found"))
+                                       "rescue_budget_exceeded" if rescue["budget_exceeded"]
+                                       else "not_found"))
         points = corners[matches[0]][0]
         center = points.mean(axis=0)
         side = np.linalg.norm(points - np.roll(points, -1, axis=0), axis=1).mean()

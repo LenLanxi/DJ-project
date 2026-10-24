@@ -1,0 +1,2 @@
+# Generated runtime diagnostics; never commit recordings from local test runs.
+/logs/background/

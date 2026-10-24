@@ -37,6 +37,7 @@ class MotionRequest:
     forward: float = 0.0
     reason: str = ""
     simulation_only: bool = True
+    yaw: float = 0.0  # appended for positional compatibility; negative left, positive right
 
 
 def marker_shape(corners):
@@ -151,7 +152,9 @@ class ApparentSizeGuard:
 
 class FollowController:
     def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
-                 max_request_rate=None, require_geometry=False):
+                 max_request_rate=None, require_geometry=False,
+                 steering_mode="lateral", yaw_limit=0.20,
+                 alignment_stop=0.30, alignment_resume=0.18):
         if max_age <= 0 or not math.isfinite(max_age):
             raise ValueError("max_age must be finite and positive")
         self.target_id = target_id
@@ -165,8 +168,25 @@ class FollowController:
                 or not math.isfinite(max_request_rate) or max_request_rate <= 0):
             raise ValueError("max_request_rate must be None or finite and positive")
         self.max_request_rate = max_request_rate
+        if steering_mode not in ("lateral", "yaw"):
+            raise ValueError("steering_mode must be lateral or yaw")
+        for name, value in (("yaw_limit", yaw_limit),
+                            ("alignment_stop", alignment_stop),
+                            ("alignment_resume", alignment_resume)):
+            if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                    or not math.isfinite(value) or not 0 < value <= 1):
+                raise ValueError(f"{name} must be finite and in (0, 1]")
+        if alignment_resume >= alignment_stop:
+            raise ValueError("alignment_resume must be smaller than alignment_stop")
+        self.steering_mode = steering_mode
+        # Dimensionless OFFLINE candidate, not an experimentally measured yaw
+        # speed or a claim that this gain/limit is safe for physical flight.
+        self.yaw_limit = yaw_limit
+        self.alignment_stop = alignment_stop
+        self.alignment_resume = alignment_resume
+        self._alignment_blocked = steering_mode == "yaw"
         self._motion_at = None
-        self._motion_values = (0.0, 0.0)
+        self._motion_values = (0.0, 0.0, 0.0)
         self._loss_at = None
         self._good_since = None
         self._good_count = 0
@@ -260,7 +280,8 @@ class FollowController:
 
     def _zero(self, reason):
         self._motion_at = None
-        self._motion_values = (0.0, 0.0)
+        self._motion_values = (0.0, 0.0, 0.0)
+        self._alignment_blocked = self.steering_mode == "yaw"
         if self.state not in (State.TRACKING, State.RECOVERING) and reason not in (
                 "inactive", "reference_updated", "not_calibrated"):
             self.last_stop_reason = reason
@@ -292,7 +313,7 @@ class FollowController:
         self.state = State.TRACKING
         self.last_stop_reason = ""
         self._motion_at = None
-        self._motion_values = (0.0, 0.0)
+        self._motion_values = (0.0, 0.0, 0.0)
         self.tick(now)
         return True, "Simulation started"
 
@@ -318,8 +339,14 @@ class FollowController:
         return {"state": str(self.state), "target_id": self.target_id,
                 "reference_size": self.reference_size, "request": self.last_request,
                 "last_stop_reason": self.last_stop_reason,
-                "control_profile": "local_deadzone_transition_v1",
+                "control_profile": ("visible_target_yaw_v1" if self.steering_mode == "yaw"
+                                    else "local_deadzone_transition_v1"),
                 "distance_guard": self.distance_guard.status(),
+                "steering": {"mode": self.steering_mode, "yaw_limit": self.yaw_limit,
+                             "alignment_stop": self.alignment_stop,
+                             "alignment_resume": self.alignment_resume,
+                             "alignment_blocked": self._alignment_blocked,
+                             "physical_tuning_verified": False},
                 "max_request_rate": self.max_request_rate}
 
     def tick(self, now):
@@ -360,7 +387,7 @@ class FollowController:
         x_error = 2 * obs.center_x / obs.width - 1
         scale_error = (self.reference_size - obs.size_ratio) / self.reference_size
 
-        def adjustment(error):
+        def adjustment(error, limit=0.3):
             # Pixel normalization can place equal +/- boundary values a few
             # floating-point ulps apart. Keep the deadzone symmetric.
             if abs(error) <= 0.12 + 1e-12:
@@ -370,12 +397,24 @@ class FollowController:
             # retain the original 0.6 gain and 0.3 cap. No temporal filtering
             # or stored target positions; loss and stale frames still stop.
             weight = min(1.0, (abs(error) - 0.12) / 0.04)
-            magnitude = min(0.3, 0.6 * abs(error)) * weight
+            magnitude = min(limit, 0.6 * abs(error)) * weight
             return math.copysign(magnitude, error)
 
-        # Ambiguous size is not a new distance measurement. Drop any OLD
-        # forward/back request before the ramp, while retaining lateral logic.
-        desired = (adjustment(x_error), 0.0 if self.distance_guard.blocked else adjustment(scale_error))
+        # The yaw profile turns toward a currently visible marker, never also
+        # strafes from the same horizontal error. Hysteresis avoids repeated
+        # depth pulses near the alignment boundary. It is NOT target search.
+        if self.steering_mode == "yaw":
+            if abs(x_error) >= self.alignment_stop - 1e-12:
+                self._alignment_blocked = True
+            elif abs(x_error) <= self.alignment_resume + 1e-12:
+                self._alignment_blocked = False
+            right, yaw = 0.0, adjustment(x_error, self.yaw_limit)
+        else:
+            right, yaw = adjustment(x_error), 0.0
+        # Ambiguous size or a poorly aligned target must clear OLD forward/back
+        # requests before the ramp, including backward requests.
+        forward_blocked = self.distance_guard.blocked or self._alignment_blocked
+        desired = (right, 0.0 if forward_blocked else adjustment(scale_error), yaw)
         if self.max_request_rate is not None:
             elapsed = 0 if self._motion_at is None else max(0, min(.1, now-self._motion_at))
             step = self.max_request_rate * elapsed
@@ -386,6 +425,12 @@ class FollowController:
                 return previous + max(-step, min(step, target-previous))
             desired = tuple(ramp(old, new) for old, new in zip(self._motion_values, desired))
             self._motion_values, self._motion_at = desired, now
-        reason = "distance_guard: " + self.distance_guard.reason if self.distance_guard.blocked else "current_observation"
-        self.last_request = MotionRequest(self.state, *desired, reason)
+        if self.distance_guard.blocked:
+            reason = "distance_guard: " + self.distance_guard.reason
+        elif self._alignment_blocked:
+            reason = "turn_to_align_before_depth"
+        else:
+            reason = "current_observation"
+        self.last_request = MotionRequest(self.state, right=desired[0], forward=desired[1],
+                                          reason=reason, yaw=desired[2])
         return self.last_request

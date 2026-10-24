@@ -32,7 +32,10 @@ class ServiceTests(unittest.TestCase):
         self.clock = Clock()
         self.port = MockPort(self.clock.mono)
         self.service = FollowService(self.port, tracker=Detector(),
-            monotonic=self.clock.mono, wall_clock=self.clock.wall)
+            monotonic=self.clock.mono, wall_clock=self.clock.wall,
+            steering_mode="lateral", log_directory=False)
+        # Preserve the old lateral profile's regressions. Default yaw behavior
+        # is covered independently in test_service_lifecycle_fix.py.
         self.seq = 0
         self.addCleanup(self.service.close)
         self.frame()
@@ -321,7 +324,7 @@ class WorkerTests(unittest.TestCase):
                 unblock.wait(3)
                 return super().detect(*args, **kwargs)
         port = MockPort()
-        service = FollowService(port, tracker=Detector())
+        service = FollowService(port, tracker=Detector(), steering_mode="lateral", log_directory=False)
         try:
             port.publish((True, 320), 1, time.time())
             service.capture_once()

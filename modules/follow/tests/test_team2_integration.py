@@ -60,7 +60,7 @@ class Team2IntegrationTests(unittest.TestCase):
         self.assertTrue(self.service.calibrate_reference().ok)
         self.assertTrue(self.bridge.start_follow().ok)
         self.frame(x=.8)
-        self.assertTrue(any(e['event']=='velocity_call' and e['channels'][0]>0 for e in self.port.events))
+        self.assertTrue(any(e['event']=='velocity_call' and e['channels'][3]>0 for e in self.port.events))
 
     def test_raw_empty_video_blocks_start(self):
         self.port.frame_provider=None
@@ -196,7 +196,7 @@ class Team2IntegrationTests(unittest.TestCase):
         self.assertTrue(self.sdk.start_follow().ok)
         self.assertIs(self.sdk._follow._bridge.service, service)
         position[0] = .8
-        self.wait_until(lambda: any(e.get('channels', (0,))[0] > 0
+        self.wait_until(lambda: any(e.get('channels', (0,0,0,0))[3] > 0
                                   for e in self.sdk._follow.events()))
         self.assertTrue(self.sdk.stop_follow().ok)
         self.assertFalse(self.sdk.is_following())
@@ -233,7 +233,7 @@ class Team2IntegrationTests(unittest.TestCase):
             seq += 1
             return self.sdk.FrameResult(frame, seq, time.time(), False)
         self.sdk.set_frame_provider(replacement)
-        self.wait_until(lambda: any(e.get('channels', (0,))[0] < 0
+        self.wait_until(lambda: any(e.get('channels', (0,0,0,0))[3] < 0
                                   for e in self.sdk._follow.events()))
         stale = self.sdk.FrameResult(frame, seq + 10000, time.time() - 1, True)
         self.sdk.set_frame_provider(lambda: stale)
