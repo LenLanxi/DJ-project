@@ -150,14 +150,22 @@ class EvidenceResult(unittest.TextTestResult):
                                  evidence=''.join(traceback.format_exception(*err))))
 
 
+def git_value(*args, default='unknown'):
+    """A missing ``git`` on PATH must not fail an acceptance run."""
+    try:
+        return subprocess.check_output(['git', '-C', str(ROOT), *args], text=True,
+                                       stderr=subprocess.DEVNULL).strip()
+    except (OSError, subprocess.SubprocessError):
+        return default
+
+
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__])
     result = unittest.TextTestRunner(verbosity=2, resultclass=EvidenceResult).run(suite)
     output = Path(__file__).resolve().parent / 'Results' / 'R3Results.json'
     output.parent.mkdir(exist_ok=True)
-    revision = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'],
-                                       text=True).strip()
-    dirty = bool(subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain']))
+    revision = git_value('rev-parse', 'HEAD')
+    dirty = bool(git_value('status', '--porcelain', default=''))
     output.write_text(json.dumps(dict(revision=revision, dirty=dirty, tests=result.testsRun,
         passed=result.testsRun-len(result.failures)-len(result.errors),
         failed=len(result.failures), errors=len(result.errors), records=result.records,

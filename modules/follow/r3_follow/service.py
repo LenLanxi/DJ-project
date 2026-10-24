@@ -111,6 +111,8 @@ class FollowService:
             self._record("cleanup_completed", physical_hover_confirmed=False)
             return Result("completed")
         except Exception as exc:
+            try: self.port.stop_motion(lease)
+            except Exception: pass
             self.cleanup_unconfirmed = True
             self.last_reason = "cleanup_exception"
             self._record("cleanup_failed", error=str(exc))

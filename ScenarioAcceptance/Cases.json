@@ -51,65 +51,79 @@
     {
       "id": "T06",
       "title": "Active AI entry accepts the complete mission program",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "modules/ai/program_runner.py:15"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T07",
       "title": "Active AI entry exposes rotation",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "modules/ai/program_runner.py:6"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T08",
       "title": "Active AI entry exposes structured target observation",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "modules/ai/program_runner.py:6"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T09",
       "title": "Real entry starts the video source",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "modules/ai/main.py:25"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T10",
       "title": "Real entry supplies camera vision to the agent",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "modules/ai/main.py:121"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T11",
       "title": "Shared status uses actual battery telemetry",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/controller.py:81"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T12",
       "title": "Unknown battery blocks takeoff",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "modules/ai/main.py:69"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T13",
@@ -132,115 +146,139 @@
     {
       "id": "T15",
       "title": "Landing remains pending until the device finishes",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/controller.py:27",
         "drone_sdk/ai_bridge.py:24"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T16",
       "title": "Timed-out device action retains a control barrier",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/_driver.py:156",
         "modules/ai/demo_text.py:63"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T17",
       "title": "Busy command lock does not discard landing",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/_driver.py:275"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T18",
       "title": "Frame bridge preserves capture identity",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "run_final_real_sim.py:63"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T19",
       "title": "Driver rejects an expired decoded frame",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/_driver.py:570"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T20",
       "title": "Docs adapter preserves actual device mode",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "docs/v4-reference/backends.py:62"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T21",
       "title": "Docs path cannot bypass the takeoff battery gate",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "integration",
       "sources": [
         "docs/v4-reference/backends.py:80",
         "modules/ai/main.py:69"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T22",
       "title": "Failed RC transmission propagates failure",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "drone_sdk/_driver.py:246",
         "drone_sdk/controller.py:123"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T23",
       "title": "Actual device execution is not labelled simulated",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "modules/ai/program_runner.py:50"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T24",
       "title": "Static test-image observation cannot authorize real navigation",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "hardening",
       "sources": [
         "docs/v4-reference/gateway.py:52",
         "docs/v4-reference/gateway.py:80"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T25",
       "title": "Visual inference rechecks age after the model returns",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/vision.py:33"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T26",
       "title": "A visible target has positive width",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "hardening",
       "sources": [
         "docs/v4-reference/vision.py:45"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T27",
@@ -263,60 +301,72 @@
     {
       "id": "T29",
       "title": "Navigation validates observation age at the motion boundary",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "hardening",
       "sources": [
         "docs/v4-reference/gateway.py:80"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T30",
       "title": "Normal arrival stop preserves intended follow restoration",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "mission_gap",
       "sources": [
         "docs/v4-reference/gateway.py:82",
         "docs/v4-reference/examples/red_tent.py:17"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T31",
       "title": "Control-release failure cannot finish successfully",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/gateway.py:106"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T32",
       "title": "Stop failure cannot be silently ignored during cleanup",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/gateway.py:105"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T33",
       "title": "Docs handoff retains the original follow reference",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/gateway.py:28",
         "docs/v4-reference/gateway.py:110"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T34",
       "title": "Old docs action cannot reuse a new same-owner grant",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/backends.py:75",
         "docs/v4-reference/backends.py:80",
         "drone_sdk/controller.py:35"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T35",
@@ -339,67 +389,81 @@
     {
       "id": "T37",
       "title": "Blocked network cancellation cannot delay local stop",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/realtime.py:131"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T38",
       "title": "Playback truncates the new unplayed item",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "defect",
       "sources": [
         "docs/v4-reference/duplex_audio.py:65"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T39",
       "title": "Tent sample includes the requested full turn",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "mission_gap",
       "sources": [
         "docs/v4-reference/examples/red_tent.py:22"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T40",
       "title": "Whitelisted faulty-model output is not an intent guarantee",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "fault_injection",
       "sources": [
         "modules/ai/ai_agent.py:13",
         "modules/ai/ai_agent.py:38"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T41",
       "title": "Flight SOP fifty-centimeter command matches its entry",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "documentation",
       "sources": [
         "FLIGHT_SOP.md:142",
         "modules/ai/program_runner.py:28"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T42",
       "title": "Tent sample explicitly restores follow after arrival",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "mission_gap",
       "sources": [
         "docs/v4-reference/examples/red_tent.py:10"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     },
     {
       "id": "T43",
       "title": "Separate visual credentials are not used for Realtime",
-      "expected": "known_gap",
+      "expected": "pass",
       "category": "configuration",
       "sources": [
         "docs/v4-reference/realtime.py:199"
-      ]
+      ],
+      "baseline_expected": "known_gap",
+      "repair_note": "2026-10-24 strict assertion passed on repair candidate; offline scope only"
     }
   ]
 }

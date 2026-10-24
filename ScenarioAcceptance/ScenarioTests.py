@@ -123,11 +123,29 @@ class FakeTello:
     def end(self): self.calls.append('end')
 
 
+def loopback_tolerant_guard(name):
+    """Forbid external sockets but allow loopback.
+
+    asyncio.run() builds a ProactorEventLoop on Windows, whose constructor calls
+    socket.socketpair() -> csock.connect((127.0.0.1, port)). A blanket mock on
+    socket.connect therefore breaks every probe that legitimately runs an event
+    loop, not because the product touched the network.
+    """
+    original = getattr(socket.socket, name)
+
+    def guarded(self, address, *args, **kwargs):
+        host = address[0] if isinstance(address, tuple) and address else address
+        if isinstance(host, str) and (host.startswith('127.') or host in ('::1', 'localhost', '0.0.0.0')):
+            return original(self, address, *args, **kwargs)
+        raise AssertionError('Network access forbidden in offline probes')
+
+    return patch.object(socket.socket, name, guarded)
+
+
 class ScenarioTests(unittest.TestCase):
     def setUp(self):
-        self.network_guards = [patch.object(socket.socket, name,
-            side_effect=AssertionError('Network access forbidden in offline probes'))
-            for name in ('connect', 'connect_ex', 'sendto')]
+        self.network_guards = [loopback_tolerant_guard(name)
+                               for name in ('connect', 'connect_ex', 'sendto')]
         for guard in self.network_guards:
             guard.start()
             self.addCleanup(guard.stop)
@@ -361,13 +379,23 @@ class RecordingResult(unittest.TextTestResult):
                              'detail': self._exc_info_to_string(err, test)})
 
 
+def repository_commit():
+    """Best effort: a missing ``git`` on PATH must not fail an acceptance run."""
+    try:
+        completed = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT,
+                                   capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return 'unknown'
+    return completed.stdout.strip() or 'unknown'
+
+
 def result_data(result, output, scope):
-    revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True)
+    revision = repository_commit()
     return dict(tests=result.testsRun,
                 passed=sum(record['status'] == 'pass' for record in result.records),
                 known_gaps=len(result.expectedFailures), resolved_gaps=len(result.unexpectedSuccesses),
                 failed=len(result.failures), errors=len(result.errors), cases=result.records,
-                repository_commit=revision.stdout.strip(), strict=os.environ.get('SCENARIO_STRICT') == '1',
+                repository_commit=revision, strict=os.environ.get('SCENARIO_STRICT') == '1',
                 scope=scope, output=output)
 
 

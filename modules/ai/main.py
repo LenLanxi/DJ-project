@@ -1,4 +1,4 @@
-"""Unified terminal entry. The aircraft is ALWAYS a local mock."""
+"""Formal entry: explicit mock/real mode, legacy text and Docker/Realtime paths."""
 import argparse
 import json
 import os
@@ -37,6 +37,17 @@ def build_real_runner(args):
         drv.connect(args.address, timeout=drv.RESPONSE_TIMEOUT_S)
     except Exception as exc:          # djitellopy 抛的是自定义 TelloException，统一转成 RuntimeError
         raise RuntimeError('真机连接失败：%s' % exc) from None
+    from drone_sdk import controller as ctl
+    ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery)
+    try: video_ready=drv.start_video()
+    except Exception as exc:
+        video_ready=False
+        print('图传不可用：%s；视觉动作将拒绝执行' % exc)
+    if video_ready:
+        from run_final_real_sim import FrameBridge
+        frame_bridge = FrameBridge()
+        frame_bridge.start()
+        drv._frame_bridge=frame_bridge
     health = drv.health()
     print('真机已连接：电量 %s%%  高度 %scm  链路 %s  图传 %s' % (
         health['battery'], health['height_cm'],
@@ -67,30 +78,62 @@ def build_real_runner(args):
             return dict(ok=False, status='failed', simulated=False,
                         message='真机起飞未授权（需 --allow-real-takeoff）；未执行动作')
         battery = drv.health()['battery']
-        if isinstance(battery, int) and battery < args.min_battery:
-            print('[安全] 真机起飞被拒绝：电量 %d%% < %d%%' % (battery, args.min_battery))
+        if type(battery) is not int or not args.min_battery <= battery <= 100:
+            print('[安全] 真机起飞被拒绝：电量 %s%% < %d%%' % (battery, args.min_battery))
             return dict(ok=False, status='failed', simulated=False,
-                        message='电量 %d%% 低于 %d%%，拒绝起飞' % (battery, args.min_battery))
+                        message='电量 %s%% 未满足 %d%%门限，拒绝起飞' % (battery, args.min_battery))
         print('[安全] 真机起飞已授权（电量 %s%%，桨叶必须已拆除）' % (battery,))
         return original_takeoff(owner)
     drone.takeoff = guarded_takeoff
 
     print('真机动作授权：起飞=%s，电量阈值 %d%%' % (
         '允许' if args.allow_real_takeoff else '禁止', args.min_battery))
-    return Runner(Demo(drone), allow_simulated_sdk=True), drone
+    return Runner(Demo(drone), allow_simulated_sdk=True, allow_programs=True), drone
 
 
 def shutdown_real():
     """真机模式退出：先停速度、再停电机、关图传、断开。任何异常都不阻塞退出。"""
     try:
         import drone_sdk._driver as drv
+        if drv.health()['flying']:
+            print('设备仍在空中，不主动断开；退出进程不代表设备已停止，需要独立人工降落确认')
+            return
+        bridge=getattr(drv,'_frame_bridge',None)
+        if bridge: bridge.stop(); bridge.join(1)
         drv.set_velocity((0, 0, 0, 0), 'main_exit')
-        drv.motors_off()
         drv.stop_video()
         drv.disconnect()
         print('[清理] 已停电机、关图传并断开真机')
     except Exception as exc:
         print('[清理] 真机清理异常（请手动断电）：%s' % exc)
+
+
+async def run_modern(args):
+    from backends import SDKBackend,MockBackend
+    from gateway import Gateway
+    from sandbox_runner import SandboxRunner
+    from vision import Vision
+    import asyncio
+    backend=MockBackend()
+    if args.real_drone:
+        build_real_runner(args)
+        backend=SDKBackend(Path(__file__).resolve().parents[2])
+    if args.image and not backend.simulated: raise ValueError('真机模式禁止静态测试图片')
+    client=ModelClient() if os.getenv('AI_CHAT_URL') else None
+    vision=Vision(client,backend,args.image)
+    gateway=Gateway(backend,vision,args.fixture_vision)
+    if args.fixture_vision and not backend.simulated: raise ValueError('真机模式禁止视觉夹具')
+    runner=SandboxRunner(gateway)
+    if args.program:
+        result=await runner.run(Path(args.program).read_text(encoding='utf-8'))
+        print(json.dumps(result,ensure_ascii=False,indent=2))
+        if not result['ok']: raise RuntimeError('沙箱任务未完成')
+    else:
+        from realtime import RealtimeSession
+        from duplex_audio import DuplexAudio
+        from audio_config import load_audio_config
+        config=load_audio_config(args.audio_config,args.input_device,args.output_device)
+        await RealtimeSession(runner,DuplexAudio(config=config),audio_config=config).run()
 
 
 def main():
@@ -117,7 +160,18 @@ def main():
                         help='说多长时间的静音算"说完了"（默认 1.5 秒）')
     parser.add_argument('--max-utterance', type=float, default=10.0,
                         help='单句最长录音时长（默认 10 秒，防止一直录）')
+    parser.add_argument('--realtime',action='store_true',help='使用独立配置的兼容Realtime API，全双工；不回退分段语音')
+    parser.add_argument('--program',help='在Docker沙箱执行完整Python文件')
+    parser.add_argument('--fixture-vision',action='store_true')
+    parser.add_argument('--audio-config')
+    parser.add_argument('--input-device',type=int)
+    parser.add_argument('--output-device',type=int)
     args = parser.parse_args()
+    if args.realtime or args.program:
+        import asyncio
+        try: asyncio.run(run_modern(args))
+        except (ValueError,RuntimeError,OSError) as exc: print('执行失败：',exc); raise SystemExit(1)
+        return
     try:
         config = load(args.config)
         if args.devices:
@@ -140,6 +194,12 @@ def main():
             runner = Runner(Demo(UnifiedDrone()), allow_simulated_sdk=True)
         elif args.real_drone:
             runner, real_drone = build_real_runner(args)
+        if args.real_drone:
+            from vision import Vision
+            from backends import SDKBackend
+            observation=Vision(client,SDKBackend(Path(__file__).resolve().parents[2]))
+            visual=lambda target: json.dumps(observation.observe(target),ensure_ascii=False)
+            runner.structured_vision=observation
         agent = Agent(client, runner=runner, vision=visual)
     except (ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
         print('启动失败：', exc); return

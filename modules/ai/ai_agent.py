@@ -3,11 +3,11 @@ from program_runner import Runner
 
 PROMPT = '''你是无人机模拟演示助手。只返回JSON对象，不要Markdown。
 格式为 {"kind":"program","code":"drone.get_battery()"} 或
-{"kind":"reply","text":"回答"} 或 {"kind":"vision","question":"要问的画面问题"}。需要看图才能回答时用vision，不猜测画面。只能生成一个Python调用表达式。
+{"kind":"reply","text":"回答"} 或 {"kind":"vision","question":"要问的画面问题"}。需要看图才能回答时用vision，不猜测画面。可生成在独立Docker沙箱中执行的完整Python程序。
 允许接口：drone.get_battery()、drone.get_status()、drone.takeoff()、
 drone.land()、drone.start_follow()、drone.stop_follow()、drone.stop_motion()、
-drone.move_forward(30)。前进仅支持30厘米。其他动作请明确说明暂不支持。
-不要声称动作完成。含多个动作的要求请让用户分次提出。无明确动作意图不要调用动作。
+drone.move_forward(30)。可在沙箱中使用observe(target)、rotate(degrees)、多步移动及跟随接口。
+不要声称动作完成。多步任务读取每步结果及新观察，缺少距离或路径依据不得宣布到达。无明确动作意图不要调用动作。
 【安全兜底】如果用户指令不在上述允许接口范围内、语义不清、听写疑似错误、或你无法确定意图，
 禁止输出 kind=program，也禁止生成任何动作代码；必须只输出
 {"kind":"reply","text":"抱歉，我没听清，请再说一遍"}。宁可多问一次，也绝不执行不确定的动作。
@@ -18,13 +18,15 @@ NO_UNDERSTAND = '抱歉，我没听清，请再说一遍'
 class Agent:
     def __init__(self, client, runner=None, vision=None):
         self.client = client
-        self.runner = runner or Runner()
+        self.runner = runner or Runner(allow_programs=True)
         self.history = []
         self.vision = vision
 
     def handle(self, text):
         if not isinstance(text, str) or not text.strip() or len(text) > 4000:
             raise ValueError('请输入1至4000字的指令')
+        if any(word in text for word in ('不要', '禁止', '别起飞', '不许', 'do not', "don't")):
+            return {'request': text, 'execution': {'accepted': False}, 'reply': '已保留禁止指令，未执行动作'}
         state = self.runner.demo.drone.get_status()
         raw = self.client.complete([{'role': 'system', 'content': PROMPT}, *self.history,
             {'role': 'user', 'content': json.dumps({'request': text, 'state': state}, ensure_ascii=False)}])
@@ -37,6 +39,8 @@ class Agent:
             if plan.get('kind') == 'program':
                 result = self.runner.run(plan.get('code'))
                 reply = result['result']
+                if result.get('accepted') and result.get('ok') is False:
+                    spoken='任务未完成：'+str(result.get('status','failed'))
                 if not result.get('accepted'):
                     # 代码被白名单拦下 = 没有执行任何动作，统一走"没听清"兜底
                     reply = NO_UNDERSTAND + '；' + str(result.get('result') or '未执行动作')

@@ -11,19 +11,26 @@ class Demo:
     def handle(self, text):
         text = text.strip()
         drone = self.drone
+        prefix = '[模拟] ' if drone.get_status().get('simulated', True) else '[真机] '
         if text == '查看电量':
-            return '[模拟] 当前电量为%d%%。' % drone.get_status()['battery']
+            return prefix + '当前电量为%d%%。' % drone.get_status()['battery']
         if text == '查看状态':
-            return '[模拟] ' + json.dumps(drone.get_status(), ensure_ascii=False)
+            return prefix + json.dumps(drone.get_status(), ensure_ascii=False)
         if text == '跟着我':
-            return '[模拟] ' + ('已开始跟随' if drone.start_follow()['ok'] else '无法开始跟随，请查看状态')
+            return prefix + ('已开始跟随' if drone.start_follow()['ok'] else '无法开始跟随，请查看状态')
         if text == '停止跟随':
-            return '[模拟] ' + drone.stop_follow()['message']
+            return prefix + drone.stop_follow()['message']
+        import re
+        move=re.fullmatch(r'前进(\d+)厘米',text)
+        if move and 20<=int(move.group(1))<=100:
+            distance=int(move.group(1))
+            text='前进30厘米'
+        else: distance=30
         actions = {
             '起飞': lambda: drone.takeoff('model'),
             '降落': lambda: drone.land('model'),
             '停在这里': lambda: drone.stop_motion('model'),
-            '前进30厘米': lambda: drone.move_forward('model', 30),
+            '前进30厘米': lambda: drone.move_forward('model', distance),
         }
         if text not in actions:
             # 未知/听写错误的指令：绝不执行动作，并且必须让 TTS 能播报这句反问
@@ -36,18 +43,18 @@ class Demo:
             # Also invalidate a paused action's ticket when following=False.
             result = drone.stop_follow()
             if not result['ok']:
-                return '[模拟] 停止跟随未确认，未继续执行动作'
+                return prefix + '停止跟随未确认，未继续执行动作'
         if was_following or owns_follow:
             result = (drone.pause_follow_for_action() if ticket_handoff and
                       text == '前进30厘米' else drone.stop_follow())
             ticket = result.get('ticket')
             if not result['ok']:
-                return '[模拟] 无法暂停跟随，取消动作'
+                return prefix + '无法暂停跟随，取消动作'
         result = drone.request_control('model')
         if not result['ok']:
             if ticket is not None:
                 drone.finish_follow_action(ticket, 'failed')
-            return '[模拟] ' + result['message'] + '；未执行动作'
+            return prefix + result['message'] + '；未执行动作'
         result = None
         try:
             result = actions[text]()
@@ -65,13 +72,13 @@ class Demo:
             if not released['ok'] or (ticket_handoff and result.get('status') != 'completed'):
                 if ticket is not None:
                     drone.finish_follow_action(ticket, 'failed')
-                return '[模拟] ' + message + '；动作完成或控制权释放未确认，不恢复跟随'
+                return prefix + message + '；动作完成或控制权释放未确认，不恢复跟随'
             resumed = (drone.finish_follow_action(ticket, 'completed') if ticket_handoff
                        else drone.start_follow())
             message += '；' + ('已恢复模拟跟随' if resumed['ok'] else '未恢复跟随：' + resumed['message'])
         elif ticket is not None:
             drone.finish_follow_action(ticket, 'failed')
-        return '[模拟] ' + message
+        return prefix + message
 
 if __name__ == '__main__':
     print('AI随行小伙伴 · 接口流程演示 v0.1')

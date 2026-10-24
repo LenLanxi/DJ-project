@@ -1,3 +1,8 @@
+> 2026-10-24 修复候选：正式入口为 `modules/ai/main.py`。
+> 多步程序使用 `--program`（Docker），全双工使用 `--realtime`（独立实时服务配置）。
+> `--always-on` 是分段语音兼容路线，不代表全双工。先阅读 [REVIEW_FIXES.md](REVIEW_FIXES.md)。
+> 旧版本标签/历史首飞说明不构成当前真机验收通过证明。
+
 \# AI随行小伙伴 - 任务2 SDK
 
 

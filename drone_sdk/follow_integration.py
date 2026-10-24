@@ -26,6 +26,7 @@ class FollowIntegration:
         self._starting = False
         self._closing = False
         self._retired_workers = []
+        self._pending_cleanup = []
 
     def set_frame_provider(self, provider):
         with self._lock:
@@ -63,6 +64,13 @@ class FollowIntegration:
 
     def start(self, timeout=FIRST_FRAME_TIMEOUT):
         deadline = time.monotonic() + max(0., float(timeout))
+        with self._lock:
+            pending=list(self._pending_cleanup)
+        for service in pending:
+            with service.lock: result=service._cleanup()
+            if not result.ok: return self._fail('previous_cleanup_unconfirmed')
+            with self._lock:
+                if service in self._pending_cleanup: self._pending_cleanup.remove(service)
         while True:
             with self._lock:
                 self._retired_workers = [w for w in self._retired_workers if w.is_alive()]
@@ -151,6 +159,8 @@ class FollowIntegration:
             bridge.service.close(wait=False)
         finally:
             with self._lock:
+                if bridge.service.lease is not None:
+                    self._pending_cleanup.append(bridge.service)
                 self._retired_workers.extend(w for w in bridge.service.workers if w.is_alive())
                 self._last_events = list(port.events)
                 self._closing = False

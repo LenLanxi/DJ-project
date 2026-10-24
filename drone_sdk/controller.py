@@ -24,13 +24,17 @@ _frame = FrameResult(None, 0, 0., True)
 
 def _advance():
     global _flight_state, _landing_deadline
+    if not _driver.SIMULATED and _flight_state == 'landing':
+        if not _driver.health()['flying'] and not _driver.action_pending():
+            _flight_state, _landing_deadline = 'landed', None
+        return
     if _landing_deadline is not None and time.monotonic() >= _landing_deadline:
         _flight_state, _landing_deadline = 'landed', None
 
 def _zero(reason):
     global _last_velocity_time
     _last_velocity_time = 0.
-    _driver.set_velocity((0, 0, 0, 0), reason)
+    return _driver.set_velocity((0, 0, 0, 0), reason)
 
 def _check(owner, control_epoch=None, command_epoch=None, *, allow_landing=False):
     _advance()
@@ -78,9 +82,11 @@ def get_frame():
 def get_status():
     with _velocity_lock:
         _advance()
-        return StatusResult(88, 0 if _flight_state == 'landed' else 120, True,
+        h = _driver.health() if not _driver.SIMULATED else None
+        return StatusResult(h['battery'] if h else 88, h['height_cm'] if h else (0 if _flight_state == 'landed' else 120),
+            bool(h['connected'] and h['link_ok']) if h else True,
             _flight_state, _current_owner or 'none', time.time(), _control_epoch,
-            _command_epoch, _driver.snapshot()['velocity'], True)
+            _command_epoch, _driver.snapshot()['velocity'], _driver.SIMULATED)
 
 def request_control(owner):
     global _current_owner, _control_epoch, _command_epoch
@@ -88,6 +94,7 @@ def request_control(owner):
         _advance()
         reason = ('invalid_owner' if owner not in ('follow', 'model') else
                   'landing_in_progress' if _flight_state == 'landing' else
+                  'action_result_pending' if _driver.action_pending() else
                   'busy' if _current_owner not in (None, owner) else '')
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
         if _current_owner != owner:
@@ -101,8 +108,10 @@ def release_control(owner, *, control_epoch=None):
     global _current_owner, _control_epoch, _command_epoch, _active_action
     with _velocity_lock:
         reason = _check(owner, control_epoch)
+        if not reason and _driver.action_pending(): reason = 'action_result_pending'
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
-        _zero('owner_released')
+        if _zero('owner_released') is False:
+            return ControlResult(False, _current_owner or 'none', 'stop_send_failed', _control_epoch, _command_epoch)
         _current_owner = None
         _control_epoch += 1
         _command_epoch += 1
@@ -118,7 +127,8 @@ def update_velocity(owner, left_right, forward_back, up_down, yaw, *, control_ep
         if not reason and any(channels) and _flight_state != 'flying': reason = 'is_landed'
         if not reason and _active_action is not None: reason = 'action_busy'
         if reason: return CommandResult(False, 'failed', reason, False)
-        _driver.set_velocity(channels, 'velocity_update')
+        if _driver.set_velocity(channels, 'velocity_update') is False:
+            return CommandResult(False, 'failed', 'velocity_send_failed', False)
         _last_velocity_time = time.monotonic() if any(channels) else 0.
         return CommandResult(True, 'accepted', '', False)
 
@@ -149,7 +159,20 @@ def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=N
         if action == 'takeoff': _flight_state = 'flying'
         return CommandResult(True, 'completed')
 
-def takeoff(owner, **grant): return _mock_move(owner, 'takeoff', **grant)
+_takeoff_authorized = False
+_min_battery = 20
+
+def configure_takeoff(*, authorized=False, min_battery=20):
+    global _takeoff_authorized, _min_battery
+    if type(min_battery) is not int or not 1 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
+    _takeoff_authorized, _min_battery = bool(authorized), min_battery
+
+def takeoff(owner, **grant):
+    if not _driver.SIMULATED:
+        h = _driver.health(); battery = h['battery']
+        if not _takeoff_authorized or type(battery) is not int or not _min_battery <= battery <= 100 or not h['link_ok']:
+            return CommandResult(False, 'failed', 'takeoff_gate_rejected')
+    return _mock_move(owner, 'takeoff', **grant)
 
 def land(owner, *, control_epoch=None, command_epoch=None):
     global _flight_state, _landing_deadline, _command_epoch, _active_action
@@ -173,8 +196,7 @@ def stop_motion(owner, *, control_epoch=None, command_epoch=None):
         if reason: return CommandResult(False, 'failed', reason, False)
         _command_epoch += 1
         _active_action = None
-        _zero('stop_motion')
-        _driver.interrupt('stop_motion')
+        if _zero('stop_motion') is False: return CommandResult(False,'failed','stop_send_failed',False)
         return CommandResult(True, 'accepted', '', False)
 
 def move_forward(owner, cm, **grant): return _mock_move(owner, 'forward', cm, **grant)

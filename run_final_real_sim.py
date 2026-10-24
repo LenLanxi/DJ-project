@@ -48,6 +48,7 @@ class FrameBridge(threading.Thread):
         self._halt = threading.Event()
         self.published = 0
         self.last_frame = None
+        self._last_source = None
 
     def run(self):
         while not self._halt.wait(self.interval):
@@ -57,10 +58,19 @@ class FrameBridge(threading.Thread):
                 frame = None
             if frame is None:
                 continue
-            self.published += 1
+            metadata=driver.capture_metadata(frame)
+            if metadata is False: continue  # Decoder changed while polling: retry a coherent snapshot.
+            if metadata is not None:
+                self.published,self._captured_at=metadata
+                self._last_source=frame
+            elif frame is not self._last_source:
+                # Legacy readers expose no acquisition counter: never refresh cached object time.
+                self._last_source=frame
+                self.published+=1
+                self._captured_at=time.time()
             self.last_frame = frame
             try:
-                controller.publish_frame(FrameResult(frame, self.published, time.time(), False))
+                controller.publish_frame(FrameResult(frame, self.published, self._captured_at, time.time()-self._captured_at>.5))
             except Exception as exc:
                 emit('错误', 'publish_frame 失败：%s' % exc)
 

@@ -52,6 +52,11 @@ _link_ok = True
 _faults = 0
 _last_error = ''
 _speed_cm_s = DEFAULT_SPEED_CM_S
+_pending_commands = set()
+
+def action_pending():
+    with _lock: return bool(_pending_commands) if not SIMULATED else False
+
 _MOVES = ('forward', 'back', 'left', 'right', 'up', 'down')
 
 
@@ -138,9 +143,11 @@ def _call_real(fn, *, action, deadline):
     outcome = {'ok': False, 'error': 'timeout'}
     done = threading.Event()
 
+    with _lock: _pending_commands.add(done)
     def runner():
         if not _command_lock.acquire(timeout=max(1.0, deadline)):
             outcome['error'] = 'command_busy'
+            with _lock: _pending_commands.discard(done)
             done.set()
             return
         try:
@@ -150,6 +157,7 @@ def _call_real(fn, *, action, deadline):
             outcome['error'] = '%s: %s' % (type(exc).__name__, exc)
         finally:
             _command_lock.release()
+            with _lock: _pending_commands.discard(done)
             done.set()
 
     threading.Thread(target=runner, daemon=True, name='tello-command').start()
@@ -241,11 +249,14 @@ def set_velocity(channels, reason):
         _events.append(dict(event='velocity', channels=_velocity, reason=reason,
                             monotonic=time.monotonic(), simulated=not real))
         tello = _tello
-    if not real or tello is None: return
+    if not real: return True
+    if tello is None: return False
     try:
         tello.send_rc_control(*applied)
+        return True
     except Exception as exc:
         _link_fault('rc_control: %s' % exc)
+        return False
 
 
 def set_speed(cm_s):
@@ -272,9 +283,10 @@ def _dispatch_land(tello):
     """Landing is fire-and-forget here: the caller only needs the command out."""
     def worker():
         global _flying, _height_cm
-        if not _command_lock.acquire(timeout=LAND_DISPATCH_TIMEOUT_S):
+        while not _command_lock.acquire(timeout=LAND_DISPATCH_TIMEOUT_S):
             _record('land_deferred', reason='command_busy')
-            return
+            with _lock:
+                if _tello is not tello: return
         try:
             tello.land()
             with _lock:
@@ -512,6 +524,7 @@ class _VideoDecoder(threading.Thread):
                         self._frame = frame
                         self.count += 1
                         self.last_frame_at = time.monotonic()
+                        self.last_frame_timestamp = time.time()
             except Exception as exc:
                 self._note('decode: %s' % exc)
             finally:
@@ -567,7 +580,8 @@ def get_frame():
     if reader is None: return None
     frame = reader.frame
     if frame is None: return None
-    if isinstance(reader, _VideoDecoder): return frame
+    if isinstance(reader, _VideoDecoder):
+        return frame if reader.count and 0 <= time.monotonic()-reader.last_frame_at <= .5 else None
     if _is_placeholder(frame): return None
     import numpy
     if frame.ndim == 2:
@@ -633,3 +647,12 @@ def disconnect(*, safe=True):
         SIMULATED, _flying, _height_cm = True, False, 0
     _record('disconnected')
     return True
+
+
+def capture_metadata(frame):
+    """Return decoder acquisition metadata atomically; never turn polling into capture."""
+    with _lock: reader=_video
+    if not isinstance(reader,_VideoDecoder): return None
+    with reader._lock:
+        if reader._frame is not frame: return False
+        return reader.count, getattr(reader,'last_frame_timestamp',0.)

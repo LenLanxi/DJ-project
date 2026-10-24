@@ -15,6 +15,10 @@ for step in range(12):
         break
     if target['width_fraction'] >= 0.35:
         drone.stop_motion()
+        if not target.get('simulated',True):
+            raise RuntimeError('画面占比不能证明到达；需要独立距离与通行验收，停止任务')
+        drone.rotate(360)
+        drone.start_follow()
         print('达到演示中的画面占比阈值；这不能证明实际距离或真正到达')
         break
     error = target['center_x'] - 0.5

@@ -1,0 +1,140 @@
+WARN `--no-project` was provided, but no project was found
+RootIntegration exit= 0 seconds= 14.4
+................
+----------------------------------------------------------------------
+Ran 16 tests in 14.051s
+
+OK
+
+AIModule exit= 0 seconds= 0.16
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 0.016s
+
+OK
+
+FollowModule exit= 0 seconds= 19.51
+...................................................................................................................................................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 323 tests in 19.090s
+
+OK
+
+GroundSelfCheck exit= 0 seconds= 0.28
+
+ScenarioAcceptance exit= 0 seconds= 1.25
+
+PASS T01 test01_walk_forward_produces_forward_request
+PASS T02 test02_lost_marker_stops_motion
+PASS T03 test03_supported_temporary_action_restores_follow
+PASS T04 test04_failed_action_does_not_restore_follow
+PASS T05 test05_sdk_can_request_full_rotation
+PASS T06 test06_ai_accepts_full_scenario_program
+PASS T07 test07_ai_can_access_rotation
+PASS T08 test08_ai_can_observe_navigation_target
+PASS T09 test09_real_entry_opens_video
+PASS T10 test10_real_entry_supplies_ai_camera_vision
+PASS T11 test11_shared_status_reports_actual_battery
+PASS T12 test12_unknown_battery_blocks_takeoff
+PASS T13 test13_known_low_battery_blocks_takeoff
+PASS T14 test14_takeoff_requires_authorization_flag
+PASS T15 test15_landing_stays_pending_until_device_finishes
+PASS T16 test16_timeout_retains_barrier_until_device_action_resolves
+PASS T17 test17_landing_is_not_dropped_behind_busy_command
+PASS T18 test18_frame_bridge_preserves_capture_identity
+PASS T19 test19_driver_does_not_return_expired_frame_as_current
+{"tests": 19, "passed": 19, "known_gaps": 0, "resolved_gaps": 0, "failed": 0, "errors": 0}
+
+DocsBaseline exit= 0 seconds= 0.69
+
+tings (test_audio_devices.DeviceTests.test_non_wasapi_does_not_receive_wasapi_settings) ... ok
+test_stale_index_identity_fails_without_fallback (test_audio_devices.DeviceTests.test_stale_index_identity_fails_without_fallback) ... ok
+test_stereo_preserves_samples_and_mono_accounting (test_audio_devices.DeviceTests.test_stereo_preserves_samples_and_mono_accounting) ... ok
+test_unsupported_format_never_opens_other_device (test_audio_devices.DeviceTests.test_unsupported_format_never_opens_other_device) ... ok
+test_container_boundary (test_core.ConfigTests.test_container_boundary) ... ok
+test_realtime_has_vad_no_transcription_chain (test_core.ConfigTests.test_realtime_has_vad_no_transcription_chain) ... ok
+test_host_secrets_and_network_unavailable (test_core.ContainerIntegration.test_host_secrets_and_network_unavailable) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_infinite_loop_timeout (test_core.ContainerIntegration.test_infinite_loop_timeout) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_multi_step_full_python (test_core.ContainerIntegration.test_multi_step_full_python) ... skipped 'requires explicit RUN_DOCKER_TESTS=1 and built Docker image'
+test_barge_in_discards_late_audio (test_core.EventTests.test_barge_in_discards_late_audio) ... ok
+test_input_stream_does_not_wait_for_model_response (test_core.EventTests.test_input_stream_does_not_wait_for_model_response) ... ok
+test_older_response_done_does_not_clear_current (test_core.EventTests.test_older_response_done_does_not_clear_current) ... ok
+test_pending_response_waits_for_done (test_core.EventTests.test_pending_response_waits_for_done) ... ok
+test_stale_tool_never_starts (test_core.EventTests.test_stale_tool_never_starts) ... ok
+test_tool_deduplicated (test_core.EventTests.test_tool_deduplicated) ... ok
+test_tool_result_returns_actual_failure (test_core.EventTests.test_tool_result_returns_actual_failure) ... ok
+test_busy_manual_owner (test_core.GatewayTests.test_busy_manual_owner) ... ok
+test_cancel_invalidates_new_motion (test_core.GatewayTests.test_cancel_invalidates_new_motion) ... ok
+test_failed_action_not_success (test_core.GatewayTests.test_failed_action_not_success) ... ok
+test_interrupt_does_not_wait_for_blocking_action (test_core.GatewayTests.test_interrupt_does_not_wait_for_blocking_action) ... ok
+test_multi_step_and_follow_resume (test_core.GatewayTests.test_multi_step_and_follow_resume) ... ok
+test_no_docker_no_host_execution (test_core.GatewayTests.test_no_docker_no_host_execution) ... ok
+test_no_fake_camera (test_core.GatewayTests.test_no_fake_camera) ... ok
+test_read_only_does_not_acquire (test_core.GatewayTests.test_read_only_does_not_acquire) ... ok
+test_sdk_units_only (test_core.GatewayTests.test_sdk_units_only) ... ok
+test_stop_never_resumes (test_core.GatewayTests.test_stop_never_resumes) ... ok
+test_unknown_host_function_rejected (test_core.GatewayTests.test_unknown_host_function_rejected) ... ok
+test_dac_latency_subtracted (test_core.PlaybackTests.test_dac_latency_subtracted) ... ok
+test_interrupt_drops_unplayed_audio (test_core.PlaybackTests.test_interrupt_drops_unplayed_audio) ... ok
+test_overflow_is_explicit (test_core.PlaybackTests.test_overflow_is_explicit) ... ok
+test_pcm_alignment (test_core.PlaybackTests.test_pcm_alignment) ... ok
+test_unplayed_item_truncates_to_zero (test_core.PlaybackTests.test_unplayed_item_truncates_to_zero) ... ok
+test_missing_final_result_is_failure (test_protocol.ProtocolTests.test_missing_final_result_is_failure) ... ok
+test_multiple_rpc_calls_and_journal (test_protocol.ProtocolTests.test_multiple_rpc_calls_and_journal) ... ok
+test_program_done_does_not_hide_interface_error (test_protocol.ProtocolTests.test_program_done_does_not_hide_interface_error) ... ok
+test_unknown_host_call_has_no_effect (test_protocol.ProtocolTests.test_unknown_host_call_has_no_effect) ... ok
+test_duplicate_real_frame_rejected (test_vision.VisionTests.test_duplicate_real_frame_rejected) ... ok
+test_invalid_visual_coordinates_rejected (test_vision.VisionTests.test_invalid_visual_coordinates_rejected) ... ok
+test_missing_or_stale_frame_never_reaches_model (test_vision.VisionTests.test_missing_or_stale_frame_never_reaches_model) ... ok
+test_structured_visual_result_does_not_become_code (test_vision.VisionTests.test_structured_visual_result_does_not_become_code) ... ok
+
+----------------------------------------------------------------------
+Ran 54 tests in 0.195s
+
+OK (skipped=3)
+
+
+DocsAcceptance exit= 0 seconds= 0.56
+
+PASS T20 test20_docs_adapter_preserves_real_mode
+PASS T21 test21_docs_adapter_cannot_bypass_low_battery_gate
+PASS T22 test22_failed_rc_transmission_is_not_reported_accepted
+PASS T23 test23_real_execution_is_not_labelled_simulated
+PASS T25 test25_slow_visual_result_is_rejected_after_inference
+PASS T26 test26_visible_target_cannot_have_zero_width
+PASS T27 test27_fresh_visual_observation_is_supported
+PASS T28 test28_stale_input_never_calls_visual_model
+PASS T24 test24_docs_cannot_fly_real_hardware_using_static_test_image
+PASS T29 test29_navigation_cannot_move_using_expired_observation
+PASS T30 test30_normal_arrival_stop_preserves_requested_follow_resume
+PASS T31 test31_release_failure_cannot_finish_successfully
+PASS T32 test32_failed_stop_cannot_be_silently_cleaned_up
+PASS T33 test33_docs_handoff_preserves_original_follow_reference
+PASS T34 test34_old_docs_action_cannot_use_new_same_owner_grant
+PASS T35 test35_explicit_emergency_stop_does_not_resume_follow
+PASS T36 test36_full_rotation_is_supported_on_docs_route
+PASS T37 test37_network_cancel_send_cannot_delay_local_stop
+PASS T43 test43_separate_visual_provider_key_is_not_sent_to_realtime
+PASS T38 test38_interrupt_truncates_new_unplayed_item_not_completed_old_item
+PASS T39 test39_sample_covers_rotation_and_follow_restoration
+PASS T40 test40_legal_but_wrong_model_action_is_not_intent_validation
+PASS T41 test41_flight_sop_fifty_cm_action_is_supported_by_its_entry
+PASS T42 test42_sample_explicitly_restores_follow_after_arrival
+{"tests": 24, "passed": 24, "known_gaps": 0, "resolved_gaps": 0, "failed": 0, "errors": 0}
+
+R3Review exit= 0 seconds= 0.41
+testR301_cancel_between_check_and_send_rejects_old_velocity (__main__.AdapterTests.testR301_cancel_between_check_and_send_rejects_old_velocity)
+team2_adapter.update_velocity omits SDK command_epoch. ... ok
+testR302_confirmation_cannot_borrow_replacement_grant (__main__.AdapterTests.testR302_confirmation_cannot_borrow_replacement_grant)
+request_control must bind confirmation to its own returned grant. ... ok
+test_grant_confirmation_without_race_succeeds (__main__.AdapterTests.test_grant_confirmation_without_race_succeeds) ... ok
+test_old_control_epoch_is_rejected (__main__.AdapterTests.test_old_control_epoch_is_rejected) ... ok
+testR303_status_error_cannot_skip_lease_checked_stop_attempt (__main__.CleanupTests.testR303_status_error_cannot_skip_lease_checked_stop_attempt)
+A status exception must not suppress all token-checked stop attempts. ... ok
+test_normal_stop_zeros_and_releases (__main__.CleanupTests.test_normal_stop_zeros_and_releases) ... ok
+test_replacement_owner_is_not_stopped (__main__.CleanupTests.test_replacement_owner_is_not_stopped) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.085s
+
+OK

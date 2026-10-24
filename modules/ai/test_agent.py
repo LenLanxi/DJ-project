@@ -20,7 +20,7 @@ class AgentTests(unittest.TestCase):
     def test_reject_code_without_side_effects(self):
         for code in ('import os', 'drone.takeoff(); drone.land()',
                      'drone.__class__()', 'drone.move_forward(True)',
-                     'drone.move_forward(100)', 'drone.takeoff(x=1)',
+                     'drone.move_forward(501)', 'drone.takeoff(x=1)',
                      'drone.takeoff(*[])', 'while True: pass',
                      'x = drone.takeoff()', None):
             with self.subTest(code=code):

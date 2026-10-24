@@ -369,7 +369,7 @@ class JointTests(unittest.TestCase):
         with patch.object(self.sdk._driver, "execute", side_effect=lambda *a: (self.frame(x=.2), True)[1]):
             record = agent.handle("向前走30厘米")
         self.assertTrue(json.loads(record["reply"].removeprefix("[模拟] "))["resumed"])
-        self.assertFalse(runner.run("drone.move_forward(50)")["accepted"])
+        self.assertTrue(runner.run("drone.move_forward(50)")["accepted"])
         self.assertFalse(runner.run("import os")["accepted"])
         record = agent.handle("降落")
         data = json.loads(record["reply"].removeprefix("[模拟] "))

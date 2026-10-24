@@ -58,7 +58,7 @@ class PlaybackBuffer:
         return bytes(output)+b'\x00'*(need-len(output))
     def interrupt(self):
         with self.lock:
-            key=self.current or (self.parts[0][0] if self.parts else None)
+            key=(self.parts[0][0] if self.parts else self.current)
             self.parts.clear(); self.size=0
             if not key: return None
             # Conservative: subtract estimated device-buffer latency from submitted bytes.

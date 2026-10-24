@@ -6,7 +6,7 @@ the wrapper retains a landing barrier until a fresh landed status is observed.
 The unchanged stub provides simulated status only, never real flight evidence.
 """
 
-from drone_sdk import controller as _ctl
+from drone_sdk import controller as _ctl, _driver
 import threading
 import time
 from contextlib import contextmanager
@@ -34,7 +34,7 @@ def _landing_in_progress():
 
 def _landing_denied():
     return dict(ok=False, status='failed', message='降落状态尚未确认，拒绝其他运动和急停',
-                simulated=True)
+                simulated=_driver.SIMULATED)
 
 SIMULATED = True
 
@@ -56,15 +56,15 @@ def _command_result(result, ok_message):
         message = ok_message
     else:
         message = _REASON_TEXT.get(result.reason, result.reason or result.status or "执行失败")
-    return {"ok": result.ok, "status": result.status, "message": message, "simulated": SIMULATED}
+    return {"ok": result.ok, "status": result.status, "message": message, "simulated": _driver.SIMULATED}
 
 
 def _control_result(result):
     """ControlResult -> 4组期望的 dict。"""
     if result.ok:
-        return {"ok": True, "message": "已获得控制权", "simulated": SIMULATED}
+        return {"ok": True, "message": "已获得控制权", "simulated": _driver.SIMULATED}
     owner = result.current_owner or "未知"
-    return {"ok": False, "message": "控制权被占用：%s" % owner, "simulated": SIMULATED}
+    return {"ok": False, "message": "控制权被占用：%s" % owner, "simulated": _driver.SIMULATED}
 
 
 class UnifiedDrone:
@@ -114,7 +114,7 @@ class UnifiedDrone:
             "flight_state": 'landing' if pending else s.flight_state,
             "landing_pending": pending,
             "timestamp": s.timestamp,
-            "simulated": SIMULATED,
+            "simulated": _driver.SIMULATED,
         }
 
     def get_battery(self):
@@ -123,7 +123,7 @@ class UnifiedDrone:
     # --- 控制权 ---
     def request_control(self, owner):
         if self._cancelled():
-            return dict(ok=False, message='本轮已取消', simulated=True)
+            return dict(ok=False, message='本轮已取消', simulated=_driver.SIMULATED)
         result = _ctl.request_control(owner)
         if result.ok:
             self._local.grant = result
@@ -147,11 +147,11 @@ class UnifiedDrone:
         global _landing_pending
         _ctl.stop_follow()  # Explicit land invalidates pending follow recovery.
         if _ctl.get_status().control_owner != owner:
-            return dict(ok=False, status='failed', message='无控制权，未发送降落请求', simulated=True)
+            return dict(ok=False, status='failed', message='无控制权，未发送降落请求', simulated=_driver.SIMULATED)
         with _landing_lock:
             if _landing_pending is not None:
                 return dict(ok=True, status='accepted', message='降落已请求，等待状态确认',
-                            landed_confirmed=False, simulated=True)
+                            landed_confirmed=False, simulated=_driver.SIMULATED)
             _landing_pending = dict(sent_at=time.time(), owner=owner,
                                     control_epoch=_ctl.get_status().control_epoch)
         result = _command_result(self._call('land', owner), '降落请求已发送，等待状态确认')
@@ -188,8 +188,8 @@ class UnifiedDrone:
         result = _ctl.start_follow()
         if not result.ok:
             message = _REASON_TEXT.get(result.reason, result.reason or "无法开始跟随")
-            return {"ok": False, "message": message, "simulated": SIMULATED}
-        return {"ok": True, "message": "已开始跟随", "simulated": SIMULATED}
+            return {"ok": False, "message": message, "simulated": _driver.SIMULATED}
+        return {"ok": True, "message": "已开始跟随", "simulated": _driver.SIMULATED}
 
     def stop_follow(self):
         # 3组 的 stop 内部已完成「0 速度 + 释放控制权」，这里不要再 release 一次。
@@ -198,17 +198,17 @@ class UnifiedDrone:
             message = "已停止跟随"
         else:
             message = "停止未确认：" + (result.reason or "未知原因")
-        return {"ok": result.ok, "message": message, "simulated": SIMULATED}
+        return {"ok": result.ok, "message": message, "simulated": _driver.SIMULATED}
 
     def is_following(self):
         return _ctl.is_following()
 
     def pause_follow_for_action(self):
         result, ticket = _ctl._follow.pause_for_action()
-        return dict(ok=result.ok, ticket=ticket, message=result.reason, simulated=True)
+        return dict(ok=result.ok, ticket=ticket, message=result.reason, simulated=_driver.SIMULATED)
 
     def finish_follow_action(self, ticket, status):
         if _landing_in_progress():
             return _landing_denied()
         result = _ctl._follow.finish_action(ticket, status)
-        return dict(ok=result.ok, message=result.reason, simulated=True)
+        return dict(ok=result.ok, message=result.reason, simulated=_driver.SIMULATED)

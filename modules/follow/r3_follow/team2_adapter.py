@@ -132,7 +132,7 @@ class Team2StubPort:
             if result.ok is not True:
                 return Result('failed',result.reason or 'control_denied')
             state=self.get_status()
-            if state.lease is None or state.lease.owner != owner:
+            if state.lease is None or state.lease.owner != owner or state.lease.epoch != result.control_epoch:
                 return Result('failed','control_grant_unconfirmed')
             return Result('completed',lease=state.lease)
 
@@ -152,14 +152,12 @@ class Team2StubPort:
 
     def stop_motion(self, lease):
         with self.lock:
-            if not self._owns(lease):
-                return Result('failed','not_owner')
-            # Send an explicit zero channel request, not just the upstream print.
-            zero=self.update_velocity(lease,left_right=0,forward_back=0,up_down=0,yaw=0)
-            extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
-            result=self._command(self.sdk.stop_motion(lease.owner, **extra))
+            if lease is None: return Result('failed','not_owner')
+            result=self._command(self.sdk.stop_motion(lease.owner,control_epoch=lease.epoch))
+            if result.ok:
+                self._record('velocity_call',channels=(0,0,0,0),status=result.status,owner=lease.owner,origin='stop_motion_zero')
             self._record('stop_acknowledged',status=result.status)
-            return result if zero.ok else zero
+            return result
 
     def update_velocity(self, lease, *, left_right, forward_back, up_down, yaw):
         with self.lock:
@@ -172,6 +170,7 @@ class Team2StubPort:
             if any(channels) and (state.connected is not True or state.airborne is not True):
                 return Result('failed','connected_airborne_state_required')
             extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
+            extra['command_epoch']=self.sdk.get_status().command_epoch
             result=self._command(self.sdk.update_velocity(lease.owner,*channels, **extra))
             self._record('velocity_call',channels=channels,status=result.status,owner=lease.owner)
             return result
