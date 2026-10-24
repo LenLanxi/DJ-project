@@ -4,7 +4,7 @@
 
 | 套件 | 数量 | 结果 |
 | --- | --- | --- |
-| `test_review_matrix.py`（本报告的逐项矩阵） | 34 | ✅ 34/34 |
+| `test_review_matrix.py`（32 项 + 3 竞态 + G1–G5） | 45 | ✅ 45/45 |
 | RootIntegration（全链路/并发/会话急停/未知指令） | 16 | ✅ |
 | AIModule（4 组模块测试） | 28 | ✅ |
 | FollowModule（3 组跟随意图/视觉/会话） | 323 | ✅ |
@@ -68,7 +68,19 @@
 | R302 | 旧申请拿到了另一次授权的编号 | `request_control` 返回的 grant 与随后确认到的 grant 必须一致，不一致拒绝 | 竞态下借用新 grant 必须失败；无竞态仍成功；旧 control_epoch 被拒 |
 | R303 | 读取状态失败导致停止请求根本没尝试 | 清理时 `get_status()` 抛异常也要**盲发**带 token 校验的停止 | 状态异常时仍必须有 stop 尝试；正常路径归零并释放；替换 owner 不被误停 |
 
-## 三、这次合入做的工程改动
+## 三、2026-10-24 学长补测的 5 个致命漏洞（G1–G5）
+
+| # | 问题 | 修复 | 回归断言 |
+| --- | --- | --- | --- |
+| G1 | 急停/降落被动作队列卡死 | `controller.request_control(priority=True)` 保留通道：越过 `action_result_pending`/`landing_in_progress`/`busy`，作废在途动作 token 并零速度；`stop_motion`/`land` 增加 `priority=True`，`Gateway.interrupt()` 走 `backend.priority_stop()` | `testG1_priority_channel_cannot_be_blocked_by_pending_action`、`testG1_gateway_interrupt_uses_priority_channel`（pending 存在时急停仍必须送达、速度归零） |
+| G2 | 取消指令没有穿透到发送前 | `_driver` 新增取消编号：`_call_real()` 在拿到 `_command_lock` 之后、调用 `fn()` 之前比对 `_cancel_epoch`，不一致直接丢弃并记 `command_dropped`；`interrupt()` 先 `cancel_pending()` 再零速度 | `testG2_cancel_reaches_the_point_before_send`（排队中的命令在取消后从未调用 fn）、`testG2_interrupt_cancels_queued_commands` |
+| G3 | 起飞超时被直接判成失败/落地 | 超时/被丢弃 → `action_unknown`，controller 进入 `unknown` 态；`reconcile_state()` 用真实遥测修正，**飞起来就纠正为 flying**，只有“过了 2s 稳定期且遥测确认在地面”才回到 landed；收尾线程带 token，旧线程不许改新状态 | `testG3_takeoff_timeout_marks_unknown_then_telemetry_fixes_it`、`testG3_takeoff_timeout_with_ground_telemetry_settles_to_landed` |
+| G4 | 3 组速度请求没死绑原编号 | `Team2StubPort.update_velocity` 在**入口**绑定 `command_epoch`，后续检查/发送一律用这个绑定值，中途被 stop 则因编号过期被底层拒绝 | `testG4_adapter_binds_command_epoch_on_entry`（假 SDK 每次读都递增，断言发送时用的是入口那一次） |
+| G5 | 退出清理不统一 | `shutdown_real(force=)` 统一收尾（停画面转发 → 作废排队命令 → 零速度 → 关图传 → 断开），`health()` 抛异常也照样清理；`main()` 用 `try/finally` 包住 `_dispatch`，`run_modern` 与 `build_real_runner` 失败路径同样收尾 | `testG5_shutdown_real_always_disconnects_and_stops_streams`、`testG5_shutdown_real_survives_status_failure`、`testG5_main_wrapper_cleans_up_on_exception`、`testG5_run_modern_finally_covers_real_drone` |
+
+顺带加固：`health()` 不再因驱动替身缺少 `get_battery/get_flight_time` 抛 `AttributeError`（改为 `getattr` 探测）。
+
+## 四、这次合入做的工程改动
 
 1. **基底**：`temp_follow_v3`（3 组 v3 转向跟随/局部补检/会话日志）+ `temp_ai_v6`（4 组 review-fix 候选）全量接收，`modules/follow`、`modules/ai`、`drone_sdk`、`docs/v4-reference` 一并更新。
 2. **docs 不再有第二套实现**：`backends/gateway/vision/realtime/sandbox_runner` 变为兼容导入壳；主入口唯一：`modules/ai/main.py`。
@@ -77,7 +89,7 @@
 5. **跑测试不依赖 git 在 PATH**：探针记录 revision 改为 best-effort（缺失时写 `unknown`），避免“没装 git 就红”。
 6. **新增**：`test_review_matrix.py`（35 项逐条矩阵）、本报告。
 
-## 四、仍未完成的边界（不许当成已验收）
+## 五、仍未完成的边界（不许当成已验收）
 
 - Docker 沙箱的真实隔离/取消清理：本机无 Docker，`DocsBaseline` 有 3 项 Docker 集成测试 skipped。
 - 真实耳机录音、云端 Realtime 打断、UDP 迟到/重复包：需要现场硬件与已配置的兼容端点。

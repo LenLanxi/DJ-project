@@ -24,10 +24,19 @@ _frame = FrameResult(None, 0, 0., True)
 
 def _advance():
     global _flight_state, _landing_deadline
-    if not _driver.SIMULATED and _flight_state == 'landing':
-        if not _driver.health()['flying'] and not _driver.action_pending():
-            _flight_state, _landing_deadline = 'landed', None
-        return
+    if not _driver.SIMULATED:
+        if _flight_state == 'unknown':
+            # 起飞结果未知：只允许真实遥测修正，绝不凭超时改判。
+            h = _driver.health()
+            if h['flying']:
+                _flight_state, _landing_deadline = 'flying', None
+            elif not _driver.action_unknown('takeoff') and not _driver.action_pending():
+                _flight_state, _landing_deadline = 'landed', None
+            return
+        if _flight_state == 'landing':
+            if not _driver.health()['flying'] and not _driver.action_pending():
+                _flight_state, _landing_deadline = 'landed', None
+            return
     if _landing_deadline is not None and time.monotonic() >= _landing_deadline:
         _flight_state, _landing_deadline = 'landed', None
 
@@ -88,15 +97,27 @@ def get_status():
             _flight_state, _current_owner or 'none', time.time(), _control_epoch,
             _command_epoch, _driver.snapshot()['velocity'], _driver.SIMULATED)
 
-def request_control(owner):
-    global _current_owner, _control_epoch, _command_epoch
+def request_control(owner, *, priority=False):
+    """priority=True 是紧急保留通道：不被在途动作/落地流程/占用者拦住，并作废在途动作。"""
+    global _current_owner, _control_epoch, _command_epoch, _active_action
     with _velocity_lock:
         _advance()
         reason = ('invalid_owner' if owner not in ('follow', 'model') else
+                  '' if priority else
                   'landing_in_progress' if _flight_state == 'landing' else
                   'action_result_pending' if _driver.action_pending() else
                   'busy' if _current_owner not in (None, owner) else '')
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
+        if priority:
+            # 保留通道：先作废在途动作的 token，再零速度接管，保证随后的 stop/land 一定能下发。
+            _driver.record_priority_override('request_control', current_owner=_current_owner)
+            _active_action = None
+            _command_epoch += 1
+            if _current_owner != owner:
+                _control_epoch += 1
+                _current_owner = owner
+            _zero('priority_takeover')
+            return ControlResult(True, owner, '', _control_epoch, _command_epoch)
         if _current_owner != owner:
             _zero('owner_changed')
             _control_epoch += 1
@@ -155,6 +176,9 @@ def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=N
         _active_action = None
         if ok is not True:
             _zero('action_failed')
+            if action == 'takeoff' and _driver.action_unknown('takeoff'):
+                _flight_state = 'unknown'
+                return CommandResult(False, 'unknown', 'takeoff_result_unknown')
             return CommandResult(False, 'failed', 'driver_failed')
         if action == 'takeoff': _flight_state = 'flying'
         return CommandResult(True, 'completed')
@@ -174,11 +198,15 @@ def takeoff(owner, **grant):
             return CommandResult(False, 'failed', 'takeoff_gate_rejected')
     return _mock_move(owner, 'takeoff', **grant)
 
-def land(owner, *, control_epoch=None, command_epoch=None):
-    global _flight_state, _landing_deadline, _command_epoch, _active_action
+def land(owner, *, control_epoch=None, command_epoch=None, priority=False):
+    """priority=True：越过 action_result_pending / 代次校验，保证降落指令必达。"""
+    global _flight_state, _landing_deadline, _command_epoch, _active_action, _current_owner
     with _velocity_lock:
-        reason = _check(owner, control_epoch, command_epoch, allow_landing=True)
+        reason = '' if priority else _check(owner, control_epoch, command_epoch, allow_landing=True)
         if reason: return CommandResult(False, 'failed', reason, False)
+        if priority:
+            _driver.record_priority_override('land', current_owner=_current_owner)
+            if _current_owner != owner: _current_owner = owner
         if _flight_state != 'landing':
             _command_epoch += 1
             _active_action = None
@@ -187,13 +215,19 @@ def land(owner, *, control_epoch=None, command_epoch=None):
             if _flight_state != 'landed':
                 _flight_state = 'landing'
                 _landing_deadline = time.monotonic() + _landing_delay
+        elif priority:
+            _driver.interrupt('land')
         return CommandResult(True, 'accepted', '', False)
 
-def stop_motion(owner, *, control_epoch=None, command_epoch=None):
-    global _command_epoch, _active_action
+def stop_motion(owner, *, control_epoch=None, command_epoch=None, priority=False):
+    """priority=True：越过 action_result_pending / 代次校验，保证急停指令必达。"""
+    global _command_epoch, _active_action, _current_owner
     with _velocity_lock:
-        reason = _check(owner, control_epoch, command_epoch)
+        reason = '' if priority else _check(owner, control_epoch, command_epoch)
         if reason: return CommandResult(False, 'failed', reason, False)
+        if priority:
+            _driver.record_priority_override('stop_motion', current_owner=_current_owner)
+            if _current_owner != owner: _current_owner = owner
         _command_epoch += 1
         _active_action = None
         if _zero('stop_motion') is False: return CommandResult(False,'failed','stop_send_failed',False)

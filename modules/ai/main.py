@@ -24,7 +24,10 @@ HELP = '''输入文字与模拟飞机互动。命令：
 离线样例：还有多少电、起飞、跟着我、向前走30厘米、降落'''
 
 def build_real_runner(args):
-    """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。"""
+    """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。
+
+    连接之后任何一步失败都必须先断开，不能把半连接状态留给调用者。
+    """
     root = str(Path(__file__).resolve().parents[2])      # main.py → modules/ai → modules → 仓库根
     if root not in sys.path:
         sys.path.insert(0, root)
@@ -37,6 +40,14 @@ def build_real_runner(args):
         drv.connect(args.address, timeout=drv.RESPONSE_TIMEOUT_S)
     except Exception as exc:          # djitellopy 抛的是自定义 TelloException，统一转成 RuntimeError
         raise RuntimeError('真机连接失败：%s' % exc) from None
+    try:
+        return _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo)
+    except BaseException:
+        shutdown_real(force=True)     # 半初始化也必须断开/关图传
+        raise
+
+
+def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
     from drone_sdk import controller as ctl
     ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery)
     try: video_ready=drv.start_video()
@@ -91,21 +102,42 @@ def build_real_runner(args):
     return Runner(Demo(drone), allow_simulated_sdk=True, allow_programs=True), drone
 
 
-def shutdown_real():
-    """真机模式退出：先停速度、再停电机、关图传、断开。任何异常都不阻塞退出。"""
+_SHUTDOWN_DONE = {'done': False}
+
+
+def shutdown_real(force=False):
+    """真机模式统一收尾：停画面转发 → 停速度 → 关图传 → 断开。幂等、绝不抛异常。
+
+    force=True 用于半初始化/异常路径：即使仍在空中也要断开（进程即将退出）。
+    正常退出时若设备仍在空中，则保留链路（避免擅自放弃控制），但一定关掉图传与转发。
+    """
+    import drone_sdk._driver as drv
+    bridge = getattr(drv, '_frame_bridge', None)
+    if bridge is not None:
+        try: bridge.stop(); bridge.join(1)
+        except Exception as exc: print('[清理] 停止画面转发失败：%s' % exc)
+        try: drv._frame_bridge = None
+        except Exception: pass
+    flying = False
+    try: flying = bool(drv.health()['flying'])
+    except Exception as exc: print('[清理] 读取飞行状态失败（仍继续清理）：%s' % exc)
+    try: drv.cancel_pending('main_exit')
+    except Exception: pass
+    try: drv.set_velocity((0, 0, 0, 0), 'main_exit')
+    except Exception as exc: print('[清理] 零速度发送失败：%s' % exc)
+    try: drv.stop_video()
+    except Exception as exc: print('[清理] 关闭图传失败：%s' % exc)
+    if flying and not force:
+        print('[清理] 设备仍在空中：已零速度并关闭图传，但保留链路；'
+              '退出进程不代表设备已停止，需要独立人工降落确认')
+        return
     try:
-        import drone_sdk._driver as drv
-        if drv.health()['flying']:
-            print('设备仍在空中，不主动断开；退出进程不代表设备已停止，需要独立人工降落确认')
-            return
-        bridge=getattr(drv,'_frame_bridge',None)
-        if bridge: bridge.stop(); bridge.join(1)
-        drv.set_velocity((0, 0, 0, 0), 'main_exit')
-        drv.stop_video()
         drv.disconnect()
-        print('[清理] 已停电机、关图传并断开真机')
+        print('[清理] 已零速度、关图传并断开真机')
     except Exception as exc:
-        print('[清理] 真机清理异常（请手动断电）：%s' % exc)
+        print('[清理] 断开失败（请手动断电）：%s' % exc)
+    finally:
+        _SHUTDOWN_DONE['done'] = True
 
 
 async def run_modern(args):
@@ -115,25 +147,29 @@ async def run_modern(args):
     from vision import Vision
     import asyncio
     backend=MockBackend()
-    if args.real_drone:
-        build_real_runner(args)
-        backend=SDKBackend(Path(__file__).resolve().parents[2])
-    if args.image and not backend.simulated: raise ValueError('真机模式禁止静态测试图片')
-    client=ModelClient() if os.getenv('AI_CHAT_URL') else None
-    vision=Vision(client,backend,args.image)
-    gateway=Gateway(backend,vision,args.fixture_vision)
-    if args.fixture_vision and not backend.simulated: raise ValueError('真机模式禁止视觉夹具')
-    runner=SandboxRunner(gateway)
-    if args.program:
-        result=await runner.run(Path(args.program).read_text(encoding='utf-8'))
-        print(json.dumps(result,ensure_ascii=False,indent=2))
-        if not result['ok']: raise RuntimeError('沙箱任务未完成')
-    else:
-        from realtime import RealtimeSession
-        from duplex_audio import DuplexAudio
-        from audio_config import load_audio_config
-        config=load_audio_config(args.audio_config,args.input_device,args.output_device)
-        await RealtimeSession(runner,DuplexAudio(config=config),audio_config=config).run()
+    try:
+        if args.real_drone:
+            build_real_runner(args)
+            backend=SDKBackend(Path(__file__).resolve().parents[2])
+        if args.image and not backend.simulated: raise ValueError('真机模式禁止静态测试图片')
+        client=ModelClient() if os.getenv('AI_CHAT_URL') else None
+        vision=Vision(client,backend,args.image)
+        gateway=Gateway(backend,vision,args.fixture_vision)
+        if args.fixture_vision and not backend.simulated: raise ValueError('真机模式禁止视觉夹具')
+        runner=SandboxRunner(gateway)
+        if args.program:
+            result=await runner.run(Path(args.program).read_text(encoding='utf-8'))
+            print(json.dumps(result,ensure_ascii=False,indent=2))
+            if not result['ok']: raise RuntimeError('沙箱任务未完成')
+        else:
+            from realtime import RealtimeSession
+            from duplex_audio import DuplexAudio
+            from audio_config import load_audio_config
+            config=load_audio_config(args.audio_config,args.input_device,args.output_device)
+            await RealtimeSession(runner,DuplexAudio(config=config),audio_config=config).run()
+    finally:
+        # 无论正常返回、异常还是 Ctrl+C：真机必须断开、关图传、停止画面转发。
+        if getattr(args,'real_drone',False): shutdown_real()
 
 
 def main():
@@ -167,6 +203,15 @@ def main():
     parser.add_argument('--input-device',type=int)
     parser.add_argument('--output-device',type=int)
     args = parser.parse_args()
+    try:
+        _dispatch(args)
+    finally:
+        # 兜底：任何分支（含 setup 中途异常、Ctrl+C、正常 return）都要收尾。
+        if getattr(args, 'real_drone', False):
+            shutdown_real()
+
+
+def _dispatch(args):
     if args.realtime or args.program:
         import asyncio
         try: asyncio.run(run_modern(args))
@@ -504,13 +549,12 @@ def main():
     except EOFError:
         print('\n输入流已结束（EOF），退出会话')
     finally:
+        # 会话级清理（真机断开由外层 main() 的 finally 统一兜底，避免重复执行）
         listener['stop'].set()
         listen_pause.set()
         cancel_audio.set()
         session.close()
         audio_io.close()
         speech_worker.shutdown(wait=True, cancel_futures=True)
-        if args.real_drone:
-            shutdown_real()
 
 if __name__ == '__main__': main()

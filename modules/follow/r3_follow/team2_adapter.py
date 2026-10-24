@@ -161,8 +161,12 @@ class Team2StubPort:
 
     def update_velocity(self, lease, *, left_right, forward_back, up_down, yaw):
         with self.lock:
+            if lease is None: return Result('failed','not_owner')
+            # R301：进入时就把代次钉死，后续检查/发送绝不再读最新值。
+            # 中途若发生过 stop_motion（command_epoch 前移），这里绑定的旧号会被底层拒绝。
+            bound_command_epoch = getattr(self.sdk.get_status(), 'command_epoch', None)
             state=self.get_status()
-            if lease is None or state.lease!=lease:
+            if state.lease!=lease:
                 return Result('failed','not_owner')
             channels=(left_right,forward_back,up_down,yaw)
             if any(type(v) is not int or not -100<=v<=100 for v in channels):
@@ -170,7 +174,8 @@ class Team2StubPort:
             if any(channels) and (state.connected is not True or state.airborne is not True):
                 return Result('failed','connected_airborne_state_required')
             extra = {'control_epoch': lease.epoch} if hasattr(self.sdk, 'publish_frame') else {}
-            extra['command_epoch']=self.sdk.get_status().command_epoch
+            if bound_command_epoch is not None: extra['command_epoch']=bound_command_epoch
             result=self._command(self.sdk.update_velocity(lease.owner,*channels, **extra))
-            self._record('velocity_call',channels=channels,status=result.status,owner=lease.owner)
+            self._record('velocity_call',channels=channels,status=result.status,owner=lease.owner,
+                         bound_command_epoch=bound_command_epoch)
             return result

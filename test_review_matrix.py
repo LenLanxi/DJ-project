@@ -431,5 +431,360 @@ class ReviewMatrix(unittest.TestCase):
         self.assertIn('stop', source)
 
 
+class LatestFiveGaps(unittest.TestCase):
+    """学长 2026-10-24 补测的 5 个并发/清理漏洞（G1–G5）。"""
+
+    def setUp(self):
+        self._sim = drv.SIMULATED
+        self._health = drv.health
+        self._tello = getattr(drv, '_tello', None)
+        self._velocity_lock_owner = ctl._current_owner
+        ctl.configure_takeoff(authorized=True, min_battery=20)
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        drv.SIMULATED = self._sim
+        drv.health = self._health
+        drv._tello = self._tello
+        drv._pending_commands.clear()
+        drv._unknown_actions.clear()
+        drv._unknown_since.clear()
+        drv._flying, drv._height_cm = False, 0
+        ctl._current_owner = None
+        ctl._active_action = None
+        ctl._flight_state, ctl._landing_deadline = 'landed', None
+        ctl.configure_takeoff(authorized=False, min_battery=20)
+
+    def _rc_tello(self):
+        sent = []
+        class Tello:
+            def send_rc_control(self, *values): sent.append(values)
+            def get_height(self): return 0
+            def get_battery(self): return 88
+            def get_flight_time(self): return 0
+        tello = Tello()
+        tello.sent = sent
+        drv._tello = tello
+        return sent
+
+    def _real_driver(self, *, battery=88, flying=False, height=0):
+        self._rc_tello()
+        drv.SIMULATED = False
+        payload = dict(mode='real', simulated=False, connected=True, link_ok=True, faults=0,
+                       last_error='', flying=flying, height_cm=height, speed_cm_s=50,
+                       velocity=drv.snapshot()['velocity'], video=True, battery=battery,
+                       flight_time_s=0, ceiling_cm=250, max_speed_cm_s=100, action_unknown=[])
+        drv.health = lambda: dict(payload)
+        return payload
+
+    # ------------------------------------------------------------------ G1
+    def testG1_priority_channel_cannot_be_blocked_by_pending_action(self):
+        """G1：普通动作的 action_result_pending 不能拦住 stop_motion / land。"""
+        self._real_driver()
+        pending = __import__('threading').Event()
+        drv._pending_commands.add(pending)          # 模拟“在途动作结果未知”
+        try:
+            normal = ctl.request_control('model')
+            self.assertFalse(normal.ok, '常规路径仍应被 pending 挡住')
+            self.assertEqual(normal.reason, 'action_result_pending')
+
+            takeover = ctl.request_control('model', priority=True)
+            self.assertTrue(takeover.ok, '保留通道必须能拿到授权')
+            self.assertEqual(ctl._current_owner, 'model')
+
+            stop = ctl.stop_motion('model', priority=True)
+            self.assertTrue(stop.ok, '急停必须送达：%s' % (stop,))
+            self.assertEqual(drv.snapshot()['velocity'], (0, 0, 0, 0))
+
+            self._real_driver(flying=True)      # 空中才有 landing 流程
+            ctl._flight_state = 'flying'
+            land = ctl.land('model', priority=True)
+            self.assertTrue(land.ok, '降落必须送达：%s' % (land,))
+            self.assertEqual(ctl._flight_state, 'landing')
+        finally:
+            drv._pending_commands.discard(pending)
+
+    def testG1_gateway_interrupt_uses_priority_channel(self):
+        """G1：Gateway.interrupt 走 priority_stop，不等常规排队。"""
+        self._real_driver()
+        import asyncio
+        import backends
+        import gateway as gateway_module
+        pending = __import__('threading').Event()
+        drv._pending_commands.add(pending)
+        try:
+            backend = backends.SDKBackend(ROOT)
+            gate = gateway_module.Gateway(backend)
+            gate.begin()
+            result = asyncio.run(gate.interrupt(False))
+            self.assertTrue(result.get('ok'), '急停被排队卡住了：%s' % (result,))
+            self.assertEqual(drv.snapshot()['velocity'], (0, 0, 0, 0))
+        finally:
+            drv._pending_commands.discard(pending)
+
+    # ------------------------------------------------------------------ G2
+    def testG2_cancel_reaches_the_point_before_send(self):
+        """G2：拿到锁之后、调用 fn 之前必须再校验取消编号，命令绝不能发出。"""
+        drv.SIMULATED = False
+        called = __import__('threading').Event()
+        lock_held = __import__('threading').Event()
+        release = __import__('threading').Event()
+
+        def holder():
+            with drv._command_lock:
+                lock_held.set()
+                release.wait(5)
+
+        worker = __import__('threading').Thread(target=holder, daemon=True)
+        worker.start()
+        self.assertTrue(lock_held.wait(2))
+        result = {}
+        caller = __import__('threading').Thread(
+            target=lambda: result.update(value=drv._call_real(lambda: called.set(),
+                                                              action='forward', deadline=5.0)),
+            daemon=True)
+        caller.start()
+        time.sleep(0.2)                       # 命令已排队，尚未拿到命令锁
+        epoch = drv.cancel_pending('probe')
+        release.set()
+        caller.join(5)
+        self.assertFalse(called.is_set(), '被取消的命令仍然发给了飞机')
+        self.assertEqual(result['value'], (False, 'cancelled_before_send'))
+        events = [e['event'] for e in drv.snapshot()['events']]
+        self.assertIn('command_dropped', events)
+        self.assertIn('commands_cancelled', events)
+        self.assertTrue(epoch > 0)
+
+    def testG2_interrupt_cancels_queued_commands(self):
+        """G2：急停必须先作废排队命令，再零速度。"""
+        self._real_driver()
+        before = drv._cancel_epoch
+        drv.interrupt('stop_motion')
+        self.assertGreater(drv._cancel_epoch, before)
+        events = [e for e in drv.snapshot()['events'] if e['event'] == 'commands_cancelled']
+        self.assertTrue(events, '急停必须留下作废排队命令的审计记录')
+
+    # ------------------------------------------------------------------ G3
+    def testG3_takeoff_timeout_marks_unknown_then_telemetry_fixes_it(self):
+        """G3：起飞超时不能直接判 landed，要标未知并用真实遥测修正。"""
+        class SlowTello:
+            def __init__(self):
+                self.height = 0
+                self.landed = True
+            def takeoff(self):
+                time.sleep(0.5)
+                self.height, self.landed = 80, False
+            def get_height(self):
+                return self.height
+            def get_battery(self):
+                return 88
+            def get_flight_time(self):
+                return 0
+            def send_rc_control(self, *args):
+                return True
+
+        tello = SlowTello()
+        drv.SIMULATED = False
+        drv._tello = tello
+        drv._unknown_actions.clear()
+        original_deadline = drv._move_deadline
+        drv._move_deadline = lambda action, param: 0.15
+        self.addCleanup(setattr, drv, '_move_deadline', original_deadline)
+        try:
+            ctl.request_control('model')
+            result = ctl.takeoff('model')
+            self.assertFalse(result.ok, '超时本身就是失败')
+            self.assertEqual(result.status, 'unknown', '超时必须上报结果未知：%s' % (result,))
+            self.assertTrue(drv.action_unknown('takeoff'), '超时必须标记为结果未知')
+            state = ctl.get_status().flight_state
+            self.assertEqual(state, 'unknown', '超时不能直接认定落地：%s' % state)
+
+            time.sleep(0.9)                     # 命令线程结束 + 固件其实完成了起飞
+            self.assertTrue(drv.reconcile_state(tello), '遥测应能修正状态')
+            self.assertFalse(drv.action_unknown('takeoff'))
+            self.assertTrue(drv.health()['flying'], '高度 80cm 必须修正为在飞')
+        finally:
+            drv._unknown_actions.clear()
+            drv._tello = None
+
+    def testG3_takeoff_timeout_with_ground_telemetry_settles_to_landed(self):
+        """G3：遥测确认没起飞才允许回到 landed（不是靠超时猜）。"""
+        class DeadTello:
+            def takeoff(self):
+                time.sleep(0.4)
+            def get_height(self):
+                return 0
+            def get_battery(self):
+                return 88
+            def get_flight_time(self):
+                return 0
+            def send_rc_control(self, *args):
+                return True
+
+        tello = DeadTello()
+        drv.SIMULATED = False
+        drv._tello = tello
+        drv._unknown_actions.clear()
+        original_deadline = drv._move_deadline
+        drv._move_deadline = lambda action, param: 0.15
+        self.addCleanup(setattr, drv, '_move_deadline', original_deadline)
+        try:
+            ctl.request_control('model')
+            ctl.takeoff('model')
+            self.assertTrue(drv.action_unknown('takeoff'))
+            self.assertFalse(drv.health()['flying'], '只有超时、没有遥测就宣布在飞同样是错的')
+            time.sleep(0.5)                     # 等命令线程退出，pending 清空
+            drv.RECONCILE_SETTLE_S = 999        # 稳定期未到：不许下"已落地"结论
+            try:
+                self.assertFalse(drv.reconcile_state(tello), '稳定期未到不许下结论')
+                self.assertTrue(drv.action_unknown('takeoff'))
+            finally:
+                drv.RECONCILE_SETTLE_S = 2.0
+            self.addCleanup(setattr, drv, 'RECONCILE_SETTLE_S', drv.RECONCILE_SETTLE_S)
+            drv.RECONCILE_SETTLE_S = 0          # 稳定期已过
+            self.assertTrue(drv.reconcile_state(tello), '稳定期到达后遥测确认没起飞才可落地')
+            self.assertFalse(drv.health()['flying'])
+            self.assertEqual(ctl.get_status().flight_state, 'landed')
+        finally:
+            drv._unknown_actions.clear()
+            drv._tello = None
+
+    # ------------------------------------------------------------------ G4
+    def testG4_adapter_binds_command_epoch_on_entry(self):
+        """G4：update_velocity 必须在入口绑定代次，之后绝不重新读取。"""
+        source = read('modules', 'follow', 'r3_follow', 'team2_adapter.py')
+        body = source.split('def update_velocity', 1)[1].split('\n    def ', 1)[0]
+        self.assertIn('bound_command_epoch', body)
+        self.assertIn("extra['command_epoch']=bound_command_epoch", body.replace(' ', ''))
+        self.assertNotIn("extra['command_epoch']=self.sdk.get_status()", body.replace(' ', ''))
+
+        class Status:
+            def __init__(self, epoch):
+                self.command_epoch = epoch
+                self.control_owner = 'follow'
+                self.connected = True
+                self.flight_state = 'flying'
+                self.timestamp = time.time()
+        class Sdk:
+            SIMULATED = True
+            def __init__(self):
+                self.reads = 0
+                self.sent = []
+            def get_status(self):
+                self.reads += 1
+                return Status(self.reads)      # 每次读都变，模拟中途被 stop 改了代次
+            def update_velocity(self, owner, *channels, **kwargs):
+                self.sent.append(kwargs.get('command_epoch'))
+                return type('R', (), {'ok': True, 'status': 'accepted', 'reason': ''})()
+            def publish_frame(self, packet): pass
+
+        from r3_follow import team2_adapter, service_ports
+        adapter = team2_adapter.Team2StubPort.__new__(team2_adapter.Team2StubPort)
+        adapter.lock = __import__('threading').RLock()
+        adapter.sdk = Sdk()
+        adapter.epoch = 1
+        adapter.lease = service_ports.Lease('follow', 1)
+        adapter.events = []
+        adapter._command = lambda result: service_ports.Result(result.status, result.reason)
+        adapter.get_status = lambda: service_ports.DeviceStatus(True, True, adapter.lease)
+        result = adapter.update_velocity(adapter.lease, left_right=10, forward_back=0, up_down=0, yaw=0)
+        self.assertEqual(result.status, 'accepted')
+        self.assertEqual(adapter.sdk.sent, [1], '必须用入口读到的旧代次发送，不能用最新的第 %d 号' % adapter.sdk.reads)
+
+    # ------------------------------------------------------------------ G5
+    def _driver_patch(self, **attrs):
+        """临时替换 _driver 上的函数（main 里 import 的是同一个模块对象）。"""
+        saved = {}
+        for name, value in attrs.items():
+            saved[name] = getattr(drv, name, 'MISSING')
+            setattr(drv, name, value)
+
+        def restore():
+            for name, value in saved.items():
+                if value == 'MISSING':
+                    try: delattr(drv, name)
+                    except AttributeError: pass
+                else:
+                    setattr(drv, name, value)
+        self.addCleanup(restore)
+
+    def testG5_shutdown_real_always_disconnects_and_stops_streams(self):
+        """G5：退出清理必须停转发、关图传、断开。"""
+        import main as ai_main
+        calls = []
+
+        class Bridge:
+            def stop(self): calls.append('bridge.stop')
+            def join(self, timeout=None): calls.append('bridge.join')
+
+        self._driver_patch(
+            _frame_bridge=Bridge(),
+            health=lambda: {'flying': False},
+            cancel_pending=lambda reason: calls.append('cancel_pending'),
+            set_velocity=lambda channels, reason: calls.append(('set_velocity', channels)),
+            stop_video=lambda: calls.append('stop_video'),
+            disconnect=lambda **kwargs: calls.append('disconnect'))
+        ai_main.shutdown_real()
+        for expected in ('bridge.stop', 'cancel_pending', 'stop_video', 'disconnect'):
+            self.assertIn(expected, calls, '退出清理漏了 %s：%s' % (expected, calls))
+        self.assertIn(('set_velocity', (0, 0, 0, 0)), calls)
+
+    def testG5_shutdown_real_survives_status_failure(self):
+        """G5：连 health() 都抛异常时，仍然要盲发零速度并断开。"""
+        import main as ai_main
+        calls = []
+
+        def boom(): raise OSError('link down')
+        self._driver_patch(
+            health=boom,
+            cancel_pending=lambda reason: calls.append('cancel_pending'),
+            set_velocity=lambda channels, reason: calls.append('set_velocity'),
+            stop_video=lambda: calls.append('stop_video'),
+            disconnect=lambda **kwargs: calls.append('disconnect'))
+        ai_main.shutdown_real()
+        self.assertIn('set_velocity', calls)
+        self.assertIn('stop_video', calls)
+        self.assertIn('disconnect', calls)
+
+    def testG5_main_wrapper_cleans_up_on_exception(self):
+        """G5：主入口任何分支异常退出都要走到 shutdown_real。"""
+        import main as ai_main
+        called = []
+        original_dispatch = ai_main._dispatch
+        original_shutdown = ai_main.shutdown_real
+        ai_main._dispatch = lambda args: (_ for _ in ()).throw(RuntimeError('boom'))
+        ai_main.shutdown_real = lambda *a, **k: called.append(True)
+        argv = sys.argv
+        sys.argv = ['main.py', '--real-drone']
+        try:
+            with self.assertRaises(RuntimeError):
+                ai_main.main()
+        finally:
+            ai_main._dispatch = original_dispatch
+            ai_main.shutdown_real = original_shutdown
+            sys.argv = argv
+        self.assertTrue(called, 'main() 异常退出没有清理真机连接')
+
+    def testG5_run_modern_finally_covers_real_drone(self):
+        """G5：--program/--realtime 分支也必须 finally 收尾（含 build_real_runner 失败）。"""
+        import asyncio
+        import main as ai_main
+        called = []
+        original_shutdown = ai_main.shutdown_real
+        original_build = ai_main.build_real_runner
+        args = type('Args', (), dict(real_drone=True, program='examples/red_tent.py', image=None,
+                                     fixture_vision=False, audio_config=None,
+                                     input_device=None, output_device=None))()
+        ai_main.build_real_runner = lambda a: (_ for _ in ()).throw(RuntimeError('connect failed'))
+        ai_main.shutdown_real = lambda *a, **k: called.append(True)
+        try:
+            with self.assertRaises(RuntimeError):
+                asyncio.run(ai_main.run_modern(args))
+        finally:
+            ai_main.shutdown_real = original_shutdown
+            ai_main.build_real_runner = original_build
+        self.assertTrue(called, 'run_modern 失败路径没有收尾')
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

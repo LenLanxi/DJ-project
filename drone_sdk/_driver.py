@@ -53,9 +53,36 @@ _faults = 0
 _last_error = ''
 _speed_cm_s = DEFAULT_SPEED_CM_S
 _pending_commands = set()
+_cancel_epoch = 0
+_unknown_actions = set()
+_unknown_since = {}
+TAKEOFF_CONFIRM_CM = 10
+RECONCILE_SETTLE_S = 2.0
 
 def action_pending():
     with _lock: return bool(_pending_commands) if not SIMULATED else False
+
+
+def action_unknown(action=None):
+    """True 表示该动作已发出但结果未知（超时/被取消），必须靠遥测修正。"""
+    with _lock:
+        if SIMULATED: return False
+        return (action in _unknown_actions) if action else bool(_unknown_actions)
+
+
+def cancel_pending(reason='cancelled'):
+    """作废所有尚未真正发给飞机的命令（拿到锁后还会二次校验编号）。"""
+    global _cancel_epoch
+    with _lock:
+        _cancel_epoch += 1
+        epoch = _cancel_epoch
+    _record('commands_cancelled', reason=reason, epoch=epoch)
+    return epoch
+
+
+def record_priority_override(action, **fields):
+    """紧急保留通道的审计记录：说明这次为什么越过常规排队。"""
+    _record('priority_override', action=action, **fields)
 
 _MOVES = ('forward', 'back', 'left', 'right', 'up', 'down')
 
@@ -138,8 +165,15 @@ def _sanitise_rc(channels):
     return (left_right, forward_back, up_down, yaw)
 
 
-def _call_real(fn, *, action, deadline):
-    """Run one blocking Tello command on a worker and cap the caller's wait."""
+def _call_real(fn, *, action, deadline, epoch=None):
+    """Run one blocking Tello command on a worker and cap the caller's wait.
+
+    取消语义：调用时绑定当时的取消编号；worker 真正拿到命令锁后、调用 fn 之前
+    再比对一次。若期间发生过 cancel_pending（急停/降落/停止），命令直接丢弃，
+    绝不发给飞机。
+    """
+    with _lock:
+        bound_epoch = _cancel_epoch if epoch is None else epoch
     outcome = {'ok': False, 'error': 'timeout'}
     done = threading.Event()
 
@@ -151,8 +185,14 @@ def _call_real(fn, *, action, deadline):
             done.set()
             return
         try:
-            fn()
-            outcome['ok'], outcome['error'] = True, ''
+            with _lock: cancelled = _cancel_epoch != bound_epoch
+            if cancelled:
+                outcome['error'] = 'cancelled_before_send'
+                _record('command_dropped', action=action, reason='cancelled_before_send',
+                        bound_epoch=bound_epoch, cancel_epoch=_cancel_epoch)
+            else:
+                fn()
+                outcome['ok'], outcome['error'] = True, ''
         except Exception as exc:
             outcome['error'] = '%s: %s' % (type(exc).__name__, exc)
         finally:
@@ -167,6 +207,8 @@ def _call_real(fn, *, action, deadline):
     if outcome['ok']:
         _set_link_ok()
         return True, ''
+    if outcome['error'] == 'cancelled_before_send':
+        return False, outcome['error']          # 主动丢弃不是链路故障
     _link_fault(outcome['error'])
     return False, outcome['error']
 
@@ -196,14 +238,24 @@ def _execute_real(action, param=None):
             return False
     _record('action_sent', action=action, param=param)
     if action in ('takeoff', 'land'):
-        ok, _error = _call_real(getattr(tello, action), action=action,
-                                deadline=_move_deadline(action, None))
+        ok, error = _call_real(getattr(tello, action), action=action,
+                               deadline=_move_deadline(action, None))
         if ok:
             with _lock:
                 _flying = action == 'takeoff'
                 if action == 'land': _height_cm = 0
             if action == 'takeoff': _current_height(tello)
-        return ok
+            return True
+        if action == 'takeoff' and error in ('timeout', 'cancelled_before_send'):
+            # 超时/被丢弃都不等于没起飞：标记结果未知，交给真实遥测修正，绝不擅自改回 landed。
+            token = object()
+            with _lock:
+                _unknown_actions.add('takeoff')
+                _unknown_since['takeoff'] = (time.monotonic(), token)
+            _record('action_unknown', action='takeoff', error=error)
+            threading.Thread(target=_reconcile_later, args=(tello, token), daemon=True,
+                             name='tello-reconcile').start()
+        return False
     if action in _MOVES:
         if type(param) is not int or not 20 <= param <= MAX_DISTANCE_CM:
             _record('action_rejected', action=action, reason='invalid_distance', param=param)
@@ -240,6 +292,40 @@ def execute(action, param=None):
     return _execute_real(action, param)
 
 
+def _reconcile_later(tello, token=None, delay=1.5):
+    """超时后不要立刻下结论：等一轮遥测再判定。"""
+    time.sleep(delay)
+    reconcile_state(tello, token=token)
+
+
+def reconcile_state(tello=None, token=None):
+    """用真实遥测（高度/飞行状态）修正“结果未知”的动作。返回是否已确定。"""
+    global _flying
+    with _lock:
+        target, unknown = (tello or _tello), set(_unknown_actions)
+        if SIMULATED or target is None: return False
+        if not unknown: return True          # 没有未决动作，状态已是可信的
+        if token is not None and _unknown_since.get('takeoff', (0, None))[1] is not token:
+            return True                      # 这条是更早那次超时的收尾线程，别动新状态
+    height = _current_height(target)
+    with _lock:
+        resolved = False
+        if 'takeoff' in unknown:
+            since = _unknown_since.get('takeoff', (0.0, None))[0]
+            settled = time.monotonic() - since >= RECONCILE_SETTLE_S
+            if _flying or height >= TAKEOFF_CONFIRM_CM:
+                _flying, resolved = True, True
+                _unknown_actions.discard('takeoff')
+                _unknown_since.pop('takeoff', None)
+                _record('action_reconciled', action='takeoff', result='flying', height_cm=height)
+            elif settled and not _pending_commands:
+                resolved = True                       # 只有过了稳定期且遥测为地面才敢下结论
+                _unknown_actions.discard('takeoff')
+                _unknown_since.pop('takeoff', None)
+                _record('action_reconciled', action='takeoff', result='not_flying', height_cm=height)
+        return resolved
+
+
 def set_velocity(channels, reason):
     global _velocity
     with _lock: real = not SIMULATED
@@ -271,6 +357,8 @@ def set_speed(cm_s):
 
 
 def interrupt(action):
+    # 先把尚未发出的排队命令作废，再零速度 + 派发降落，任何一步都不等网络。
+    cancel_pending('interrupt:%s' % action)
     set_velocity((0, 0, 0, 0), action)
     with _lock:
         _events.append(dict(event='priority_sent', action=action,
@@ -312,20 +400,28 @@ def snapshot():
 def health():
     with _lock:
         tello, connected = _tello, _tello is not None
+        unknown = sorted(_unknown_actions) if not SIMULATED else []
         data = dict(mode='simulated' if SIMULATED else 'real', simulated=SIMULATED,
                     connected=connected, link_ok=_link_ok, faults=_faults,
                     last_error=_last_error, flying=_flying, height_cm=_height_cm,
                     speed_cm_s=_speed_cm_s, velocity=_velocity,
                     video=_video is not None, battery=None, flight_time_s=None,
-                    ceiling_cm=MAX_HEIGHT_CM, max_speed_cm_s=MAX_SPEED_CM_S)
+                    ceiling_cm=MAX_HEIGHT_CM, max_speed_cm_s=MAX_SPEED_CM_S,
+                    action_unknown=unknown)
     if connected and tello is not None:
-        for key, getter in (('battery', tello.get_battery), ('flight_time_s', tello.get_flight_time)):
+        for key, name in (('battery', 'get_battery'), ('flight_time_s', 'get_flight_time')):
+            getter = getattr(tello, name, None)     # 驱动替身可能没有这些方法
+            if not callable(getter): continue
             try:
                 value = getter()
             except Exception:
                 continue
             if type(value) is int and value >= 0: data[key] = value
         data['height_cm'] = _current_height(tello)
+        if unknown:
+            # 有“结果未知”的动作时，用这一轮真实遥测修正状态。
+            reconcile_state(tello)
+            with _lock: data['flying'], data['action_unknown'] = _flying, sorted(_unknown_actions)
     return data
 
 
@@ -626,6 +722,9 @@ def disconnect(*, safe=True):
         tello, _tello = _tello, None
         reader, _video = _video, None
         stop, _keepalive_stop = _keepalive_stop, None
+        _unknown_actions.clear()
+        _unknown_since.clear()
+        _pending_commands.clear()
     if stop is not None: stop.set()
     stopper = getattr(reader, 'stop', None)
     if callable(stopper):

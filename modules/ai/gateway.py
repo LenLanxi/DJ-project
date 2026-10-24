@@ -111,21 +111,30 @@ class Gateway:
         return result
 
     async def interrupt(self,land=False):
-        # Set cancellation before any await. Does not wait for the movement thread.
+        """最高优先级保留通道：先本地作废排队命令并零速度，再派发 stop/land。
+
+        常规动作的 control_busy / action_result_pending 不得拦住这里 —— 这正是
+        复查发现的“急停被动作队列卡死”。Cancel 在第一个 await 之前完成。
+        """
         self.cancelled.set(); self.resume=False
         try:
             await asyncio.to_thread(self.backend.stop_follow)
-            control=await asyncio.to_thread(self.backend.request_control,'model')
-            if not control.get('ok'): return {'ok':False,'reason':'control_busy','detail':control}
-            self.acquired=True
-            return await asyncio.to_thread(self.backend.action,'land' if land else 'stop_motion')
-        finally:
-            # finish() releases owner after old action has returned; no blind resume.
-            pass
+        except Exception as exc:               # 跟随停止失败也不能拖住急停
+            self.cancel_note = 'stop_follow_failed: %s' % exc
+        takeover = getattr(self.backend,'priority_stop',None)
+        if callable(takeover):
+            result = await asyncio.to_thread(takeover,bool(land))
+            if result.get('ok'): self.acquired=True
+            return result
+        control=await asyncio.to_thread(self.backend.request_control,'model')
+        if not control.get('ok'): return {'ok':False,'reason':'control_busy','detail':control}
+        self.acquired=True
+        return await asyncio.to_thread(self.backend.action,'land' if land else 'stop_motion')
 
     async def finish(self,success):
         if not self.acquired: return
         if not success or self.cancelled.is_set():
+            # 收尾用带 token 校验的常规 stop：失败必须抛出（T32），不能被吞。
             r=await asyncio.to_thread(self.backend.action,'stop_motion')
             if not r.get('ok'): raise RuntimeError('cleanup_stop_failed: '+str(r))
         r=await asyncio.to_thread(self.backend.release_control,'model')
