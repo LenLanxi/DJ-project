@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 随行小伙伴</title>
+<style>
+:root{color-scheme:light;--ink:#243449;--muted:#64748b;--accent:#176d80;--line:#dce5eb;--paper:#fff;--wash:#f2f6f8}
+*{box-sizing:border-box}html{background:var(--wash);scroll-behavior:smooth}body{margin:0;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;font-size:16px;line-height:1.95;-webkit-font-smoothing:antialiased}main{max-width:980px;margin:48px auto 80px;background:var(--paper);padding:48px 64px 64px;border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 55px #24344908;border-top:5px solid var(--accent)}p{margin:0}.line,.detail,.deliverable,.listline{overflow-wrap:anywhere}.gap{height:13px}.sectiontitle{font-size:25px;letter-spacing:.02em;line-height:1.45;margin:42px 0 14px;padding:18px 22px;background:#edf5f7;border-radius:10px;color:#155b6b;border:1px solid #dbecef}.subtitle{font-size:19px;line-height:1.6;margin:28px 0 8px;color:#1f4054;padding-left:13px;border-left:3px solid #7eb3bc}.projectname{font-size:27px;font-weight:700;letter-spacing:.025em;line-height:1.6;margin:8px 0 12px;color:#153b50}.worktitle{font-size:20px;line-height:1.65;margin:35px 0 12px;padding:12px 0;border-bottom:1px solid var(--line);color:#164b60}.tasktitle{font-weight:650;margin:21px 0 5px;color:#1d5267;break-after:avoid}.detail{padding-left:20px}.deliverable{padding-left:20px;color:#506579}.listline{padding-left:20px;text-indent:-14px;margin:4px 0}.callout{margin:15px 0;padding:16px 21px;background:#f3f8f7;border-left:4px solid #5b9d93;border-radius:0 8px 8px 0;color:#24594f;font-weight:550}pre{overflow-x:auto;padding:24px;border:1px solid #dce7ed;border-radius:12px;background:#f5f8fb;color:#24465e;line-height:1.9;font-size:14px;tab-size:4;margin:18px 0;white-space:pre}code{font-family:Consolas,"Microsoft YaHei",monospace}a{color:var(--accent);text-decoration:underline;text-decoration-color:#a0c5ce;text-underline-offset:4px;overflow-wrap:anywhere}a:hover{color:#104555}h2,h3{break-after:avoid}p,blockquote{orphans:3;widows:3}::selection{background:#d6eaf0}
+@media(max-width:700px){body{font-size:15px;line-height:1.9}main{margin:0;max-width:none;border:0;border-top:4px solid var(--accent);border-radius:0;padding:25px 21px 45px;box-shadow:none}.sectiontitle{font-size:22px;padding:15px 16px;margin-top:32px}.projectname{font-size:23px}.subtitle,.worktitle{font-size:18px}pre{padding:16px;font-size:13px}.detail,.deliverable{padding-left:13px}}
+@media print{@page{size:A4;margin:18mm}html,body{background:white;font-size:10.5pt;line-height:1.75}main{max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}.sectiontitle{font-size:16pt;margin-top:22pt;padding:9pt 12pt;print-color-adjust:exact}.projectname{font-size:19pt}.subtitle,.worktitle{font-size:12.5pt}pre{white-space:pre-wrap;overflow:visible;font-size:8.5pt;padding:12pt;break-inside:avoid}.gap{height:7pt}.tasktitle{margin-top:13pt}.callout{break-inside:avoid}a{color:inherit}}
+</style>
+</head>
+<body>
+<main>
+<p class="line">下面按你本轮给出的范围整理。租金属于目前掌握的预计报价；无人机型号、标记识别方案、云端模型和额外租赁数量均保留待验证，不把它们写成已经确定的选择。</p>
+<div class="gap" aria-hidden="true"></div>
+<h2 class="sectiontitle">1．基本方案：简短版本</h2>
+<div class="gap" aria-hidden="true"></div>
+<p class="projectname">项目名称：AI 随行小伙伴。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">租用带摄像头、具备编程接口，并支持定高和稳定悬停（以及其他无人机满足的基本约束）的小型无人机。</p>
+<p class="line">电脑负责获取摄像头画面、识别人体上固定的标记，并据此控制无人机进行短距离跟随。</p>
+<p class="line">理论验证时发现的方案（<a href="https://www.goofish.com/item?id=879985427191" target="_blank" rel="noopener noreferrer">https://www.goofish.com/item?id=879985427191</a>）</p>
+<p class="line">用户通过连接电脑的耳机进行语音输入和输出。系统接入云端模型，结合用户语音和无人机画面完成对话、视觉理解，并将用户指令转化为无人机行为。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">项目以可现场演示的原型为目标，总预算不超过 1000 元。优先租用一架完成验证；演示需要时可以追加租赁，但不以用完预算为目标，也不默认开发多机协同。</p>
+<div class="gap" aria-hidden="true"></div>
+<h2 class="sectiontitle">2．带理由的详细版本</h2>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">先明确一个影响选型的表述：“定点、定高、不漂移”建议写成“在预定演示环境中，能保持足够稳定的位置和高度”。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">“不漂移”不能作为绝对承诺。悬停效果会受光照、地面纹理、气流和飞机状态影响，需要通过实机检查。这里真正需要的是：无人机的漂移足够小，能够支撑标记识别、跟随和现场展示。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">另外，稳定悬停与跟随是两件事：无人机自身负责维持飞行稳定，电脑根据标记的位置变化，持续调整它的运动。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">整体工作关系如下：</p>
+<div class="gap" aria-hidden="true"></div>
+<pre><code>
+人体上的固定标记
+
+        ↓ 被摄像头拍到
+
+无人机摄像头 → 电脑识别标记 → 跟随控制 → 无人机运动
+
+        ↓
+
+   画面交给云端模型
+
+        ↑
+
+耳机语音 → 电脑 → 云端模型 （允许云端模型对于飞机发出指令）→ 语音回复 → 耳机
+
+</code></pre>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">这里有两条不同用途的处理流程：一条持续处理跟随，另一条处理语音、视觉理解和用户意图。它们共享无人机画面，但对响应速度的要求不同。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">无人机与租赁选择。</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">优先核实 TELLO 的具体版本和实际可用能力，不能仅凭商品名称判断。选型需要同时满足：</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="listline">- 具有定高和稳定悬停能力。</p>
+<p class="listline">- 程序能够读取摄像头画面。</p>
+<p class="listline">- 程序能够发送飞行控制指令。</p>
+<p class="listline">- 在实际演示环境中，画面和控制连接能够稳定工作。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">选择租赁的理由是减少一次性购买支出，把资金留给必要费用和故障余量。但目前的租赁报价只支持预算估算，尚不能证明收到的设备一定满足上述条件。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">按照你提供的报价，超过七天按每天 5 元计算：</p>
+<div class="gap" aria-hidden="true"></div>
+<blockquote class="callout">单架租赁的预计资金占用＝350 元押金＋5 元&#215;租赁天数。</blockquote>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">例如，假设租赁 14 天，租金为 70 元，连同押金暂时占用 420 元。这个例子不代表已经确定租期，也没有包含尚未确认的运费等费用。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">押金可以退还，但租赁期间会占用资金。因此，1000 元预算应同时检查“最终花费”和“当时需要拿出的现金”。追加租赁也要重新计算押金，不能只看每天几元的租金。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">电脑与耳机的分工。</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">电脑承担画面接收、标记识别、飞行控制、云端模型调用和语音处理。耳机承担用户语音输入和回复播放，实际使用的耳机需要具备可用的麦克风输入。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">选择电脑计算的理由是复用现有设备，也便于调试和查看系统状态。无人机主要承担飞行与拍摄，不要求它自身运行大模型。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">这里有一个必须提前验证的条件：电脑需要同时连接无人机和云端服务。联网使用个人热点或其他方式提供网络。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">人体标记跟随。</h3>
+<p class="line">上位目的是实现跟随，标记是降低实现难度的手段</p>
+<p class="line">跟随的基本过程是：</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="listline">1. 在人体上固定标记。</p>
+<p class="listline">2. 电脑从无人机画面中识别该标记。</p>
+<p class="listline">3. 根据标记在画面中的位置和大小变化，判断需要如何调整无人机运动。</p>
+<p class="listline">4. 持续更新控制，使无人机跟随佩戴标记的人。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">使用固定标记的理由是明确跟随对象，降低识别目标的难度，也便于判断失败原因：是没有识别到标记，还是已经识别但控制没有跟上。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">这里暂不指定标记种类。普通视觉标记和 TELLO EDU 的原生任务垫，依赖的识别能力不同，不能直接视为同一种实现。尤其是“原生任务垫贴到人身上后，能否稳定支持需要的识别和控制”，仍需验证。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">标记也不等于真实距离传感器。标记在画面中变小，可能是人走远了，也可能是身体转向、标记发生倾斜。因此，需要测试转身、遮挡和标记丢失时的表现。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">云端模型对飞机行为的控制。</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">希望模型能够控制飞机行为，可以落实为以下流程：</p>
+<div class="gap" aria-hidden="true"></div>
+<blockquote class="callout">用户说出指令 → 模型理解意图 → 调用相关工具 → 执行。</blockquote>
+<div class="gap" aria-hidden="true"></div>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">具体允许模型调用哪些行为，目前没有确定，应在基础控制验证后再列出。不能把模型口头回答“已经执行”当作飞机实际完成动作的证明。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">建议让持续跟随由电脑上的跟随程序负责。原因是跟随需要连续、及时的调整，而云端模型的回复会受到网络和推理时间影响。模型可以参与理解用户意图和切换行为，持续运动控制则需要保持稳定。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">这是一项实现建议，并不代表已经选定某个模型、框架或控制算法。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">实时语音交互与视觉理解。</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">语音部分的目标是：用户通过耳机说话，系统理解后作出语音回复，并在涉及飞机行为时触发相应请求。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">视觉部分的目标是：模型能够使用无人机摄像头拍到的内容回答问题，或者辅助理解用户指令。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">“实时”目前应作为体验目标，而不是已经实现的性能指标。需要分别验证：</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="listline">- 从用户说完到听见回复，需要多久。</p>
+<p class="listline">- 模型使用的画面距离当前时刻有多旧。</p>
+<p class="listline">- 跟随、语音和视觉同时运行时，是否互相影响。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">持续传输视频、按需提供图片、语音处理方式以及云端服务商，目前均未确定，本方案不替你选定。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">还有一个具体限制需要提前理解：如果用于跟随的画面持续对准人体标记，模型看到的也主要是这个方向。视觉理解能够回答哪些问题，受当时摄像头实际看到的内容限制。跟随和观察其他方向之间如何配合，需要在联调时验证。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="subtitle">开源复用的落实方式。</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">依照之前确定的要求，开发应先寻找能够运行的现有方案，再完成连接和必要修改。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">无人机控制、标记识别、语音交互分别寻找可复用的实现，检查其设备兼容性、许可证和运行条件。选择标准是“能否降低本项目的实际集成工作”，而不仅是仓库功能介绍是否丰富。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">目前不把此前讨论过但没有最终确定的仓库写成正式技术栈。代码复用之后，仍然需要完成实机连接、模块间的数据传递和联合验证。</p>
+<div class="gap" aria-hidden="true"></div>
+<h2 class="sectiontitle">3．总体任务拆分</h2>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">下面按可独立交付的小任务拆分。它们是任务清单，不是已经确定的人员分配；八人团队可以一人承接多个小任务，也可以共同完成实机测试。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="worktitle">1．设备租赁与硬件验证</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合愿意接触硬件、做实机记录的成员。</p>
+<p class="tasktitle">- 1.1 核实租赁条件</p>
+<p class="detail">  核对具体型号、配件、租金、押金、计费起止、运输与归还要求，以及是否允许编程使用。</p>
+<p class="deliverable">  交付：租赁信息表，明确已确认和未确认的事项。</p>
+<p class="tasktitle">- 1.2 完成收货与基础验机</p>
+<p class="detail">  检查设备、摄像头、电池和基础飞行表现，记录实际环境中的悬停效果。</p>
+<p class="deliverable">  交付：验机记录及原始视频，能据此判断设备是否适合继续开发。</p>
+<p class="tasktitle">- 1.3 验证连接与人体标记固定方式</p>
+<p class="detail">  配合软件成员检查电脑连接无人机和互联网的条件；尝试标记在人体上的固定方式。</p>
+<p class="deliverable">  交付：可复现的连接步骤，以及标记固定后的实际拍摄样例。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="worktitle">2．无人机基础接口与画面接入</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合有 Python 基础、愿意阅读接口文档和运行开源示例的成员。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="tasktitle">- 2.1 验证可复用的控制方案</p>
+<p class="detail">  运行候选开源项目的基础示例，检查设备兼容性、许可证与运行条件。</p>
+<p class="deliverable">  交付：可运行的项目版本、启动步骤和选择理由。</p>
+<p class="tasktitle">- 2.2 整理便捷的操控接口</p>
+<p class="detail">  将实机验证可用的控制能力整理为便于其他模块调用的接口，明确参数、返回结果和失败情况。具体接口范围根据设备验证结果确定。</p>
+<p class="deliverable">  交付：接口代码、使用说明和最小调用示例。</p>
+<p class="tasktitle">- 2.3 接通摄像头画面与状态信息</p>
+<p class="detail">  向跟随、视觉理解和模型编程模块提供画面及设备状态。</p>
+<p class="deliverable">  交付：可运行的读取示例，并说明画面、状态获取失败时如何反馈。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="worktitle">3．跟随能力</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合愿意处理图像识别和运动控制的技术成员。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="tasktitle">- 3.1 验证跟随对象识别方案</p>
+<p class="detail">  优先验证人体固定标记这一降低难度的手段，测试距离、角度、转身和遮挡的影响。</p>
+<p class="deliverable">  交付：识别演示、测试样例和适用条件记录。</p>
+<p class="tasktitle">- 3.2 将识别结果接入运动控制</p>
+<p class="detail">  根据目标位置变化，通过基础操控接口调整无人机运动。</p>
+<p class="deliverable">  交付：可运行的短距离跟随版本，以及实际跟随视频。</p>
+<p class="tasktitle">- 3.3 整理跟随的调用与退出方式</p>
+<p class="detail">  让其他模块能够启动、停止跟随，并获知当前是否识别到目标；验证目标丢失时的表现。</p>
+<p class="deliverable">  交付：调用说明和测试结果。</p>
+<div class="gap" aria-hidden="true"></div>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="worktitle">4．语音、视觉与模型编程控制</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合熟悉 AI API、愿意复用现有项目并承担软件集成的成员。可以多人分别认领语音、视觉、程序执行和联调。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="tasktitle">- 4.1 接通耳机语音输入与输出</p>
+<p class="detail">  完成用户说话、模型响应、耳机播放的流程。</p>
+<p class="deliverable">  交付：可运行的语音对话示例、启动说明和实际响应时间记录。</p>
+<p class="tasktitle">- 4.2 接入无人机实际画面</p>
+<p class="detail">  将摄像头画面提供给模型，验证模型回答是否对应所提供的内容。</p>
+<p class="deliverable">  交付：视觉问答示例，记录使用的画面和对应回答。</p>
+<p class="tasktitle">- 4.3 编写供模型使用的接口说明</p>
+<p class="detail">  整理无人机控制、画面获取、状态读取和跟随等已验证可用的接口，提供参数说明和调用示例。</p>
+<p class="deliverable">  交付：模型能读取的接口文档，并与实际接口保持一致。</p>
+<p class="tasktitle">- 4.4 打通“意图 → 编程 → 执行 → 反馈”</p>
+<p class="detail">  让模型根据用户要求生成程序，调用相关接口，并读取真实运行结果。</p>
+<p class="deliverable">  交付：可复现的运行流程，保留用户指令、生成代码、执行结果和模型回复。</p>
+<p class="tasktitle">- 4.5 协调模型程序与持续跟随</p>
+<p class="detail">  明确不同程序如何取得、交接和释放飞机控制权，处理执行中断及失败反馈。</p>
+<p class="deliverable">  交付：协调机制及验证记录，确认多个模块不会持续发送冲突指令。</p>
+<p class="tasktitle">- 4.6 完成语音、视觉与行为控制联调</p>
+<p class="detail">  将语音输入、画面理解、模型编程、动作执行和语音反馈连接起来，验证组合使用时的表现。</p>
+<p class="deliverable">  交付：完整演示、响应时间和使用限制记录，以及模型服务费用记录。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">本工作包的验收重点是：用户能够通过语音提出需求，模型能够结合所需画面，生成并执行调用接口的程序，再根据实际执行结果作出回应</p>
+<h3 class="worktitle">5．整体测试与问题跟踪</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合细心、愿意记录和复现问题的成员；定位技术问题时需要相关开发者配合。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="tasktitle">- 5.1 编写测试用例</p>
+<p class="detail">  覆盖跟随、语音、视觉、模型编程及组合使用，也包含遮挡、断连和执行失败等情况。</p>
+<p class="deliverable">  交付：测试清单，每项包含操作步骤和预期结果。</p>
+<p class="tasktitle">- 5.2 执行测试并记录问题</p>
+<p class="detail">  按同样步骤重复测试，保留录像、日志和失败条件。</p>
+<p class="deliverable">  交付：问题列表，能让开发者复现，而非只写“不能用”。</p>
+<p class="tasktitle">- 5.3 验证修复与展示版本</p>
+<p class="detail">  复测已修改的问题，记录最终版本可以稳定完成哪些流程。</p>
+<p class="deliverable">  交付：展示版本测试记录，以及仍存在的限制。</p>
+<div class="gap" aria-hidden="true"></div>
+<h3 class="worktitle">6．项目协调、场地与预算</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">适合组织沟通、表格整理能力较强的成员。</p>
+<div class="gap" aria-hidden="true"></div>
+<p class="tasktitle">- 6.1 维护认领与进度表</p>
+<p class="detail">  记录各小任务的负责人、交付物、依赖和当前阻碍。</p>
+<p class="deliverable">  交付：团队能够持续更新的任务表。</p>
+<p class="tasktitle">- 6.2 核实场地与比赛要求</p>
+<p class="detail">  整理飞行、网络、展位、中期检查和最终提交的实际要求。</p>
+<p class="deliverable">  交付：有来源的要求清单，未知事项单独标记。</p>
+<p class="tasktitle">- 6.3 管理预算与设备归还</p>
+<p class="detail">  记录租金、押金、运费、云端费用和其他实际支出，跟进归还及押金结算。</p>
+<p class="deliverable">  交付：费用账目，分别列出实际花费和资金占用，检查是否满足 1000 元限制。</p>
+<h3 class="worktitle">7，与其他组别的协调，建议在其他组同时也在本组的人负责</h3>
+<div class="gap" aria-hidden="true"></div>
+<p class="line">接口自行协商</p>
+</main>
+</body>
+</html>

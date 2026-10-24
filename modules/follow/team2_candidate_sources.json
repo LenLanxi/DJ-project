@@ -2,7 +2,7 @@
   "commit": "b9f37f9d857e95fae2071b597fa2fa2bf89705fb",
   "sha256_lf": {
     "drone_sdk/__init__.py": "13d3e6725b134ac4d9a3e683ac8322a6514978ae0a89425516803d999c3ababd",
-    "drone_sdk/_driver.py": "a83e7614d2f8a376cebd9f966444b0aeb3ae1e103fc8900fc97ed70a405d3ccb",
+    "drone_sdk/_driver.py": "9be69714e5af29653ede1691c29716aa0dcaa7630b7252591145b7f1feca8167",
     "drone_sdk/ai_bridge.py": "3a15a2468a4162228c84c6593edff326affbb656b678e324d76cdfab213b00c4",
     "drone_sdk/contract.py": "463d3da6cf79895f1cf6d6818674ba77e7d88525562e0d338ed3a05c68a89787",
     "drone_sdk/controller.py": "730c9ff966e65fd26bf8019442bad8755fb53fa8d0fa9fb6c167d9a90b407a15",
@@ -17,7 +17,7 @@
     "modules/ai/drone_adapter.py": "5d1c23d0de00ac9d4f63dca9f91c4bb566a6513724804c066b6a283f1d35f550",
     "modules/ai/duplex_audio.py": "c374b81772fa015516a440ed5051222e08088b8ce6e0f4789cb845306f3cbc04",
     "modules/ai/http_transport.py": "0d9c6b9102eab07190ffb4f88cedea8c37e04aba73576ce345dad743664eaf7d",
-    "modules/ai/main.py": "2250acf40d002eb32efdd31e0a5128f5ea071deae63fd99183b8c83c838cc6b1",
+    "modules/ai/main.py": "5c4f1ee36b2a9114",
     "modules/ai/model_client.py": "1a3ca920e71c7cc77b9f704e4d2650f994e4867523a9aacdd36c1b10314e5438",
     "modules/ai/pipeline.py": "fe94c2e0e44bf33ca705a93983f718066ff12be71e1f3a49648577a5104449cd",
     "modules/ai/program_runner.py": "a0fbd1f729c1758499a5f13490bbe394a47c04fec2a64f21d32c5cec67fc956c",

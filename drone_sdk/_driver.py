@@ -37,6 +37,13 @@ COMMAND_DEADLINE_S = {'takeoff': 25.0, 'land': 20.0}
 LAND_DISPATCH_TIMEOUT_S = 6.0
 KEEPALIVE_INTERVAL_S = 8.0
 LINK_FAULT_LIMIT = 3
+# 飞控刚上电时 Wi-Fi 已广播但飞控没就绪，`command` 会收到 0xcc 之类的半包，
+# djitellopy 把它当 UTF-8 解码错误抛出（现场复现 3 次）。等待 + 重试可消除。
+CONNECT_ATTEMPTS = 3
+CONNECT_RETRY_DELAY_S = 2.0
+# 实测：标准 Tello 固件在电量 50% 就对本机 takeoff 直接回 error（不发电机）。
+# 这个值只用于失败诊断文案，不参与起飞授权判断。
+TAKEOFF_FIRMWARE_BATTERY = 50
 
 _lock = threading.RLock()
 _command_lock = threading.Lock()
@@ -121,21 +128,67 @@ def is_connected():
     with _lock: return _tello is not None
 
 
+TOF_MIN_CM = 20          # 低于此值视为贴地或不可信
+TOF_MAX_TRUSTED_CM = 300
+
+
+def _height_probe(tello=None):
+    """返回 (高度cm 或 None, 来源)。None = 读数不可信，调用方必须保守处理。
+
+    Tello（非 EDU）飞行中气压高度字段 ``h`` 可能不更新（实测悬停时仍为 0）。
+    此时用 ToF 交叉验证；两个都不信就明确返回 None，绝不假装高度是 0，
+    否则「限高 2.5m」会在一架已经 1.2m 高的飞机上失效。
+    """
+    with _lock:
+        tello = tello or _tello
+        flying, cached = _flying, _height_cm
+    if tello is None:
+        return (cached, 'cached')
+    height = None
+    try:
+        height = tello.get_height()
+    except Exception:
+        height = None
+    if type(height) is int and height > 0:
+        return (height, 'baro')
+    if not flying:
+        return (0, 'ground')
+    tof = None
+    try:
+        tof = tello.get_distance_tof()
+    except Exception:
+        tof = None
+    if type(tof) is int and TOF_MIN_CM <= tof <= TOF_MAX_TRUSTED_CM:
+        return (tof, 'tof')
+    return (None, 'unknown')
+
+
+def _read_battery(tello=None):
+    """读一次真实电量；读不到就返回 None（绝不猜数字）。"""
+    if tello is None:
+        with _lock: tello = _tello
+    getter = getattr(tello, 'get_battery', None)
+    if tello is None or not callable(getter): return None
+    try: value = getter()
+    except Exception: return None
+    return value if type(value) is int else None
+
+
 def _current_height(tello=None):
     global _height_cm
-    with _lock: known, tello = _height_cm, tello or _tello
-    if tello is None: return known
-    try:
-        value = tello.get_height()
-    except Exception:
-        return known
-    if type(value) is not int or value < 0: return known
+    value, _source = _height_probe(tello)
+    if value is None:
+        with _lock: return _height_cm     # 保持旧返回值语义；上升决策走 _height_probe
     with _lock: _height_cm = value
     return value
 
 
 def _plan_ascent(cm):
-    height = _current_height()
+    height, source = _height_probe()
+    if height is None:
+        _record('height_limit_rejected', requested=cm, height_cm=None,
+                ceiling_cm=MAX_HEIGHT_CM, reason='height_unknown', source=source)
+        return None
     room = MAX_HEIGHT_CM - height
     if cm <= room: return cm
     if room < 20:
@@ -157,11 +210,17 @@ def _sanitise_rc(channels):
     if not flying: return (0, 0, 0, 0)
     left_right, forward_back, up_down, yaw = (
         max(-RC_LIMIT, min(RC_LIMIT, int(v))) for v in channels)
-    height = _current_height()
-    if up_down > 0 and height >= MAX_HEIGHT_CM:
-        _record('height_limit_clamped', requested=up_down, height_cm=height, channel='up_down')
-        up_down = 0
-    if up_down < 0 and height <= 0: up_down = 0
+    if up_down != 0:
+        height, source = _height_probe()
+        if height is None:
+            _record('height_limit_clamped', requested=up_down, height_cm=None,
+                    channel='up_down', reason='height_unknown', source=source)
+            up_down = 0
+        elif up_down > 0 and height >= MAX_HEIGHT_CM:
+            _record('height_limit_clamped', requested=up_down, height_cm=height, channel='up_down')
+            up_down = 0
+        elif up_down < 0 and height <= 0:
+            up_down = 0
     return (left_right, forward_back, up_down, yaw)
 
 
@@ -228,7 +287,7 @@ def _execute_move(tello, action, cm):
 
 
 def _execute_real(action, param=None):
-    global _flying, _height_cm
+    global _flying, _height_cm, _last_error
     with _lock:
         tello = _tello
         if tello is None: return False
@@ -255,6 +314,17 @@ def _execute_real(action, param=None):
             _record('action_unknown', action='takeoff', error=error)
             threading.Thread(target=_reconcile_later, args=(tello, token), daemon=True,
                              name='tello-reconcile').start()
+        elif action == 'takeoff' and error not in ('command_busy', 'link_down'):
+            # 飞控明确回 error（区别于超时）。现场原因基本只有低电量一条：
+            # 电量 50% 时 takeoff 会在 0.1s 内被拒。记下可操作的诊断，
+            # 别让上层只看到 "takeoff was unsuccessful for 2 tries"。
+            battery = _read_battery(tello)
+            low = type(battery) is int and battery <= TAKEOFF_FIRMWARE_BATTERY
+            advice = 'battery_low' if low else 'flight_controller_rejected'
+            with _lock:
+                _last_error = 'takeoff_rejected:%s battery=%s%%' % (advice, battery)
+            _record('takeoff_rejected', error=error, battery=battery, advice=advice,
+                    firmware_threshold=TAKEOFF_FIRMWARE_BATTERY)
         return False
     if action in _MOVES:
         if type(param) is not int or not 20 <= param <= MAX_DISTANCE_CM:
@@ -454,8 +524,22 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
         tello_class = _tello_class(timeout)
     except Exception as exc:
         raise RuntimeError('djitellopy_unavailable: %s' % exc)
-    tello = tello_class(str(address) if address else None)
-    tello.connect()
+    tello, ready_error = None, ''
+    for attempt in range(1, CONNECT_ATTEMPTS + 1):
+        candidate = tello_class(str(address) if address else None)
+        try:
+            candidate.connect()
+            tello = candidate
+            break
+        except Exception as exc:
+            ready_error = '%s: %s' % (type(exc).__name__, exc)
+            _record('connect_retry', attempt=attempt, error=ready_error[:200],
+                    max_attempts=CONNECT_ATTEMPTS)
+            try: candidate.end()
+            except Exception: pass
+            if attempt < CONNECT_ATTEMPTS: time.sleep(CONNECT_RETRY_DELAY_S)
+    if tello is None:
+        raise RuntimeError('tello_not_ready: %s' % ready_error)
     with _lock:
         _tello, SIMULATED = tello, False
         _link_ok, _faults, _last_error = True, 0, ''
@@ -469,11 +553,20 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
 
 
 def _keepalive_loop(tello, stop):
+    """保活：用**无响应**的 ``rc 0 0 0 0``，不用 ``keepalive`` 命令。
+
+    实测（Tello 非 EDU）：``keepalive`` 返回 ``unknown command: keepalive``，
+    djitellopy 会把它当失败抛异常；而且这条响应会污染紧接着的 ``land``
+    响应队列，导致 land 第一次返回 ``error``（现场复现两次）。
+    ``rc`` 是不需要响应的指令，既能重置 15 秒自动降落计时器，又不占响应队列。
+    """
     while not stop.wait(KEEPALIVE_INTERVAL_S):
         with _lock: flying, linked = _flying, _link_ok
         if not flying or not linked: continue
+        if action_pending(): continue        # 有在途命令时不插队
         try:
-            tello.send_keepalive()
+            tello.send_rc_control(0, 0, 0, 0)
+            _record('keepalive_sent', mode='rc_zero')
         except Exception as exc:
             _link_fault('keepalive: %s' % exc)
 

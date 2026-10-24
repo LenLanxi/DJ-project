@@ -88,6 +88,30 @@ python main.py --live --config config.example.json
 这些限制意味着当前**不能把语音当作实机唯一停止渠道**。
 尚不具备连续免按键收音、自动语音端点检测及全双工对话；这些属于体验优化，不依赖他组，但需真实耳机与API测量后再选择方案。
 
+## 全双工语音（豆包 / 火山引擎实时对话）
+
+```bash
+$env:VOLC_APP_ID="1234567890"          # 控制台「语音技术→应用管理」的数字 APP ID
+$env:VOLC_ACCESS_KEY="真正的 Access Token"   # 不是密钥名称
+python test_volc_connect.py            # 先自检凭据（不占用声卡）
+python main.py --volc-dialog           # 模拟飞机
+python main.py --volc-dialog --real-drone --allow-real-takeoff --min-battery 40
+```
+
+链路：麦克风 24kHz → 重采样 16kHz → 服务端 ASR → **本地白名单执行动作** →
+播报文本经 `ChatTTSText(500)` 交回服务端合成 24kHz PCM → 耳机。
+
+关键设计（与 `--realtime` 不同）：
+
+1. 豆包端到端实时语音模型**不提供 function calling**，所以动作意图不走工具调用，
+   而是把 ASR 文本交给 `ai_agent.Agent` 做白名单解析，与 `--always-on` 共用同一套安全兜底。
+2. 收到最终 ASR 文本后先发 `ClientInterrupt(515)` 掐掉服务端自己的回答，
+   再用本地结果合成播报，避免模型自称"已经起飞"或编造电量高度。
+3. 用户开口（`ASRInfo(450)`）会立刻清空本地播放缓冲，实现语音打断。
+
+协议实现见 `volc_dialog.py`，帧编解码用官方文档给出的字节示例逐字节校验，
+离线回归：`python test_volc_dialog.py`（14 项，含本地回环 WebSocket 全流程）。
+
 ## 视觉问答
 
 ```bash

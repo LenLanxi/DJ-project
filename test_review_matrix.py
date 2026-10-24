@@ -786,5 +786,219 @@ class LatestFiveGaps(unittest.TestCase):
         self.assertTrue(called, 'run_modern 失败路径没有收尾')
 
 
+class FlightSafety(unittest.TestCase):
+    """2026-10-24 真机实测暴露的两个缺陷：高度不可信 + keepalive 抢响应。"""
+
+    def setUp(self):
+        self._sim = drv.SIMULATED
+        self._tello = getattr(drv, '_tello', None)
+        self._flying = drv._flying
+        self._height = drv._height_cm
+        self._link = drv._link_ok
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        drv.SIMULATED = self._sim
+        drv._tello = self._tello
+        drv._flying = self._flying
+        drv._height_cm = self._height
+        drv._link_ok = self._link
+        drv._pending_commands.clear()
+
+    def _fake_tello(self, height=0, tof=None):
+        class Tello:
+            def get_height(_self):
+                return height
+            def get_distance_tof(_self):
+                if tof is None:
+                    raise OSError('no tof')
+                return tof
+        drv.SIMULATED = False
+        drv._tello = Tello()
+        drv._flying = True
+        return drv._tello
+
+    def test_height_unknown_blocks_ascent(self):
+        """飞行中 h=0 且 ToF 也不可用 → 高度未知，必须拒绝向上飞。"""
+        self._fake_tello(height=0, tof=None)
+        height, source = drv._height_probe()
+        self.assertIsNone(height, '读数不可信时必须返回 None，不能假装是 0')
+        self.assertEqual(source, 'unknown')
+        self.assertIsNone(drv._plan_ascent(50), '高度未知时不许上升')
+        self.assertEqual(drv._sanitise_rc((0, 0, 60, 0))[2], 0, '向上通道必须被压成 0')
+
+    def test_tof_cross_checks_when_baro_stays_zero(self):
+        """h 一直是 0 但 ToF 有值 → 用 ToF 作为高度，且仍受 2.5m 限高约束。"""
+        self._fake_tello(height=0, tof=120)
+        self.assertEqual(drv._height_probe(), (120, 'tof'))
+        self.assertEqual(drv._current_height(), 120)
+        self.assertEqual(drv._plan_ascent(50), 50)          # 120+50 < 250
+        self.assertEqual(drv._plan_ascent(200), 130)        # 被夹到剩余空间
+
+    def test_height_trusted_when_baro_reports_positive(self):
+        """h 正常时优先用气压高度（ToF 量程只有 3m）。"""
+        self._fake_tello(height=95, tof=100)
+        self.assertEqual(drv._height_probe(), (95, 'baro'))
+
+    def test_grounded_reports_zero_not_unknown(self):
+        """落地时 h=0 是可信的 0，不能被误判成未知。"""
+        drv.SIMULATED = False
+        drv._tello = self._fake_tello(height=0)
+        drv._flying = False
+        self.assertEqual(drv._height_probe(), (0, 'ground'))
+
+    def test_keepalive_uses_rc_zero_not_keepalive_command(self):
+        """保活必须用无响应的 rc 0 0 0 0，不能发 keepalive 命令抢 land 的响应。"""
+        import threading
+        calls = []
+        class Tello:
+            def send_rc_control(self, *ch):
+                calls.append(('rc', ch))
+            def send_keepalive(self):
+                calls.append(('keepalive', None))
+                raise RuntimeError('unknown command: keepalive')
+        drv.SIMULATED = False
+        drv._flying = True
+        drv._link_ok = True
+        old = drv.KEEPALIVE_INTERVAL_S
+        drv.KEEPALIVE_INTERVAL_S = 0.05
+        stop = threading.Event()
+        worker = threading.Thread(target=drv._keepalive_loop, args=(Tello(), stop), daemon=True)
+        worker.start()
+        time.sleep(0.35)
+        stop.set(); worker.join(2)
+        drv.KEEPALIVE_INTERVAL_S = old
+        self.assertTrue(calls, '保活根本没发')
+        self.assertTrue(all(kind == 'rc' for kind, _ in calls),
+                        '发过 keepalive 命令：会污染 land 响应队列 %s' % (calls,))
+        self.assertTrue(all(tuple(ch) == (0, 0, 0, 0) for _, ch in calls), calls)
+
+    def test_keepalive_skips_when_command_pending(self):
+        """有在途命令时不得插队发保活。"""
+        import threading
+        calls = []
+        class Tello:
+            def send_rc_control(self, *ch):
+                calls.append(ch)
+        drv.SIMULATED = False
+        drv._flying = True
+        drv._link_ok = True
+        pending = threading.Event()
+        drv._pending_commands.add(pending)
+        old = drv.KEEPALIVE_INTERVAL_S
+        drv.KEEPALIVE_INTERVAL_S = 0.03
+        stop = threading.Event()
+        worker = threading.Thread(target=drv._keepalive_loop, args=(Tello(), stop), daemon=True)
+        worker.start()
+        time.sleep(0.3)
+        stop.set(); worker.join(2)
+        drv.KEEPALIVE_INTERVAL_S = old
+        drv._pending_commands.discard(pending)
+        self.assertEqual(calls, [], '在途命令期间发了保活')
+
+
+class FlightBringUp(unittest.TestCase):
+    """真机上电期的两个现场问题：connect 收到 0xcc 半包、takeoff 被飞控拒却没说原因。"""
+
+    def setUp(self):
+        self._sim = drv.SIMULATED
+        self._tello = getattr(drv, '_tello', None)
+        self._flying = drv._flying
+        self._link = drv._link_ok
+        self._last_error = drv._last_error
+        self._events_len = len(drv._events)
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        drv.SIMULATED = self._sim
+        drv._tello = self._tello
+        drv._flying = self._flying
+        drv._link_ok = self._link
+        drv._last_error = self._last_error
+        drv._pending_commands.clear()
+
+    def test_takeoff_rejection_reports_battery_advice(self):
+        """飞控明确回 error 时，必须留下可操作的诊断，而不是空 last_error。"""
+        class Tello:
+            def get_battery(self): return 50
+            def takeoff(self):
+                raise RuntimeError("Command 'takeoff' was unsuccessful for 2 tries. "
+                                   "Latest response:\t'error'")
+        drv.SIMULATED, drv._tello, drv._link_ok, drv._flying = False, Tello(), True, False
+        drv._last_error = ''
+        self.assertFalse(drv.execute('takeoff'))
+        rejected = [e for e in list(drv._events)[self._events_len:]
+                    if e['event'] == 'takeoff_rejected']
+        self.assertTrue(rejected, '飞控拒绝起飞却没记录 takeoff_rejected 事件')
+        self.assertEqual(rejected[-1]['advice'], 'battery_low')
+        self.assertEqual(rejected[-1]['battery'], 50)
+        self.assertIn('battery_low', drv.health()['last_error'])
+
+    def test_takeoff_rejection_with_healthy_battery_blames_hardware(self):
+        """电量充足却仍被拒 → 提示检查桨叶/水平，不能误报成电量问题。"""
+        class Tello:
+            def get_battery(self): return 88
+            def takeoff(self):
+                raise RuntimeError("Command 'takeoff' was unsuccessful. Latest response:\t'error'")
+        drv.SIMULATED, drv._tello, drv._link_ok, drv._flying = False, Tello(), True, False
+        drv.execute('takeoff')
+        rejected = [e for e in list(drv._events)[self._events_len:]
+                    if e['event'] == 'takeoff_rejected']
+        self.assertEqual(rejected[-1]['advice'], 'flight_controller_rejected')
+
+    def test_connect_retries_through_0xcc_decode_error(self):
+        """上电初期 `command` 收到 0xcc 半包会抛 UTF-8 错；必须重试而不是直接失败。"""
+        attempts = []
+
+        class FlakyTello:
+            def __init__(self, host=None):
+                self.address = ('192.168.10.1', 8889)
+            def connect(self):
+                attempts.append(1)
+                if len(attempts) < 3:
+                    raise UnicodeDecodeError('utf-8', b'\xcc', 0, 1, 'invalid start byte')
+            def get_battery(self): return 66
+            def get_flight_time(self): return 0
+            def send_rc_control(self, *ch): pass
+            def set_speed(self, *a, **k): pass
+            def end(self): pass
+
+        original = drv._tello_class
+        drv._tello_class = lambda timeout: FlakyTello
+        drv._tello = None
+        old_delay = drv.CONNECT_RETRY_DELAY_S
+        drv.CONNECT_RETRY_DELAY_S = 0.0
+        try:
+            info = drv.connect(None)
+        finally:
+            drv._tello_class = original
+            drv.CONNECT_RETRY_DELAY_S = old_delay
+            drv._keepalive_stop.set() if drv._keepalive_stop else None
+            drv.disconnect(safe=False)
+        self.assertEqual(len(attempts), 3, '应重试到第 3 次才成功')
+        self.assertTrue(info['connected'])
+        retries = [e for e in list(drv._events) if e['event'] == 'connect_retry']
+        self.assertGreaterEqual(len(retries), 2, '重试过程必须留痕便于现场排查')
+
+    def test_connect_gives_up_with_actionable_error(self):
+        """彻底连不上时抛出的错误必须指名"飞控没就绪"，别只丢一个解码异常。"""
+        class DeadTello:
+            def __init__(self, host=None): self.address = ('192.168.10.1', 8889)
+            def connect(self): raise UnicodeDecodeError('utf-8', b'\xcc', 0, 1, 'invalid start byte')
+            def end(self): pass
+        original = drv._tello_class
+        drv._tello_class = lambda timeout: DeadTello
+        drv._tello = None
+        old_delay = drv.CONNECT_RETRY_DELAY_S
+        drv.CONNECT_RETRY_DELAY_S = 0.0
+        try:
+            with self.assertRaises(RuntimeError) as ctx:
+                drv.connect(None)
+        finally:
+            drv._tello_class = original
+            drv.CONNECT_RETRY_DELAY_S = old_delay
+        self.assertIn('tello_not_ready', str(ctx.exception))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
