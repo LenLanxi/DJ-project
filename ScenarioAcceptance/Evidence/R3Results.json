@@ -1,0 +1,42 @@
+{
+  "revision": "9fb2c656ece442bf7207469b533b2bec8c1c704c",
+  "dirty": false,
+  "tests": 7,
+  "passed": 4,
+  "failed": 3,
+  "errors": 0,
+  "records": [
+    {
+      "test": "__main__.AdapterTests.testR301_cancel_between_check_and_send_rejects_old_velocity",
+      "status": "fail",
+      "evidence": "Traceback (most recent call last):\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 57, in testPartExecutor\n    yield\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 623, in run\n    self._callTestMethod(testMethod)\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 579, in _callTestMethod\n    if method() is not None:\n       ^^^^^^^^\n  File \"C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\R3Tests.py\", line 66, in testR301_cancel_between_check_and_send_rejects_old_velocity\n    self.assertFalse(result.ok, 'Old velocity accepted after stop; driver velocity=' +\nAssertionError: True is not false : Old velocity accepted after stop; driver velocity=(0, 20, 0, 0)\n"
+    },
+    {
+      "test": "__main__.AdapterTests.testR302_confirmation_cannot_borrow_replacement_grant",
+      "status": "fail",
+      "evidence": "Traceback (most recent call last):\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 57, in testPartExecutor\n    yield\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 623, in run\n    self._callTestMethod(testMethod)\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 579, in _callTestMethod\n    if method() is not None:\n       ^^^^^^^^\n  File \"C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\R3Tests.py\", line 83, in testR302_confirmation_cannot_borrow_replacement_grant\n    self.assertFalse(result.ok,\nAssertionError: True is not false : Original epochs=[5]; borrowed lease=Lease(owner='follow', epoch=7)\n"
+    },
+    {
+      "test": "__main__.AdapterTests.test_grant_confirmation_without_race_succeeds",
+      "status": "pass"
+    },
+    {
+      "test": "__main__.AdapterTests.test_old_control_epoch_is_rejected",
+      "status": "pass"
+    },
+    {
+      "test": "__main__.CleanupTests.testR303_status_error_cannot_skip_lease_checked_stop_attempt",
+      "status": "fail",
+      "evidence": "Traceback (most recent call last):\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 57, in testPartExecutor\n    yield\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 623, in run\n    self._callTestMethod(testMethod)\n  File \"C:\\Users\\bente\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\unittest\\case.py\", line 579, in _callTestMethod\n    if method() is not None:\n       ^^^^^^^^\n  File \"C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\R3Tests.py\", line 117, in testR303_status_error_cannot_skip_lease_checked_stop_attempt\n    self.assertGreater(stop.call_count, 0,\nAssertionError: 0 not greater than 0 : No stop attempted; remaining velocity=(0, 20, 0, 20)\n"
+    },
+    {
+      "test": "__main__.CleanupTests.test_normal_stop_zeros_and_releases",
+      "status": "pass"
+    },
+    {
+      "test": "__main__.CleanupTests.test_replacement_owner_is_not_stopped",
+      "status": "pass"
+    }
+  ],
+  "scope": "Disconnected simulated SDK and explicit mock port; no physical flight"
+}

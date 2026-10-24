@@ -7,10 +7,12 @@ from dataclasses import dataclass, asdict
 import math
 import threading
 import time
+from pathlib import Path
 
 from .core import FollowController, State
 from .service_ports import FrameSnapshot, Result
 from .vision import MarkerTracker
+from .session_log import SessionLog
 
 
 @dataclass(frozen=True)
@@ -22,7 +24,8 @@ class HandoffTicket:
 
 class FollowService:
     def __init__(self, port, *, tracker=None, monotonic=time.monotonic,
-                 wall_clock=time.time, recovery_window=0):
+                 wall_clock=time.time, recovery_window=0, steering_mode="yaw",
+                 log_directory=None):
         if getattr(port, "simulation_only", None) is not True:
             raise ValueError("This version only accepts simulation ports")
         self.port = port
@@ -31,7 +34,8 @@ class FollowService:
         # Same gradual request start as the desktop demo. Faults/loss/stop still
         # bypass the ramp and issue zero immediately; no old target prediction.
         self.controller = FollowController(recovery_window=recovery_window,
-                                           max_request_rate=.8, require_geometry=True)
+                                           max_request_rate=.8, require_geometry=True,
+                                           steering_mode=steering_mode)
         self.lock = threading.RLock()
         self.vision_lock = threading.Lock()
         self.shutdown = threading.Event()
@@ -47,23 +51,50 @@ class FollowService:
         self.last_channels = None
         self.last_reason = "not_started"
         self.events = []
+        self.last_cleanup = -math.inf
+        self.cleanup_unconfirmed = False
+        self.log_directory = log_directory
+        self.session_log = None
+        if log_directory is not None and log_directory is not False:
+            self._start_log()
+
+    def _start_log(self):
+        if self.session_log is None and self.log_directory is not False:
+            directory = self.log_directory if self.log_directory is not None else (
+                Path(__file__).resolve().parents[1] / "logs" / "background")
+            self.session_log = SessionLog(directory, dict(version="r3-b313eb3-fix1",
+                port_declared_simulation_only=self.port.simulation_only,
+                mode="backend_declared_simulation_unverified",
+                hardware_verified=False, steering_mode=self.controller.steering_mode,
+                recovery_window=self.controller.recovery_window,
+                source="shared_sdk_frame_provider"))
 
     def _record(self, event, **data):
-        self.events.append(dict(time=self.clock(), event=event,
-                                simulation_only=True, **data))
+        record = dict(time=self.clock(), unix_time=self.wall(), event=event,
+                      simulation_only=True, simulation_flag_scope="port_contract_only",
+                      hardware_verified=False, **data)
+        self.events.append(record)
+        if len(self.events) > 4096:
+            del self.events[:len(self.events)-4096]
+        if self.session_log is not None:
+            self.session_log.submit(record)
 
     def _cancel_ticket(self):
         self.generation += 1
         self.ticket = None
 
-    def _cleanup(self):
+    def _cleanup(self, *, retry=False):
         """Only clear our own lease; never stop a new owner's motion."""
         lease = self.lease
         if lease is None:
             return Result("completed")
+        if retry and self.clock() - self.last_cleanup < .1 - 1e-9:
+            return Result("failed", "cleanup_pending")
+        self.last_cleanup = self.clock()
         try:
             if self.port.get_status().lease != lease:
                 self.lease = None
+                self.cleanup_unconfirmed = False
                 return Result("completed", "already_released_or_revoked")
             stopped = self.port.stop_motion(lease)
             released = self.port.release_control(lease)
@@ -71,12 +102,16 @@ class FollowService:
                 self.lease = None
             # stop is a send acknowledgement, not physical hover confirmation.
             if not stopped.ok or released.status != "completed":
+                self.cleanup_unconfirmed = True
                 self.last_reason = "cleanup_unconfirmed"
                 self._record("cleanup_failed", stop=stopped.status, release=released.status)
                 return Result("failed", self.last_reason)
             self.last_channels = (0, 0, 0, 0)
+            self.cleanup_unconfirmed = False
+            self._record("cleanup_completed", physical_hover_confirmed=False)
             return Result("completed")
         except Exception as exc:
+            self.cleanup_unconfirmed = True
             self.last_reason = "cleanup_exception"
             self._record("cleanup_failed", error=str(exc))
             return Result("failed", self.last_reason)
@@ -124,8 +159,10 @@ class FollowService:
                         if not self.closed:
                             self._fault("frame_unavailable_or_expired", invalid_frame=True)
                     return False
+                detection_start = time.perf_counter()
                 observation = self.tracker.detect(packet.frame, packet.frame_id,
                                                   now - age, source="team2-simulation")
+                detection_ms = (time.perf_counter() - detection_start) * 1000
                 with self.lock:
                     if self.closed:
                         return False
@@ -134,8 +171,14 @@ class FollowService:
                         self._fault("invalid_observation", invalid_frame=True)
                         return False
                     self.frame_ready = True
+                    diagnostics = getattr(self.tracker, "last_diagnostics", {})
                     self._record("observation", frame_id=packet.frame_id,
-                                 found=observation.found, reason=observation.reason)
+                                 timestamp=packet.timestamp, found=observation.found,
+                                 reason=observation.reason, center_x=observation.center_x,
+                                 center_y=observation.center_y, size_ratio=observation.size_ratio,
+                                 detection_ms=detection_ms,
+                                 detector_method=diagnostics.get("detector_method"),
+                                 recognition_profile=diagnostics.get("recognition_profile"))
                     return True
             except Exception as exc:
                 with self.lock:
@@ -150,6 +193,8 @@ class FollowService:
             if not self.frame_ready:
                 return Result("failed", "new_valid_frame_required")
             ok, reason = self.controller.calibrate(self.clock())
+            self._record("calibration", ok=ok, reason=reason,
+                         reference_size=self.controller.reference_size)
             return Result("completed" if ok else "failed", reason)
 
     def _start(self):
@@ -187,10 +232,11 @@ class FollowService:
     def start_follow(self):
         with self.lock:
             self._cancel_ticket()
-            if self.controller.state == State.TRACKING and self.lease is not None:
+            if self.controller.state in (State.TRACKING, State.RECOVERING) and self.lease is not None:
                 self.control_once()
-                if self.controller.state == State.TRACKING:
-                    return Result("completed", "already_following")
+                if self.controller.state in (State.TRACKING, State.RECOVERING):
+                    return Result("completed", "already_following" if self.controller.state == State.TRACKING
+                                  else "waiting_for_target")
                 return Result("failed", self.last_reason)
             return self._start()
 
@@ -266,32 +312,38 @@ class FollowService:
                     if self.lease is not None:
                         self.last_reason = motion.reason
                         self._record("tracking_halted", state=str(self.controller.state), reason=motion.reason)
-                        self._cleanup()
+                        self._cleanup(retry=True)
                     return
                 if self.lease is None:
                     self._fault("missing_lease")
                     return
                 # Preview conversion only; not a calibrated physical speed.
-                channels = (round(motion.right * 100), round(motion.forward * 100), 0, 0)
-                channels = tuple(max(-30, min(30, value)) for value in channels)
+                channels = (round(motion.right * 100), round(motion.forward * 100), 0,
+                            round(motion.yaw * 100))
+                channels = tuple(max(-cap, min(cap, value))
+                                 for value, cap in zip(channels, (30, 30, 0, 20)))
                 now = self.clock()
                 urgent_zero = channels == (0, 0, 0, 0) and channels != self.last_channels
-                urgent_depth_stop = (self.controller.distance_guard.blocked
-                                     and self.last_channels is not None
+                urgent_depth_stop = (self.last_channels is not None
                                      and self.last_channels[1] != 0 and channels[1] == 0)
+                reductions = None if self.last_channels is None else tuple(
+                    0 if old and new == 0 else old
+                    for old, new in zip(self.last_channels, channels))
                 if now - self.last_send < .1 - 1e-9 and not urgent_zero:
-                    if not urgent_depth_stop:
+                    if reductions is None or reductions == self.last_channels:
                         return
-                    # Immediately clear depth even if lateral motion remains.
-                    # Do not increase another axis before its normal deadline.
-                    channels = (self.last_channels[0], 0, 0, 0)
+                    # Safety braking may bypass the 10 Hz deadline. No other
+                    # axis may increase or reverse during this early send.
+                    channels = reductions
                 result = self.port.update_velocity(self.lease, left_right=channels[0],
-                    forward_back=channels[1], up_down=0, yaw=0)
+                    forward_back=channels[1], up_down=channels[2], yaw=channels[3])
                 if not result.ok:
                     self._fault("velocity_rejected: " + result.reason)
                     return
                 self.last_send, self.last_channels = now, channels
                 self._record("motion_request", channels=channels, status=result.status,
+                             state=str(self.controller.state), reason=motion.reason,
+                             reference_size=self.controller.reference_size,
                              distance_guard=self.controller.distance_guard.status(),
                              urgent_depth_stop=urgent_depth_stop)
             except Exception as exc:
@@ -306,14 +358,23 @@ class FollowService:
             self.control_once()
             return dict(state=str(self.controller.state),
                         following=self.controller.state == State.TRACKING,
+                        active=(self.lease is not None and not self.closed and
+                                self.controller.state in (State.TRACKING, State.RECOVERING)),
+                        recovering=self.controller.state == State.RECOVERING,
+                        cleanup_pending=(self.lease is not None and
+                                         self.controller.state not in (State.TRACKING, State.RECOVERING)),
+                        cleanup_unconfirmed=self.cleanup_unconfirmed,
+                        pending_resume=self.ticket is not None,
                         reference_size=self.controller.reference_size,
                         lease=asdict(self.lease) if self.lease else None,
                         last_reason=self.last_reason, closed=self.closed,
                         control_profile=self.controller.status()["control_profile"],
+                        steering=self.controller.status()["steering"],
                         distance_guard=self.controller.distance_guard.status(),
                         max_request_rate=self.controller.max_request_rate,
                         simulation_only=True, hardware_verified=False,
                         background_running=any(t.is_alive() for t in self.workers),
+                        log=self.session_log.status() if self.session_log else None,
                         frame_ready=self.frame_ready,
                         frame_id=self.last_frame_id)
 
@@ -323,6 +384,7 @@ class FollowService:
                 raise RuntimeError("Service is closed; create a new instance")
             if self.workers:
                 return
+            self._start_log()
             def loop(action, interval):
                 while not self.shutdown.is_set():
                     action()
@@ -343,4 +405,6 @@ class FollowService:
             for worker in self.workers:
                 if worker is not threading.current_thread():
                     worker.join(timeout=.25)
+        if self.session_log is not None:
+            self.session_log.close(wait=wait)
         return result

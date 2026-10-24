@@ -228,7 +228,8 @@ class ServiceShapeTests(unittest.TestCase):
         self.t, self.seq = 10., 0
         self.port = MockPort(lambda: self.t)
         self.service = FollowService(self.port, tracker=GeometryTracker(),
-            monotonic=lambda: self.t, wall_clock=lambda: 1800000000+self.t)
+            monotonic=lambda: self.t, wall_clock=lambda: 1800000000+self.t,
+            steering_mode="lateral", log_directory=False)
         self.addCleanup(self.service.close)
         self.frame(rectangle())
         self.assertTrue(self.service.calibrate_reference().ok)

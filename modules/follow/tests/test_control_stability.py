@@ -86,7 +86,7 @@ class ServiceStabilityTests(unittest.TestCase):
         self.port = MockPort(lambda: self.t)
         self.service = FollowService(self.port, tracker=PassthroughTracker(),
             monotonic=lambda: self.t, wall_clock=lambda: 1800000000+self.t,
-            recovery_window=3)
+            recovery_window=3, steering_mode="lateral", log_directory=False)
         self.addCleanup(self.service.close)
         self.frame(0, 0, 0)
         self.assertTrue(self.service.calibrate_reference().ok)

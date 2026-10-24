@@ -1,0 +1,98 @@
+{
+  "base_commit": "b313eb366abce11efa79f6609c1539b908c5133a",
+  "source_scope": "modules/follow only",
+  "changed_files": [
+    {
+      "path": "modules/follow/r3_follow/core.py",
+      "before_sha256": "df8f22d1cc8b235ebb28317c892e15254d28eba9d5fba2326fff03f15fc88eca",
+      "after_sha256": "057378eb1277d5bd0f60db4fb284bf1462ccc6f9d5c63ad3ca57b7ee419fb660"
+    },
+    {
+      "path": "modules/follow/r3_follow/service.py",
+      "before_sha256": "fc788d3d4258070c9b4de769e5e0401fd0efc59b61698a66304a85711490d0bd",
+      "after_sha256": "0c66e845e16d38430ff219648529a079d52cd9148a678aa0eb612598e17c5411"
+    },
+    {
+      "path": "modules/follow/r3_follow/session_log.py",
+      "before_sha256": null,
+      "after_sha256": "00288ca570f4a638293746f66439aedf4c57fa9bef6778378ea2f7205d110bbf"
+    },
+    {
+      "path": "modules/follow/r3_follow/tello_adapter.py",
+      "before_sha256": "defa5d95389beeb1c83efd1b90fe70d2bf29f5fd21107b1a855167239b12fd0b",
+      "after_sha256": "fec0a71b7fe57006fb4e8c7a24cdb1df4a6ab5b5b01bb23dfff9223df60f718a"
+    },
+    {
+      "path": "modules/follow/r3_follow/vision.py",
+      "before_sha256": "05a98f5d4b4f67928cd90a2b166adc7711196169c97c88f86a3d6b688b2f45ab",
+      "after_sha256": "8b7101c9f191e261d52a63992e8f967717b3b7ee6d044fdd157fdefcd546fd49"
+    },
+    {
+      "path": "modules/follow/resolution_rescue_check.py",
+      "before_sha256": null,
+      "after_sha256": "4202b1313b3d5c28312b3b88dddf775ba83986c9d71784b17ba361fd36ca7328"
+    },
+    {
+      "path": "modules/follow/tests/test_control_stability.py",
+      "before_sha256": "ff421793131228d2a4d1bac4700d80519ccbc1af499349900caddf2df1c7d0a7",
+      "after_sha256": "b83c9aa9aee82a387125d494fd9cd28756a354e7439a28b70f572d321738d82d"
+    },
+    {
+      "path": "modules/follow/tests/test_r3_only_runtime.py",
+      "before_sha256": null,
+      "after_sha256": "49fde4e88c990d122894f789f93b4c463ea6a157d161687956a44b558d490d7d"
+    },
+    {
+      "path": "modules/follow/tests/test_resolution_rescue.py",
+      "before_sha256": null,
+      "after_sha256": "b6ed0135a884dbcf252a4da5c040115b7cff7a82ac10117acf76f7e6d9ec77ee"
+    },
+    {
+      "path": "modules/follow/tests/test_service.py",
+      "before_sha256": "099cd382f0c4e3bf0860dcbb083090741fd962353b3ce85a10e01d8eda4146a0",
+      "after_sha256": "0fbc6e010c495c1afce694a55a238f880f0040bf9b1851b210d41c5cc23bd7ce"
+    },
+    {
+      "path": "modules/follow/tests/test_service_lifecycle_fix.py",
+      "before_sha256": null,
+      "after_sha256": "da1c00b895fbc6e8493d6be2e387770fee9a80caff2374b22ccba6324ab6fe20"
+    },
+    {
+      "path": "modules/follow/tests/test_session_log.py",
+      "before_sha256": null,
+      "after_sha256": "4e4d0b1ccadc2968b21ccbf4d899f6ad6cb4a70f10a4cd16230864c31a9ac41f"
+    },
+    {
+      "path": "modules/follow/tests/test_side_turn_guard.py",
+      "before_sha256": "f0d2d8f7d955ffc3b8adad32359a52f70056bcaa37705254ff5916ca4708746e",
+      "after_sha256": "39041c9adb7aeeab6adf7de11bb76d19d2321dfa9d44d087d36a9b1bf0f8cce0"
+    },
+    {
+      "path": "modules/follow/tests/test_team2_integration.py",
+      "before_sha256": "567ccec9d65d4eab40eb73c96f927f0b4f9c41ac27c6f09ba9e82f081f04fd49",
+      "after_sha256": "f50bf42604613b7e5802df8715eae80a2bdab00e810981baa4000738f75f8306"
+    },
+    {
+      "path": "modules/follow/tests/test_team2_joint.py",
+      "before_sha256": "671e8e7cff0c11ba7d339bf8febf0da88dbd6ea207c1d6d3ea1ecf24b3634bb0",
+      "after_sha256": "6e3efa2b81ad0cb2c2d37509820e927c38252778b6d5adf33362b84931cd5cff"
+    },
+    {
+      "path": "modules/follow/tests/test_yaw_follow.py",
+      "before_sha256": null,
+      "after_sha256": "2b10dedf20651c0da5d6d82a11b678158b60144e842091f015105c0b92ab7fee"
+    },
+    {
+      "path": "modules/follow/turn_follow_check.py",
+      "before_sha256": null,
+      "after_sha256": "0bb07eabfe42c37833a739d038e8da95be54e33978adbf5ad1649f0db8786805"
+    },
+    {
+      "path": "modules/follow/verify_r3_changes.py",
+      "before_sha256": null,
+      "after_sha256": "21fd4018dc11a32babeeaddd3fea243f6b3df869638305153df85ace9fcdad1e"
+    }
+  ],
+  "unchanged_outside_follow_files": 99,
+  "sdk_and_ai_changed": false
+}

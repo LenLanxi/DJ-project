@@ -170,3 +170,9 @@
 历史记录中的失败对应尚未满足的验收条件；当前默认运行将已知缺口标为
 XFAIL，`--strict` 保留原始失败行为。测试入库不代表缺陷已经修复或真机验收通过。
 
+2026-10-24 合入第三组 `r3-b313eb3-fix1` 源码候选：后台默认转向跟随、
+大图局部补检、恢复/清理状态与异步会话日志。新增
+[R3Tests.py](ScenarioAcceptance/R3Tests.py) 复现3项仍未修复的安全缺口；
+详见[合并验证说明](ScenarioAcceptance/README.md#r3-candidate-integration-2026-10-24)。
+该候选没有完成实机验收。
+

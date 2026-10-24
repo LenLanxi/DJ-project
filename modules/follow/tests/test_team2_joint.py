@@ -6,6 +6,7 @@ from pathlib import Path
 import threading
 import time
 import unittest
+import sys
 from unittest.mock import patch
 
 from r3_follow.service_ports import FrameSnapshot
@@ -16,6 +17,9 @@ from r3_follow.vision import synthetic_frame
 ROOT = Path(__file__).resolve().parents[1]
 REPO = (ROOT.parents[1] if (ROOT.parents[1] / 'drone_sdk').is_dir()
         else ROOT.parent / 'tmp' / 'team2_b9f37f9')
+AI_ROOT = REPO / 'modules' / 'ai'
+if AI_ROOT.is_dir() and str(AI_ROOT) not in sys.path:
+    sys.path.insert(0, str(AI_ROOT))
 MEASUREMENTS = []
 
 
@@ -61,7 +65,8 @@ class JointTests(unittest.TestCase):
         self.assertTrue(self.runtime.start_follow()["ok"])
         self.frame(x=.8)
         self.assertTrue(self.runtime.is_following())
-        self.assertGreater(self.service.last_channels[0], 0)
+        self.assertGreater(self.service.last_channels[3], 0)
+        self.assertEqual(self.service.last_channels[0], 0)
 
     def confirmed_landing(self):
         deadline = time.monotonic() + 1
@@ -94,7 +99,7 @@ class JointTests(unittest.TestCase):
         self.assertEqual(self.sdk.get_status().control_owner, "follow")
         self.assertEqual(self.service.last_channels, (0, 0, 0, 0))
         self.frame(x=.2)
-        self.assertLess(self.service.last_channels[0], 0)
+        self.assertLess(self.service.last_channels[3], 0)
 
     def test_without_new_frame_action_completes_but_follow_does_not_resume(self):
         self.following()

@@ -103,7 +103,44 @@ It asserts that no forward action is sent. The current adapter omits
 `control_epoch` and `command_epoch`, so the assertion fails even though the
 controller already supports both checks. This test does not fix the defect.
 
-## Limits
+## R3 candidate integration (2026-10-24)
+
+The 18 files in the supplied R3 manifest were integrated onto `adf7b5e`, after
+verifying the package's before/after hashes against `b313eb3`. None overlapped
+upstream follow-source changes. The package's SDK/AI pin files were preserved.
+Its 296 distinct regressions passed; 16 virtual feedback scenarios and 183
+paired synthetic images were rerun. These establish neither physical yaw
+direction nor physical safety.
+
+`R3Tests.py` adds seven residual safety checks: four controls pass and three
+assertions fail normally (no XFAIL masking):
+
+| Case | Location | Remaining defect |
+| --- | --- | --- |
+| R301 | `modules/follow/r3_follow/team2_adapter.py`, `update_velocity` | A stop between status checking and sending cannot reject the old request: `command_epoch` is omitted. |
+| R302 | Same file, `request_control` | Confirmation uses the latest status lease without comparing the original grant epoch, borrowing a replacement same-owner grant. |
+| R303 | `modules/follow/r3_follow/service.py`, `_cleanup` | A status exception prevents even attempting a lease-checked stop. The adapter also makes status a prerequisite for stopping. |
+
+These paths already existed before the patch. The candidate does not fix them.
+R303 requires a token-checked stop path; sending an unqualified stop could stop
+a newer owner and is not an acceptable fix. The unchanged SDK integration also
+still discards closed services with pending cleanup; the handoff notes correctly
+identify that separate cross-group limitation.
+
+Run `R3Tests.py` with the same `uv` prefix above, or select `--only R3Review` in
+`ScenarioTests.py`. `--all` now includes it. Its exit code is 1 until the safety
+defects are fixed; generated evidence is `Results/R3Results.json`.
+The archived clean-source run is [Evidence/R3Results.json](Evidence/R3Results.json);
+[Evidence/R3Manifest.json](Evidence/R3Manifest.json) preserves the package hashes.
+The pre-existing T43 now unexpectedly passes after upstream `adf7b5e` removed
+the generic-key fallback. The old catalog deliberately still flags that change
+for review; it is not a regression introduced by R3.
+
+Runtime JSONL files under `modules/follow/logs/background/` are ignored by Git.
+Stopping the service does not by itself confirm its asynchronous log is flushed;
+check `writer_finished` and `flush_complete` before copying a session log.
+
+## Physical and integration limits
 
 Images are synthetic and device/model/socket responses are explicit fakes.
 Tests do not establish physical stopping, actual landing, obstacle clearance,

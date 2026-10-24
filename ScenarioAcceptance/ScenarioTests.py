@@ -408,6 +408,7 @@ def run_all(only=None):
         ('ScenarioAcceptance', [str(Path(__file__).resolve())], ROOT),
         ('DocsBaseline', [str(HERE / 'DocsTests.py'), '--baseline'], ROOT),
         ('DocsAcceptance', [str(HERE / 'DocsTests.py')], ROOT),
+        ('R3Review', [str(HERE / 'R3Tests.py')], ROOT),
     ]
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
                PYTHONPATH=os.pathsep.join(map(str, (ROOT, ROOT / 'modules' / 'ai', ROOT / 'modules' / 'follow'))))
@@ -432,7 +433,7 @@ def run_all(only=None):
         destination.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding='utf-8')
         print(name, 'exit=', record['returncode'], 'seconds=', record['seconds'], flush=True)
         print(record.get('stderr', '')[-2000:], flush=True)
-        if name in ('ScenarioAcceptance', 'DocsAcceptance', 'DocsBaseline'):
+        if name in ('ScenarioAcceptance', 'DocsAcceptance', 'DocsBaseline', 'R3Review'):
             print(record.get('stdout', ''), flush=True)
     selected = records if only is None else [record for record in records if record['name'] == only]
     return int(any(record['returncode'] != 0 for record in selected))
@@ -442,7 +443,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--all', action='store_true')
     parser.add_argument('--strict', action='store_true', help='Known gaps fail normally instead of being reported as XFAIL')
-    parser.add_argument('--only', choices=['RootIntegration', 'AIModule', 'FollowModule', 'GroundSelfCheck', 'ScenarioAcceptance', 'DocsBaseline', 'DocsAcceptance'])
+    parser.add_argument('--only', choices=['RootIntegration', 'AIModule', 'FollowModule', 'GroundSelfCheck', 'ScenarioAcceptance', 'DocsBaseline', 'DocsAcceptance', 'R3Review'])
     options = parser.parse_args()
     if options.strict:
         os.environ['SCENARIO_STRICT'] = '1'
