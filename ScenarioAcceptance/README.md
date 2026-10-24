@@ -130,6 +130,8 @@ identify that separate cross-group limitation.
 Run `R3Tests.py` with the same `uv` prefix above, or select `--only R3Review` in
 `ScenarioTests.py`. `--all` now includes it. Its exit code is 1 until the safety
 defects are fixed; generated evidence is `Results/R3Results.json`.
+The archived clean-source run is [Evidence/R3Results.json](Evidence/R3Results.json);
+[Evidence/R3Manifest.json](Evidence/R3Manifest.json) preserves the package hashes.
 The pre-existing T43 now unexpectedly passes after upstream `adf7b5e` removed
 the generic-key fallback. The old catalog deliberately still flags that change
 for review; it is not a regression introduced by R3.
