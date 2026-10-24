@@ -182,101 +182,86 @@ async def run_modern(args):
         if getattr(args,'real_drone',False): shutdown_real()
 
 
-VOLC_SYSTEM_ROLE = (
-    '你是无人机语音助手，只负责把用户的话听清楚并简短确认。'
-    '无人机的真实动作由本地程序执行，你无法控制飞机，也不知道执行结果。'
-    '因此绝对不要说“已经起飞”“已经降落”“正在飞行”等表示动作已完成的话，'
-    '也不要编造电量、高度、画面或任何设备数据。'
-    '回复控制在15个字以内。'
+VOLC_INSTRUCTIONS = (
+    '你是无人机语音助手，通过耳机用中文简短交流。'
+    '需要操作无人机时调用 run_program，参数 code 是一行 Python，格式 drone.<接口>(参数)。'
+    '允许接口：get_status()、get_battery()、takeoff()、land()、start_follow()、'
+    'stop_follow()、stop_motion()、move_forward(20到500的整数，单位厘米)。'
+    '用户说停、别动、急停或降落时，立即调用 interrupt（land=true 表示降落）。'
+    '只根据工具返回值回答；绝不要编造电量、高度、是否已起飞或画面内容。'
+    '指令不清楚、超出允许范围或你听不懂时，不要调用任何工具，'
+    '直接说：抱歉，我没听清，请再说一遍。'
 )
+
+VOLC_TOOLS = [
+    {'type': 'function', 'name': 'run_program',
+     'description': '执行一行无人机控制代码，例如 drone.takeoff()',
+     'parameters': {'type': 'object',
+                    'properties': {'code': {'type': 'string',
+                                            'description': '形如 drone.takeoff() 的单行调用'}},
+                    'required': ['code'], 'additionalProperties': False}},
+    {'type': 'function', 'name': 'interrupt',
+     'description': '立即停止当前动作；land=true 时直接降落',
+     'parameters': {'type': 'object',
+                    'properties': {'land': {'type': 'boolean'}},
+                    'required': ['land'], 'additionalProperties': False}},
+]
 
 
 async def run_volc_dialog(args):
-    """豆包端到端实时语音（全双工）。与 --realtime 的差别：
+    """豆包全双工实时语音（Seeduplex 3.0）。
 
-    豆包端到端模型不提供 function calling，所以用户语音经服务端 ASR 成文本后，
-    动作意图在本地走 Agent 白名单解析执行；需要播报的文本再用 ChatTTSText(500)
-    交回服务端合成。这样播报内容完全由本地控制，不会出现模型自称"已起飞"。
+    与 --always-on 的差别：识别、理解、播报全部由服务端完成，本地只负责执行
+    模型下发的工具调用。模型拿不到真实状态就不会乱说——它只能通过工具返回值
+    了解执行结果。
     """
-    import asyncio
     from audio_config import load_audio_config
     from duplex_audio import DuplexAudio
-    from volc_dialog import VolcDialog
-    from ai_agent import NO_UNDERSTAND
+    from volc_dialog import VolcDuplex
 
     if args.program:
         raise ValueError('--volc-dialog 不接受 --program')
     # 凭据检查放在最前面：没有密钥时不应先去连真机
-    if not (os.getenv('VOLC_APP_ID') and os.getenv('VOLC_ACCESS_KEY')):
-        raise ValueError('缺少 VOLC_APP_ID 或 VOLC_ACCESS_KEY：请在火山控制台「语音技术→应用管理」'
-                         '复制 APP ID 与 Access Token，然后\n'
-                         '  $env:VOLC_APP_ID="1234567890"\n'
-                         '  $env:VOLC_ACCESS_KEY="真正的密钥值（不是密钥名称）"')
+    if not os.getenv('VOLC_API_KEY'):
+        raise ValueError('缺少 VOLC_API_KEY：到火山控制台「API Key 管理」复制密钥值（不是名称），然后\n'
+                         '  $env:VOLC_API_KEY="xxxx"')
     if args.real_drone:
         runner, _drone = build_real_runner(args)
     else:
         from demo_text import Demo
         from program_runner import Runner
         runner = Runner(Demo(), allow_programs=True)
-    client = ModelClient() if os.getenv('AI_CHAT_URL') else ScriptedClient()
-    agent = Agent(client, runner=runner)
     config = load_audio_config(args.audio_config, args.input_device, args.output_device)
     audio = DuplexAudio(config=config)
 
-    async def handle_user_text(text):
-        text = (text or '').strip()
-        if not text:
-            print('\n[STT] 没有识别到内容', flush=True)
-            await dialog.say_text(NO_UNDERSTAND)
-            return
-        print('\n[STT] 识别文本：' + text, flush=True)
-        # 服务端还会继续生成它自己的回答；先掐断，播报 100% 由本地决定
-        try:
-            await dialog.interrupt()
-        except Exception as exc:
-            print('[豆包] 打断失败（继续执行）：%s' % exc, flush=True)
-        try:
-            record = await asyncio.to_thread(agent.handle, text)
-        except (ValueError, RuntimeError) as exc:
-            print('[LLM] 解析失败：%s' % exc, flush=True)
-            await dialog.say_text(NO_UNDERSTAND)
-            return
-        spoken = record.get('spoken')
-        if not spoken:
-            execution = record.get('execution') or {}
-            if execution.get('accepted') and execution.get('ok') is not False:
-                spoken = '好的'
-            else:
-                spoken = str(record.get('reply') or NO_UNDERSTAND)
-        spoken = spoken[:300]
-        print('[LLM] 回复：' + spoken, flush=True)
-        print('[TTS] 准备播报：' + spoken[:80], flush=True)
-        await dialog.say_text(spoken)
-
-    def handle_chat_text(text):
-        print('[豆包] 模型原话：' + str(text)[:160], flush=True)
-
-    def handle_speech_started():
-        print('[打断] 检测到用户开口，已停止当前播报', flush=True)
-
     def handle_log(event):
-        if event.get('event') in ('websocket_open', 'session_started', 'usage', 'tts_ended'):
+        name = event.get('event')
+        if name in ('websocket_open', 'session_started', 'response_done', 'tts_started'):
             print('[豆包] ' + json.dumps(event, ensure_ascii=False), flush=True)
 
-    dialog = VolcDialog(audio, audio_config=config, system_role=VOLC_SYSTEM_ROLE,
-                        on_user_text=handle_user_text, on_chat_text=handle_chat_text,
-                        on_speech_started=handle_speech_started, on_log=handle_log)
+    def handle_user_text(text):
+        print('\n[STT] 识别文本：' + str(text)[:200], flush=True)
+
+    def handle_reply_text(text):
+        print('[豆包] 回复：' + str(text)[:200], flush=True)
+
+    def handle_speech_started():
+        print('[打断] 用户开口，已停止当前播报', flush=True)
+
+    dialog = VolcDuplex(runner, audio, instructions=VOLC_INSTRUCTIONS, tools=VOLC_TOOLS,
+                        on_log=handle_log, on_user_text=handle_user_text,
+                        on_reply_text=handle_reply_text,
+                        on_speech_started=handle_speech_started)
     dialog.check_credentials()
-    print('[豆包] 模型 %s / 音色 %s / 端点 %s' % (dialog.model, dialog.speaker, dialog.url))
-    if not os.getenv('AI_CHAT_URL'):
-        print('[豆包] 未配置 AI_CHAT_URL：动作理解走离线样例（起飞/降落/跟着我/停在这里/电量）')
+    print('[豆包] 模型 %s / 音色 %s' % (dialog.model, dialog.voice))
+    print('[豆包] 端点 %s' % dialog.url)
+    print('[豆包] 已开启工具调用：run_program / interrupt')
     try:
         await dialog.run()
     finally:
         # 与 --realtime 一致：无论正常返回、异常还是 Ctrl+C，真机必须断开并关图传。
         if getattr(args, 'real_drone', False):
             shutdown_real()
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -308,8 +293,8 @@ def main():
                         help='离线语音：音频链路（本地 whisper + SAPI 播报）走真声，理解用离线样例，免 API Key')
     parser.add_argument('--realtime',action='store_true',help='使用独立配置的兼容Realtime API，全双工；不回退分段语音')
     parser.add_argument('--volc-dialog', action='store_true',
-                        help='豆包端到端实时语音（火山 S2S）：全双工对话 + 本地白名单动作执行；'
-                             '需要 VOLC_APP_ID / VOLC_ACCESS_KEY')
+                        help='豆包全双工实时语音（Seeduplex 3.0）：识别与播报在云端，'
+                             '本地执行 run_program / interrupt 工具调用；需要 VOLC_API_KEY')
     parser.add_argument('--program',help='在Docker沙箱执行完整Python文件')
     parser.add_argument('--fixture-vision',action='store_true')
     parser.add_argument('--audio-config')

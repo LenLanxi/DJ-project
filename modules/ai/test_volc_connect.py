@@ -1,99 +1,109 @@
-"""火山豆包实时对话「凭据自检」：只验证握手与建会话，可选验证 TTS 回传。
+"""豆包全双工实时语音「凭据自检」：不占用声卡、不连飞机。
 
-不占用声卡、不连飞机，用来快速区分「密钥不对」和「代码不对」。
+用来快速区分「密钥不对」和「代码不对」。
 
 用法：
-  $env:VOLC_APP_ID="数字 APP ID"
-  $env:VOLC_ACCESS_KEY="真正的 Access Token（不是控制台里的密钥名称）"
-  python test_volc_connect.py            # 只验证鉴权 + 建会话
+  $env:VOLC_API_KEY="控制台 API Key 的密钥值（不是名称）"
+  python test_volc_connect.py            # 只验证握手 + 建会话
   python test_volc_connect.py --hello    # 再让服务端合成一句话，统计回传音频
 """
 import asyncio
+import base64
+import json
 import os
 import sys
 
-from duplex_audio import PlaybackBuffer
-from volc_dialog import VolcDialog, VolcDialogError
+from websockets.asyncio.client import connect
 
+from volc_dialog import (EV_AUDIO_DELTA, EV_AUDIO_DONE, EV_ERROR, EV_RESPONSE_DONE,
+                         EV_SESSION_CREATED, build_session,
+                         DEFAULT_URL, DEFAULT_MODEL, DEFAULT_VOICE)
 
-class SilentCapture:
-    """替身声卡：只发静音 PCM，不出声，避免测试时打扰别人。"""
-
-    def __init__(self):
-        self.speaker = PlaybackBuffer(rate=24000)
-        self.started = False
-
-    def start(self):
-        self.started = True
-
-    def close(self):
-        pass
-
-    def level(self):
-        return 0.0
-
-    async def chunks(self):
-        while True:
-            yield b'\x00\x00' * 480          # 20ms 静音 @24kHz
-            await asyncio.sleep(0.02)
+URL = os.getenv('VOLC_DIALOG_URL') or DEFAULT_URL
+KEY = os.getenv('VOLC_API_KEY', '')
+HELLO = '你好，我是无人机语音助手。'
 
 
 async def probe(want_hello):
-    audio = SilentCapture()
-    seen = []
+    audio_bytes = bytearray()
+    payload = build_session(model=os.getenv('VOLC_MODEL') or DEFAULT_MODEL,
+                            voice=os.getenv('VOLC_VOICE') or DEFAULT_VOICE,
+                            instructions='你是无人机语音助手。')
+    async with connect(URL, additional_headers={'X-Api-Key': KEY},
+                       open_timeout=20, ping_interval=20, max_size=16_000_000) as ws:
+        log_id = ws.response.headers.get('X-Tt-Logid') if ws.response else None
+        print('[OK] WebSocket 握手成功  logid=%s' % log_id)
+        await ws.send(json.dumps(payload, ensure_ascii=False))
 
-    def on_log(event):
-        seen.append(event)
-        name = event.get('event')
-        if name in ('websocket_open', 'session_started', 'usage'):
-            print('[豆包] ' + str(event))
-        elif name == 'tts_sentence':
-            print('[豆包] 合成句子：' + str(event.get('text')))
-
-    dialog = VolcDialog(audio, on_log=on_log)
-    dialog.check_credentials()
-    print('[配置] 端点 %s' % dialog.url)
-    print('[配置] 模型 %s / 音色 %s' % (dialog.model, dialog.speaker))
-    print('[配置] APP ID %s / Access Key %s...' % (dialog.app_id, dialog.access_key[:6]))
-
-    task = asyncio.create_task(dialog.run())
-    ready_task = asyncio.create_task(dialog.ready.wait())
-    try:
-        done, _ = await asyncio.wait({task, ready_task}, timeout=25,
-                                     return_when=asyncio.FIRST_COMPLETED)
-        if task in done:
-            task.result()                    # 抛出手握手的真实失败原因
-        if not dialog.ready.is_set():
-            raise VolcDialogError('20 秒内没有收到 SessionStarted')
-        print('[OK] 鉴权通过，会话已建立')
-        if want_hello:
-            await dialog.say_text('你好，我是无人机语音助手')
-            print('[TTS] 已请求合成，等待回传音频…')
-            await asyncio.sleep(5)
-            total = sum(audio.speaker.generated.values())
-            if total > 0:
-                print('[OK] 收到 TTS 音频 %d 字节（%.1f 秒 @24kHz/16bit）'
-                      % (total, total / 2 / 24000))
-            else:
-                print('[FAIL] 5 秒内没有收到任何 TTS 音频')
+        deadline = asyncio.get_event_loop().time() + 20
+        created = False
+        while asyncio.get_event_loop().time() < deadline and not created:
+            try:
+                event = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+            except asyncio.TimeoutError:
+                continue
+            kind = event.get('type')
+            if kind == EV_SESSION_CREATED:
+                created = True
+                print('[OK] 会话已建立  session.id=%s'
+                      % (event.get('session') or {}).get('id'))
+            elif kind == EV_ERROR:
+                print('[FAIL] 服务端错误:', json.dumps(event, ensure_ascii=False)[:300])
                 return 2
-        return 0
-    finally:
-        task.cancel()
-        ready_task.cancel()
-        await asyncio.gather(task, ready_task, return_exceptions=True)
+        if not created:
+            print('[FAIL] 20 秒内没收到 session.created')
+            return 2
+
+        if want_hello:
+            print('[TTS] 请求合成：%s' % HELLO)
+            await ws.send(json.dumps({'type': 'speech_text_buffer.commit',
+                                      'text': HELLO}, ensure_ascii=False))
+            deadline = asyncio.get_event_loop().time() + 20
+            done = False
+            while asyncio.get_event_loop().time() < deadline and not done:
+                try:
+                    event = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+                except asyncio.TimeoutError:
+                    continue
+                kind = event.get('type')
+                if kind == EV_AUDIO_DELTA:
+                    audio_bytes.extend(base64.b64decode(event.get('delta') or ''))
+                elif kind == EV_AUDIO_DONE:
+                    print('[OK] TTS 结束 status_code=%s' % event.get('status_code'))
+                elif kind == EV_RESPONSE_DONE:
+                    done = True
+                elif kind == EV_ERROR:
+                    print('[FAIL] 服务端错误:', json.dumps(event, ensure_ascii=False)[:300])
+                    return 2
+            if audio_bytes:
+                print('[OK] 收到音频 %d 字节（%.1f 秒 @24kHz/16bit）'
+                      % (len(audio_bytes), len(audio_bytes) / 2 / 24000))
+            else:
+                print('[FAIL] 没有收到任何 TTS 音频')
+                return 2
+
+        try:
+            await ws.send(json.dumps({'type': 'session.close'}))
+        except Exception:
+            pass
+    print('[OK] 全部通过')
+    return 0
 
 
 def main():
-    if not os.getenv('VOLC_APP_ID') or not os.getenv('VOLC_ACCESS_KEY'):
-        print('缺少环境变量。先设置：\n'
-              '  $env:VOLC_APP_ID="1234567890"        # 控制台里的数字 APP ID\n'
-              '  $env:VOLC_ACCESS_KEY="xxxxx"          # Access Token，不是密钥名称')
+    if not KEY:
+        print('缺少 VOLC_API_KEY。先设置：\n'
+              '  $env:VOLC_API_KEY="控制台 API Key 的密钥值"\n'
+              '注意：形如 api-key-20260101000000 的是「名称」，不是密钥值。')
         return 1
+    print('[配置] 端点 %s' % URL)
+    print('[配置] 模型 %s / 音色 %s' % (os.getenv('VOLC_MODEL') or DEFAULT_MODEL,
+                                       os.getenv('VOLC_VOICE') or DEFAULT_VOICE))
+    print('[配置] Key 前缀 %s...' % KEY[:8])
     try:
         return asyncio.run(probe('--hello' in sys.argv[1:]))
-    except VolcDialogError as exc:
-        print('[FAIL] ' + str(exc))
+    except Exception as exc:
+        print('[FAIL] %s: %s' % (type(exc).__name__, exc))
         return 2
 
 

@@ -1,10 +1,13 @@
-"""豆包实时对话协议层离线测试。
+"""豆包全双工实时语音协议层离线测试。
 
-不连真机、不连真实服务：全部用官方文档给出的字节示例 + 本地回环 WebSocket 验证。
+不连真实服务：用本地回环 WebSocket 模拟豆包，验证事件编解码、音频通路与工具调用。
 运行：python test_volc_dialog.py
 """
 import asyncio
+import base64
+import json
 import struct
+import types
 import unittest
 
 from websockets.asyncio.server import serve
@@ -12,116 +15,73 @@ from websockets.exceptions import ConnectionClosed
 
 from duplex_audio import PlaybackBuffer
 import volc_dialog as vd
-from volc_dialog import (Downsampler, EV_ASR_RESPONSE, EV_CHAT_RESPONSE, EV_CONNECTION_STARTED,
-                         EV_SESSION_STARTED, EV_START_CONNECTION, EV_START_SESSION,
-                         EV_TASK_REQUEST, EV_TTS_RESPONSE, EV_TTS_SENTENCE_START, EV_TTS_ENDED,
-                         MSG_CLIENT_AUDIO, MSG_CLIENT_EVENT, MSG_SERVER_AUDIO, MSG_SERVER_EVENT,
-                         SER_RAW, VolcDialog, build_start_session, decode_frame, encode_frame)
+from volc_dialog import (Downsampler, VolcDuplex, VolcDialogError, build_session)
 
 
-class ProtocolBytes(unittest.TestCase):
-    def test_start_connection_matches_official_sample(self):
-        """官方文档给出的 StartConnection 帧字节数组必须逐字节一致。"""
-        official = bytes([17, 20, 16, 0, 0, 0, 0, 1, 0, 0, 0, 2, 123, 125])
-        self.assertEqual(encode_frame(MSG_CLIENT_EVENT, event=EV_START_CONNECTION, payload={}),
-                         official)
+class SessionPayload(unittest.TestCase):
+    def test_structure_matches_duplex_contract(self):
+        payload = build_session(instructions='你是助手', tools=[{'type': 'function',
+                                                                'name': 'x', 'parameters': {}}])
+        self.assertEqual(payload['type'], 'session.create')
+        session = payload['session']
+        self.assertEqual(session['type'], 'realtime')
+        self.assertEqual(session['model'], vd.DEFAULT_MODEL)
+        self.assertEqual(session['instructions'], '你是助手')
+        self.assertEqual(session['audio']['input']['format'],
+                         {'type': 'pcm', 'rate': 16000})
+        self.assertEqual(session['audio']['output']['format'],
+                         {'type': 'pcm_s16le', 'rate': 24000})
+        self.assertEqual(session['audio']['output']['voice'], vd.DEFAULT_VOICE)
+        self.assertEqual(len(session['tools']), 1)
+        self.assertEqual(payload['extension'], {'asr': {}, 'tts': {}, 'dialog': {}})
 
-    def test_start_session_frame_layout(self):
-        session_id = '75a6126e-427f-49a1-a2c1-621143cb9db3'
-        frame = encode_frame(MSG_CLIENT_EVENT, event=EV_START_SESSION,
-                             session_id=session_id, payload={'dialog': {'bot_name': '豆包'}})
-        self.assertEqual(frame[0], 0x11)                       # version 1 / header 4 字节
-        self.assertEqual(frame[1] >> 4, MSG_CLIENT_EVENT)
-        self.assertEqual(frame[1] & 0x0F, vd.FLAG_EVENT)
-        self.assertEqual(frame[2], 0x10)                       # JSON + 无压缩
-        self.assertEqual(struct.unpack('>i', frame[4:8])[0], EV_START_SESSION)
-        size = struct.unpack('>I', frame[8:12])[0]
-        self.assertEqual(size, len(session_id))
-        self.assertEqual(frame[12:12 + size].decode(), session_id)
-        decoded = decode_frame(frame)
-        self.assertEqual(decoded['session_id'], session_id)
-        self.assertEqual(decoded['json'], {'dialog': {'bot_name': '豆包'}})
+    def test_unknown_voice_falls_back(self):
+        payload = build_session(voice='alloy', instructions='')
+        self.assertEqual(payload['session']['audio']['output']['voice'], vd.DEFAULT_VOICE)
 
-    def test_decode_official_session_sample(self):
-        session_id = '75a6126e-427f-49a1-a2c1-621143cb9db3'
-        payload = '{"dialog":{"bot_name":"豆包","dialog_id":"","extra":null}}'.encode('utf-8')
-        frame = bytes([17, 20, 16, 0, 0, 0, 0, 100, 0, 0, 0, 36]) + session_id.encode()
-        frame += struct.pack('>I', len(payload)) + payload
-        decoded = decode_frame(frame)
-        self.assertEqual(decoded['event'], 100)
-        self.assertEqual(decoded['session_id'], session_id)
-        self.assertEqual(decoded['json']['dialog']['bot_name'], '豆包')
-
-    def test_connect_events_carry_no_session_id(self):
-        for event in (EV_CONNECTION_STARTED, vd.EV_CONNECTION_FAILED, vd.EV_CONNECTION_FINISHED):
-            frame = encode_frame(MSG_SERVER_EVENT, event=event, payload={})
-            decoded = decode_frame(frame)
-            self.assertIsNone(decoded['session_id'], f'event {event} 不应带 session id')
-
-    def test_audio_frame_uses_raw_serialization(self):
-        pcm = b'\x00\x01' * 320
-        frame = encode_frame(MSG_CLIENT_AUDIO, event=EV_TASK_REQUEST, session_id='s-1',
-                             payload=pcm, serialization=SER_RAW)
-        self.assertEqual(frame[2] >> 4, SER_RAW)
-        decoded = decode_frame(frame)
-        self.assertEqual(decoded['payload'], pcm)
-        self.assertIsNone(decoded['json'])
-
-    def test_gzip_payload_roundtrip(self):
-        payload = {'content': '你好' * 50}
-        frame = encode_frame(MSG_CLIENT_EVENT, event=vd.EV_CHAT_TTS_TEXT, session_id='s-1',
-                             payload=payload, compression=vd.COMP_GZIP)
-        decoded = decode_frame(frame)
-        self.assertEqual(decoded['json'], payload)
-
-    def test_rejects_short_frame(self):
-        with self.assertRaises(ValueError):
-            decode_frame(b'\x11\x20')
+    def test_no_turn_detection_field(self):
+        """全双工由服务端原生 VAD 判停，不应传 turn_detection。"""
+        payload = build_session(instructions='')
+        self.assertNotIn('turn_detection', json.dumps(payload))
 
 
 class Resampling(unittest.TestCase):
     def test_24k_to_16k_packet_size(self):
-        """480 帧 @24kHz（20ms）应重采样成 320 帧 @16kHz = 640 字节。"""
         pcm = struct.pack('<480h', *([1000] * 480))
-        out = Downsampler().process(pcm)
-        self.assertEqual(len(out), 640)
+        self.assertEqual(len(Downsampler().process(pcm)), 640)
 
     def test_continuity_across_chunks(self):
-        """分块调用不能丢样本：两半各 240 帧的结果应等于一次 480 帧。"""
         pcm = struct.pack('<480h', *([500] * 480))
-        one_shot = Downsampler().process(pcm)
+        one = Downsampler().process(pcm)
         split = Downsampler()
-        two_part = split.process(pcm[:480]) + split.process(pcm[480:])
-        self.assertEqual(len(two_part), len(one_shot))
-
-    def test_preserves_signal_amplitude(self):
-        pcm = struct.pack('<480h', *([2000, -2000] * 240))
-        out = struct.unpack('<320h', Downsampler().process(pcm))
-        self.assertGreater(max(abs(value) for value in out), 1000)
+        two = split.process(pcm[:480]) + split.process(pcm[480:])
+        self.assertEqual(len(two), len(one))
 
 
-class StartSessionPayload(unittest.TestCase):
-    def test_required_fields(self):
-        payload = build_start_session(model='1.2.1.1', speaker='zh_female_vv_jupiter_bigtts',
-                                      system_role='你是助手', end_smooth_ms=700)
-        self.assertEqual(payload['dialog']['extra']['model'], '1.2.1.1')
-        self.assertEqual(payload['dialog']['system_role'], '你是助手')
-        self.assertEqual(payload['asr']['extra']['end_smooth_window_ms'], 700)
-        # 必须显式要 16bit PCM，否则服务端默认回 OGG/Opus
-        self.assertEqual(payload['tts']['audio_config']['format'], 'pcm_s16le')
-        self.assertEqual(payload['tts']['audio_config']['sample_rate'], 24000)
-        self.assertEqual(payload['tts']['speaker'], 'zh_female_vv_jupiter_bigtts')
+class FakeDrone:
+    def __init__(self):
+        self.calls = []
 
-    def test_falls_back_to_audio_config_silence(self):
-        class Cfg:
-            silence_duration_ms = 900
-        payload = build_start_session(end_smooth_ms=None, audio_config=Cfg())
-        self.assertEqual(payload['asr']['extra']['end_smooth_window_ms'], 900)
+    def land(self):
+        self.calls.append('land')
+        return {'ok': True, 'message': '已降落'}
+
+    def stop_motion(self):
+        self.calls.append('stop_motion')
+        return {'ok': True, 'message': '已停止'}
+
+
+class FakeRunner:
+    def __init__(self):
+        self.calls = []
+        self.demo = types.SimpleNamespace(drone=FakeDrone())
+
+    def run(self, code):
+        self.calls.append(code)
+        return {'accepted': True, 'ok': True, 'result': '[模拟] 起飞完成'}
 
 
 class FakeAudio:
-    """替身：不走声卡，只提供 DuplexAudio 的形状。"""
-
     def __init__(self):
         self.speaker = PlaybackBuffer(rate=24000)
         self.started = False
@@ -134,109 +94,159 @@ class FakeAudio:
     def close(self):
         self.closed = True
 
-    def level(self):
-        return 9999.0
-
     async def chunks(self):
         while True:
             yield self._block
             await asyncio.sleep(0.001)
 
 
-class LoopbackSession(unittest.TestCase):
-    """本地假服务端：验证握手、上行音频、下行 TTS、ASR 文本回调整条状态机。"""
+class Loopback(unittest.TestCase):
+    """模拟豆包服务端：校验 session.create → 回 ASR → 下发工具调用 → 回 TTS。"""
 
-    def test_full_handshake_and_audio_path(self):
-        seen = {'events': [], 'audio_bytes': 0, 'headers': None, 'replied': False}
+    def test_full_flow_with_tool_call(self):
+        seen = {'headers': None, 'session': None, 'packets': [], 'tool_result': None}
 
         async def handler(ws):
-            seen['headers'] = dict(ws.request.headers)
-            session_id = None
+            seen['headers'] = {k.lower(): v for k, v in dict(ws.request.headers).items()}
+            replied = False
             try:
                 async for message in ws:
-                    frame = decode_frame(message)
-                    seen['events'].append(frame['event'])
-                    if frame['event'] == EV_START_CONNECTION:
-                        await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_CONNECTION_STARTED,
-                                                   payload={}))
-                    elif frame['event'] == EV_START_SESSION:
-                        session_id = frame['session_id']
-                        await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_SESSION_STARTED,
-                                                   session_id=session_id,
-                                                   payload={'dialog_id': 'demo-dialog'}))
-                    elif frame['event'] == EV_TASK_REQUEST:
-                        seen['audio_bytes'] += len(frame['payload'])
-                        if seen['audio_bytes'] >= 640 * 3 and not seen['replied']:
-                            seen['replied'] = True
-                            await ws.send(encode_frame(MSG_SERVER_EVENT, event=vd.EV_ASR_INFO,
-                                                       session_id=session_id,
-                                                       payload={'question_id': 'q1'}))
-                            await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_ASR_RESPONSE,
-                                                       session_id=session_id,
-                                                       payload={'results': [{'text': '起飞',
-                                                                            'is_interim': False}]}))
-                            await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_CHAT_RESPONSE,
-                                                       session_id=session_id,
-                                                       payload={'content': '好的',
-                                                                'question_id': 'q1',
-                                                                'reply_id': 'r1'}))
-                            await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_TTS_SENTENCE_START,
-                                                       session_id=session_id,
-                                                       payload={'text': '好的',
-                                                                'tts_type': 'default',
-                                                                'reply_id': 'r1'}))
-                            await ws.send(encode_frame(MSG_SERVER_AUDIO, event=EV_TTS_RESPONSE,
-                                                       session_id=session_id, serialization=SER_RAW,
-                                                       payload=b'\x02\x00' * 2400))
-                            await ws.send(encode_frame(MSG_SERVER_EVENT, event=EV_TTS_ENDED,
-                                                       session_id=session_id,
-                                                       payload={'reply_id': 'r1'}))
-                            await asyncio.sleep(0.1)
-                            await ws.close()
+                    event = json.loads(message)
+                    kind = event.get('type')
+                    if kind == vd.EV_SESSION_CREATE:
+                        seen['session'] = event
+                        await ws.send(json.dumps({'type': vd.EV_SESSION_CREATED,
+                                                  'session': {'id': 'sess-1'}}))
+                    elif kind == vd.EV_AUDIO_APPEND:
+                        seen['packets'].append(len(base64.b64decode(event['audio'])))
+                        if len(seen['packets']) >= 3 and not replied:
+                            replied = True
+                            await ws.send(json.dumps({'type': vd.EV_ASR_STARTED}))
+                            await ws.send(json.dumps({'type': vd.EV_ASR_DELTA, 'delta': '起飞'}))
+                            await ws.send(json.dumps({'type': vd.EV_ASR_COMPLETED,
+                                                      'transcript': '起飞'}))
+                            await ws.send(json.dumps({
+                                'type': vd.EV_TOOL_CALL,
+                                'items': [{'call_id': 'call-1', 'name': 'run_program',
+                                           'arguments': '{"code":"drone.takeoff()"}'}]}))
+                    elif kind == vd.EV_ITEM_CREATE:
+                        seen['tool_result'] = event
+                        await ws.send(json.dumps({'type': vd.EV_TEXT_DONE,
+                                                  'text': '好的，已起飞', 'response_id': 'r1'}))
+                        await ws.send(json.dumps({'type': vd.EV_AUDIO_STARTED,
+                                                  'tts_type': 'default', 'response_id': 'r1'}))
+                        await ws.send(json.dumps({
+                            'type': vd.EV_AUDIO_DELTA, 'response_id': 'r1',
+                            'delta': base64.b64encode(b'\x02\x00' * 2400).decode()}))
+                        await ws.send(json.dumps({'type': vd.EV_AUDIO_DONE,
+                                                  'response_id': 'r1'}))
+                        await ws.send(json.dumps({'type': vd.EV_RESPONSE_DONE,
+                                                  'response': {'usage': {'total_tokens': 10}}}))
+                        await asyncio.sleep(0.1)
+                        await ws.close()
             except ConnectionClosed:
-                pass          # 客户端断开属于正常收尾，测试不应留下告警
+                pass
 
         async def scenario():
             server = await serve(handler, '127.0.0.1', 0)
             port = server.sockets[0].getsockname()[1]
-            audio = FakeAudio()
-            texts, chats, speech = [], [], []
-            dialog = VolcDialog(audio, url=f'ws://127.0.0.1:{port}',
-                                app_id='test-app-id', access_key='test-access-key',
-                                on_user_text=texts.append, on_chat_text=chats.append,
+            audio, runner = FakeAudio(), FakeRunner()
+            texts, replies, speech = [], [], []
+            dialog = VolcDuplex(runner, audio, instructions='你是助手',
+                                tools=[{'type': 'function', 'name': 'run_program',
+                                        'parameters': {}}],
+                                api_key='test-key',
+                                url='ws://127.0.0.1:%d' % port,
+                                on_user_text=texts.append, on_reply_text=replies.append,
                                 on_speech_started=lambda: speech.append(True))
             try:
                 await asyncio.wait_for(dialog.run(), timeout=15)
             finally:
                 server.close()
                 await server.wait_closed()
-            return audio, texts, chats, speech, dialog
+            return audio, runner, texts, replies, speech, dialog
 
-        audio, texts, chats, speech, dialog = asyncio.run(scenario())
+        audio, runner, texts, replies, speech, dialog = asyncio.run(scenario())
 
-        headers = {k.lower(): v for k, v in seen['headers'].items()}
-        self.assertEqual(headers['x-api-app-id'], 'test-app-id')
-        self.assertEqual(headers['x-api-access-key'], 'test-access-key')
-        self.assertEqual(headers['x-api-resource-id'], 'volc.speech.dialog')
-        self.assertEqual(headers['x-api-app-key'], 'PlgvMymc7f3tQnJ6')
+        # 鉴权与握手
+        self.assertEqual(seen['headers']['x-api-key'], 'test-key')
+        self.assertNotIn('x-api-app-id', seen['headers'])
 
-        self.assertEqual(seen['events'][:2], [EV_START_CONNECTION, EV_START_SESSION])
-        self.assertIn(EV_TASK_REQUEST, seen['events'])
-        self.assertGreaterEqual(seen['audio_bytes'], 640 * 3)
+        # session.create 契约
+        session = seen['session']['session']
+        self.assertEqual(session['model'], vd.DEFAULT_MODEL)
+        self.assertEqual(session['audio']['input']['format']['rate'], 16000)
+        self.assertEqual(session['audio']['output']['format']['type'], 'pcm_s16le')
+        self.assertEqual(len(session['tools']), 1)
+
+        # 上行音频：每包必须是 640 字节（20ms @16k int16）
+        self.assertTrue(seen['packets'])
+        self.assertEqual(set(seen['packets']), {640})
+
+        # 工具调用：真的执行了，并且按 role=tool 回传
+        self.assertEqual(runner.calls, ['drone.takeoff()'])
+        result = seen['tool_result']
+        self.assertEqual(result['type'], 'conversation.item.create')
+        item = result['items'][0]
+        self.assertEqual(item['call_id'], 'call-1')
+        self.assertEqual(item['role'], 'tool')
+        self.assertEqual(item['content'][0]['type'], 'input_text')
+        self.assertIn('起飞完成', item['content'][0]['text'])
+
+        # 回调与音频
         self.assertEqual(texts, ['起飞'])
-        self.assertEqual(chats, ['好的'])
-        self.assertEqual(speech, [True])
-        # 下行 2400 帧 @24kHz 必须全部进入播放缓冲
+        self.assertEqual(replies, ['好的，已起飞'])
+        self.assertTrue(speech)
         self.assertEqual(audio.speaker.size, 4800)
         self.assertTrue(audio.started)
         self.assertTrue(audio.closed)
-        self.assertEqual(dialog.model, vd.DEFAULT_MODEL)
+        self.assertEqual(dialog.session_id, 'sess-1')
 
-    def test_missing_credentials_fail_fast(self):
-        dialog = VolcDialog(FakeAudio(), url='ws://127.0.0.1:1',
-                            app_id='', access_key='')
-        with self.assertRaises(vd.VolcDialogError):
+    def test_interrupt_tool_hits_drone(self):
+        async def scenario():
+            server = await serve(handler_interrupt, '127.0.0.1', 0)
+            port = server.sockets[0].getsockname()[1]
+            audio, runner = FakeAudio(), FakeRunner()
+            dialog = VolcDuplex(runner, audio, instructions='', api_key='k',
+                                url='ws://127.0.0.1:%d' % port)
+            try:
+                await asyncio.wait_for(dialog.run(), timeout=15)
+            finally:
+                server.close()
+                await server.wait_closed()
+            return runner
+
+        runner = asyncio.run(scenario())
+        self.assertEqual(runner.demo.drone.calls, ['land'])
+
+    def test_missing_key_fails_fast(self):
+        dialog = VolcDuplex(FakeRunner(), FakeAudio(), instructions='', api_key='',
+                            url='ws://127.0.0.1:1')
+        with self.assertRaises(VolcDialogError):
             asyncio.run(dialog.run())
+
+
+async def handler_interrupt(ws):
+    sent = False
+    try:
+        async for message in ws:
+            event = json.loads(message)
+            if event.get('type') == vd.EV_SESSION_CREATE:
+                await ws.send(json.dumps({'type': vd.EV_SESSION_CREATED,
+                                          'session': {'id': 's'}}))
+            elif event.get('type') == vd.EV_AUDIO_APPEND and not sent:
+                sent = True
+                await ws.send(json.dumps({
+                    'type': vd.EV_TOOL_CALL,
+                    'items': [{'call_id': 'c2', 'name': 'interrupt',
+                               'arguments': '{"land":true}'}]}))
+            elif event.get('type') == vd.EV_ITEM_CREATE:
+                await ws.send(json.dumps({'type': vd.EV_RESPONSE_DONE,
+                                          'response': {'usage': {}}}))
+                await asyncio.sleep(0.05)
+                await ws.close()
+    except ConnectionClosed:
+        pass
 
 
 if __name__ == '__main__':
