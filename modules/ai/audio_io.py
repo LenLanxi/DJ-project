@@ -111,6 +111,7 @@ def listen_once(device=None, rate=16000, block_ms=50, silence_s=1.5, max_s=10.0,
         floor = -60.0
         speaking = False
         captured = []
+        last_voice = 0          # 最后一个"有声音"的块下标；onset 后立刻静音时为 0，不能是未定义
         above = 0
         silence_run = 0
         started = time.monotonic()
@@ -149,6 +150,7 @@ def listen_once(device=None, rate=16000, block_ms=50, silence_s=1.5, max_s=10.0,
                         captured = preroll[-preroll_limit:]
                         preroll = []
                         silence_run = 0
+                        last_voice = len(captured)   # 起音块本身就算最后有声的位置
                 else:
                     above = 0
                     # 底噪：向更安静的一侧立刻跟随，向更吵的一侧每帧最多 +0.5dB

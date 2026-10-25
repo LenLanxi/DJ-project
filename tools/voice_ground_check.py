@@ -165,11 +165,16 @@ def mic_test(seconds=3.0, device=None):
     rms = float(np.sqrt(np.mean(samples ** 2))) if samples.size else 0.0
     peak_db = 20 * np.log10(peak) if peak > 0 else -120.0
     rms_db = 20 * np.log10(rms) if rms > 0 else -120.0
-    ok = peak_db > -40.0
     detail = '峰值 %.1f dBFS  RMS %.1f dBFS' % (peak_db, rms_db)
-    if not ok:
-        detail += '  → 太小了：确认耳机麦克风没静音、没被系统占用'
-    return report(ok, '麦克风实测', detail)
+    if peak_db > -40.0:
+        return report(True, '麦克风实测', detail)
+    if peak_db > -55.0:
+        # 蓝牙耳机在 Windows 的 Hands-Free 模式普遍偏小声，本地识别有 AGC 会拉到 -20dBFS
+        warn('麦克风实测', detail + '  → 偏小但可用：说话时电平应该更高，识别不准就靠近点说')
+        return True
+    return report(False, '麦克风实测',
+                  detail + '  → 基本没声音：确认耳机麦克风没静音、没被别的程序占用，'
+                           '或改用 -InputDevice 指定别的设备')
 
 
 def main():
