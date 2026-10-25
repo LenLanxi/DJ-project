@@ -162,8 +162,10 @@ def main(argv=None):
                         help='起飞硬门限（低于此值直接拦下；默认 10，与 main.py --min-battery 一致）')
     parser.add_argument('--firmware-battery', type=int, default=50,
                         help='Tello 固件的实际拒飞线，低于此值只警告不拦截')
-    parser.add_argument('--temp-max', type=int, default=75,
-                        help='电池温度上限（℃）：templ/temph 超过就禁止起飞')
+    parser.add_argument('--temp-max', type=int, default=95,
+                        help='板/芯片温度硬上限（℃）：templ/temph 超过就禁止起飞')
+    parser.add_argument('--temp-warn', type=int, default=85,
+                        help='温度警告线（℃）：超过只提示不拦截')
     parser.add_argument('--no-drone', action='store_true', help='不连接飞机（离线自检用）')
     args = parser.parse_args(argv)
 
@@ -194,6 +196,8 @@ def main(argv=None):
         if hottest is not None and hottest >= args.temp_max:
             emit('VERDICT', 'block:battery_too_hot')
             return 7
+        if hottest is not None and hottest >= args.temp_warn:
+            emit('WARN', 'temperature_high')
         block, warn = battery_verdict(battery, args.min_battery, args.firmware_battery)
         if warn:
             emit('WARN', warn)

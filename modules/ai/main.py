@@ -313,7 +313,7 @@ def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
             print('[安全] 真机起飞被拒绝：电量 %s%% < %d%%' % (battery, args.min_battery))
             return dict(ok=False, status='failed', simulated=False,
                         message='电量 %s%% 未满足 %d%%门限，拒绝起飞' % (battery, args.min_battery))
-        print('[安全] 真机起飞已授权（电量 %s%%，桨叶必须已拆除）' % (battery,))
+        print('[安全] 真机起飞已授权（电量 %s%%）' % (battery,))
         result = original_takeoff(owner)
         if not result.get('ok'):
             last_error = str(drv.health().get('last_error') or '')
@@ -882,25 +882,27 @@ def _dispatch(args):
 
 
     def log_follow_line(obs, mot, life=None):
-        """终端每 0.5 秒一行，落地后可以直接回看跟随表现。"""
+        """终端每 0.5 秒一行。静止状态只在变化时打印，避免"未启动"刷屏盖住别的日志。"""
         if life is not None and life.get('event') != 'start':
             reason = life.get('reason') or life.get('state') or life.get('event')
-            print('[跟随] 未在跟随（%s）—— 说「开始跟随」重新启动' % reason, flush=True)
-            return
-        if obs is None:
-            print('[跟随] 暂无识别数据（跟随可能未启动）', flush=True)
-            return
-        if mot is not None:
-            ch = mot.get('channels') or [0, 0, 0, 0]
-            velocity = 'L%+d F%+d U%+d Y%+d' % (ch[0], ch[1], ch[2], ch[3])
-            state = mot.get('state')
-            reason = mot.get('reason')
+            text = '[跟随] 未在跟随（%s）—— 说「开始跟随」重新启动' % reason
+        elif obs is None:
+            text = '[跟随] 暂无识别数据（跟随可能未启动）'
         else:
-            velocity, state, reason = 'L+0 F+0 U+0 Y+0', '-', '-'
-        print('[跟随] %s cx=%6.1f sr=%.3f | %s | %s | %s' % (
-            '可见' if obs.get('found') else '丢失',
-            obs.get('center_x') or 0, obs.get('size_ratio') or 0,
-            velocity, state, reason), flush=True)
+            if mot is not None:
+                ch = mot.get('channels') or [0, 0, 0, 0]
+                velocity = 'L%+d F%+d U%+d Y%+d' % (ch[0], ch[1], ch[2], ch[3])
+                state = mot.get('state')
+                reason = mot.get('reason')
+            else:
+                velocity, state, reason = 'L+0 F+0 U+0 Y+0', '-', '-'
+            text = '[跟随] %s cx=%6.1f sr=%.3f | %s | %s | %s' % (
+                '可见' if obs.get('found') else '丢失',
+                obs.get('center_x') or 0, obs.get('size_ratio') or 0,
+                velocity, state, reason)
+        if text != follow_hud.get('last_line'):
+            follow_hud['last_line'] = text
+            print(text, flush=True)
     if headless:
         print('[监听] stdin 非终端 → 无键盘模式：只用语音控制，Ctrl+C 结束')
         print(EMERGENCY_HELP)
