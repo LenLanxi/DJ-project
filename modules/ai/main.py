@@ -68,7 +68,51 @@ def focus_console():
         return False
 
 
-EMERGENCY_HELP = '急停：F12=零速度悬停  F11=立即降落（终端在后台也有效）'
+EMERGENCY_HELP = ('急停：Ctrl+Shift+Alt+A = 零速度悬停   Ctrl+Shift+Alt+L = 立即降落'
+                  '（任何窗口聚焦都有效）\n'
+                  '备选（终端热键）：F12 = 零速度悬停   F11 = 立即降落')
+
+# 全局物理快捷键：与地面调试台（run_yaw_ground_test.py）共用同一实现，
+# 避免现场记住两套键：Ctrl+Shift+Alt+A=急停/悬停，Ctrl+Shift+Alt+L=降落。
+_EMERGENCY_HOTKEYS = {'listener': None}
+
+
+def start_emergency_hotkeys(stop_action, land_action, printer=None):
+    """注册 Ctrl+Shift+Alt+A/L；失败只打印，F12/F11 不受影响。"""
+    if _EMERGENCY_HOTKEYS['listener'] is not None:
+        return _EMERGENCY_HOTKEYS['listener']
+    root = str(Path(__file__).resolve().parents[2])
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    try:
+        from drone_sdk.emergency_hotkeys import EmergencyHotkeys
+    except Exception as exc:
+        print('[快捷键] 全局组合键不可用：%s（F12/F11 仍然有效）' % exc, flush=True)
+        return None
+    say = printer or (lambda text: print(text, flush=True))
+
+    def emit(tag, text):
+        try:
+            say('[%s] %s' % (tag, text))
+        except Exception:
+            pass
+
+    def trigger(kind, combo):
+        try:
+            (stop_action if kind == 'stop' else land_action)()
+        except Exception as exc:
+            emit('错误', '快捷键下发失败：%s: %s' % (type(exc).__name__, exc))
+
+    listener = EmergencyHotkeys(trigger, emit=emit)
+    listener.start()
+    _EMERGENCY_HOTKEYS['listener'] = listener
+    return listener
+
+
+def stop_emergency_hotkeys():
+    listener, _EMERGENCY_HOTKEYS['listener'] = _EMERGENCY_HOTKEYS['listener'], None
+    if listener is not None:
+        listener.stop()
 
 
 HELP = '''输入文字与模拟飞机互动。命令：
@@ -315,6 +359,12 @@ async def run_volc_dialog(args):
     print(EMERGENCY_HELP)
     focus_console()
 
+    import asyncio
+    loop = asyncio.get_running_loop()
+    start_emergency_hotkeys(
+        lambda: asyncio.run_coroutine_threadsafe(dialog.emergency(False), loop),
+        lambda: asyncio.run_coroutine_threadsafe(dialog.emergency(True), loop))
+
     async def watch_hotkeys():
         """全局热键：终端在后台也能急停。"""
         while True:
@@ -346,6 +396,7 @@ async def run_volc_dialog(args):
             await watcher
         except asyncio.CancelledError:
             pass
+        stop_emergency_hotkeys()
         # 与 --realtime 一致：无论正常返回、异常还是 Ctrl+C，真机必须断开并关图传。
         if getattr(args, 'real_drone', False):
             shutdown_real()
@@ -392,6 +443,7 @@ def main():
         _dispatch(args)
     finally:
         # 兜底：任何分支（含 setup 中途异常、Ctrl+C、正常 return）都要收尾。
+        stop_emergency_hotkeys()
         if getattr(args, 'real_drone', False):
             shutdown_real()
 
@@ -522,6 +574,10 @@ def _dispatch(args):
         finally:
             if not resumed:
                 listen_pause.clear()
+    # 全局物理快捷键（Ctrl+Shift+Alt+A/L）：与地面调试台同一实现，接到既有急停通道
+    start_emergency_hotkeys(lambda: session.interrupt(False),
+                            lambda: session.interrupt(True),
+                            printer=output)
     if args.real_drone:
         print('真实模型+真实飞机' if args.live else '离线样例（不是AI）+真实飞机')
         print('⚠ 真机模式：起飞%s（电量阈值 %d%%）' % (

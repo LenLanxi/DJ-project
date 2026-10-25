@@ -174,7 +174,7 @@
 &#x20;  - **速度预算（RC 上限）**：配置字段 `yaw_limit` / `forward_limit` / `max_request_rate`（旧默认 0.20 / 0.30 / 0.8）。`configs/aircraft_A_ID0.json` 现为 **0.50 / 0.40 / 2.0 → ±50 / ±40 RC、200 RC/s 斜率**。服务层钳位由这两个数推导，所以"算法输出上限"和"下发钳位"永远一致；只改钳位是无效的（会被算法夹回去）。⚠️ **RC 100 是满杆（Tello 常态模式约 2.5 m/s），不是 1 m/s**；`forward_limit=0.4` 就是按"室内最高 1 m/s"折算的保守值。升降通道恒为 0（三组从不下达高度指令）。
 &#x20;  - **水平增益**：`openpose_control.YAW_GAINS = (0.16, 0, 0.03)`（P 由 0.25 降到 0.16、新增小幅 D，`v3.2-flight-tuned`）。D 有两个保护：不使用短于 20ms 的帧间隔（防抖动放大），且贡献上限 10 RC（防大幅跳变时反向打满）。台架实测：dx→yaw 近似线性（200px→21RC、400px→42RC），饱和点推到 ≈470px 之外。
 &#x20;  - 高速度下的安全兜底：速度看门狗 `controller.VELOCITY_WATCHDOG_S = 0.3s`（满杆最坏失控位移约 0.75m，原 0.5s 是 1.25m），独立守护线程；`stop_motion(priority=True)` / `land(priority=True)` 绕过动作锁与代次校验、立即归零。回归见 `modules/follow/tests/test_rc_budget.py`。
-&#x20;  - **物理安全兜底（全局组合键，pynput 低级键盘钩子，无需管理员权限）**：`Ctrl+Shift+Alt+A` = 急停/悬停（`stop_motion(priority=True)` + 速度归零）、`Ctrl+Shift+Alt+L` = 降落（`land(priority=True)`）。焦点在 OpenCV 窗口 / 终端 / 其它程序上都生效，触发时打印醒目的 `[物理快捷键] 触发急停/降落`，同一指令 1 秒内只执行一次；缺 `pynput` 时脚本自动 `pip install` 一次，装不上则退回 `s` 键方案（`--no-hotkeys` 可关闭全局组合键）。地面状态下的语音「降落」默认只做零速度，加 `--soft-land`；物理快捷键始终真发 `land`。
+&#x20;  - **物理安全兜底（全局组合键，pynput 低级键盘钩子，无需管理员权限）**：`Ctrl+Shift+Alt+A` = 急停/悬停（`stop_motion(priority=True)` + 速度归零）、`Ctrl+Shift+Alt+L` = 降落（`land(priority=True)`）。焦点在 OpenCV 窗口 / 终端 / 其它程序上都生效，触发时打印醒目的 `[物理快捷键] 触发急停/降落`，同一指令 1 秒内只执行一次；缺 `pynput` 时脚本自动 `pip install` 一次，装不上则退回 `s` 键方案（`--no-hotkeys` 可关闭全局组合键）。地面状态下的语音「降落」默认只做零速度，加 `--soft-land`；物理快捷键始终真发 `land`。这套组合键已抽到 `drone_sdk/emergency_hotkeys.py`，**实飞入口 `modules/ai/main.py` 也注册同一组键**（真机走 `session.interrupt`、`--volc-dialog` 走 `dialog.emergency`），`F12`/`F11` 保留为终端热键，两套都可用。
 
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 

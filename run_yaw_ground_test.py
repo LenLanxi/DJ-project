@@ -57,7 +57,6 @@ Yaw 通道来源（与现场一致，不是另写一套公式）
 import argparse
 import ctypes
 import os
-import subprocess
 import sys
 import threading
 import time
@@ -74,6 +73,8 @@ for _extra in ('modules/ai', 'modules/follow'):
 import drone_sdk._driver as driver
 from drone_sdk import ai_bridge, controller
 from drone_sdk.contract import FrameResult
+from drone_sdk.emergency_hotkeys import (HOTKEY_COOLDOWN_S, HOTKEY_HELP, HOTKEYS,
+                                         EmergencyHotkeys, ensure_pynput)
 import run_ground_test as ground
 from run_ground_test import (EventTail, KeyReader, StallWatchdog, StatusPoller, Throttle,
                              close_output, disable_quick_edit, emit, enable_ansi,
@@ -94,15 +95,8 @@ CV_FONT = cv2.FONT_HERSHEY_SIMPLEX
 CSV_HEADER = ('t_wall,t_rel,frame_id,cx,dx,size_ratio,yaw_norm,yaw_rc,fb_rc,lr_rc,'
               'state,reason,detect_ms,fps,had_target')
 
-# 全局物理快捷键：pynput 走 Windows 低级键盘钩子（WH_KEYBOARD_LL），不需要管理员权限，
-# 焦点在 OpenCV 窗口、终端或任何别的程序上都有效。
-HOTKEY_COOLDOWN_S = 1.0
-HOTKEYS = (
-    ('<ctrl>+<shift>+<alt>+a', 'stop', 'Ctrl+Shift+Alt+A'),
-    ('<ctrl>+<shift>+<alt>+l', 'land', 'Ctrl+Shift+Alt+L'),
-)
-HOTKEY_HELP = ('物理快捷键（全局）：Ctrl+Shift+Alt+A=急停  Ctrl+Shift+Alt+L=降落  '
-               '[焦点在哪个窗口都有效]')
+# 全局物理快捷键由 drone_sdk.emergency_hotkeys 提供（与实飞入口 modules/ai/main.py 同一实现）：
+# pynput 走 Windows 低级键盘钩子（WH_KEYBOARD_LL），无需管理员权限，焦点无关。
 
 STOP_WORDS = ('急停', '紧急停止', '刹停', '停下来', '停下', '停止', '别动', '不要动', '别飞')
 LAND_WORDS = ('降落', '着陆', '落地', '下来')
@@ -458,36 +452,6 @@ def describe(result):
     return '失败/%s' % reason_text(getattr(result, 'reason', ''))
 
 
-def ensure_pynput():
-    """没有 pynput 就现场装一次（同一个解释器），失败则退回单键方案。"""
-    try:
-        from pynput import keyboard
-        return keyboard
-    except Exception as exc:
-        emit('快捷键', '缺少 pynput（%s），正在自动安装…' % exc)
-    try:
-        completed = subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', 'pynput'],
-            capture_output=True, text=True, timeout=300)
-        output = (completed.stdout or '').strip().splitlines()
-        failed = (completed.stderr or '').strip().splitlines()
-        tail = [line for line in (output + failed) if line.strip()][-1:] or ['']
-        emit('快捷键', 'pip install pynput %s %s' % (
-            '成功' if completed.returncode == 0 else '失败（返回码 %s）' % completed.returncode,
-            tail[0]))
-    except Exception as exc:
-        emit('快捷键', '自动安装失败：%s: %s' % (type(exc).__name__, exc))
-    try:
-        import importlib
-        importlib.invalidate_caches()
-        from pynput import keyboard
-        return keyboard
-    except Exception as exc:
-        emit('快捷键', 'pynput 仍不可用（%s）：全局组合键关闭，终端/窗口的 s 键急停仍有效' % exc)
-        emit('提示', '手动安装：%s -m pip install pynput' % sys.executable)
-        return None
-
-
 class CsvTelemetry:
     """每个控制 tick 追加一行遥测；只写文件，不参与任何控制或安全逻辑。"""
 
@@ -539,66 +503,15 @@ class CsvTelemetry:
                 pass
 
 
-class GlobalEmergencyHotkeys(threading.Thread):
-    """物理安全兜底：全局组合键 → 底层 priority 通道（绕过普通动作锁）。"""
+class GlobalEmergencyHotkeys(EmergencyHotkeys):
+    """调试台接线：组合键 → handle_emergency（物理快捷键强制真发 land）。"""
 
     def __init__(self, args, cooldown=HOTKEY_COOLDOWN_S):
-        super().__init__(daemon=True, name='global-hotkeys')
         self.args = args
-        self.cooldown = cooldown
-        self.listener = None
-        self.ready = False
-        self.error = ''
-        self._lock = threading.Lock()
-        self._fired = {}
+        super().__init__(self._trigger, cooldown=cooldown, emit=emit)
 
-    def allow(self, kind, now=None):
-        """同一条安全指令在 cooldown 内只执行一次，防止按住组合键连发。"""
-        now = time.monotonic() if now is None else now
-        with self._lock:
-            previous = self._fired.get(kind)
-            if previous is not None and now - previous < self.cooldown:
-                return False
-            self._fired[kind] = now
-            return True
-
-    def fire(self, kind, combo):
-        if not self.allow(kind):
-            return
-        emit('物理快捷键', '触发%s（%s）—— 走 priority 通道'
-             % ('急停/悬停' if kind == 'stop' else '降落', combo))
-        try:
-            handle_emergency(kind, '物理快捷键 %s' % combo, self.args,
-                             force_land=True)
-        except Exception as exc:
-            emit('错误', '物理快捷键处理后异常：%s: %s' % (type(exc).__name__, exc))
-
-    def run(self):
-        keyboard = ensure_pynput()
-        if keyboard is None:
-            return
-        try:
-            self.listener = keyboard.GlobalHotKeys({
-                combo: (lambda k=kind, c=human: self.fire(k, c))
-                for combo, kind, human in HOTKEYS
-            })
-            self.listener.daemon = True
-            self.listener.start()
-            self.ready = True
-            emit('快捷键', HOTKEY_HELP)
-        except Exception as exc:
-            self.error = '%s: %s' % (type(exc).__name__, exc)
-            emit('快捷键', '全局组合键注册失败（%s）：仍可用终端/窗口的 s 键急停' % self.error)
-
-    def stop(self):
-        listener = self.listener
-        if listener is not None:
-            try:
-                listener.stop()
-            except Exception:
-                pass
-        if self.is_alive():
-            self.join(1.0)
+    def _trigger(self, kind, combo):
+        handle_emergency(kind, '物理快捷键 %s' % combo, self.args, force_land=True)
 
 
 class VoiceMonitor(threading.Thread):
