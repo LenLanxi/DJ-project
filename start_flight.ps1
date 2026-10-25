@@ -8,7 +8,7 @@
 
 param(
     [string]$Config = 'modules\follow\configs\offline_candidates\aircraft_A_ID0_hybrid.json',
-    [int]$MinBattery = 60,
+    [int]$MinBattery = 10,
     [switch]$NoVideo,
     [switch]$DryRun
 )

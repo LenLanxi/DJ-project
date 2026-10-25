@@ -591,6 +591,13 @@ class LatestFiveGaps(unittest.TestCase):
         drv._move_deadline = lambda action, param: 0.15
         self.addCleanup(setattr, drv, '_move_deadline', original_deadline)
         try:
+            # 起飞闸门默认未授权、且替身没有链路心跳：先补齐这两个前提，
+            # 否则 takeoff 会先被 takeoff_gate_rejected 挡下，测不到"超时如何上报"
+            ctl.configure_takeoff(authorized=True, min_battery=20)
+            self.addCleanup(ctl.configure_takeoff, authorized=False, min_battery=20)
+            original_link = drv._link_ok
+            drv._link_ok = True
+            self.addCleanup(setattr, drv, '_link_ok', original_link)
             ctl.request_control('model')
             result = ctl.takeoff('model')
             self.assertFalse(result.ok, '超时本身就是失败')
@@ -629,6 +636,12 @@ class LatestFiveGaps(unittest.TestCase):
         drv._move_deadline = lambda action, param: 0.15
         self.addCleanup(setattr, drv, '_move_deadline', original_deadline)
         try:
+            # 同上：补齐"已授权 + 链路 ok"，让它真的走到起飞超时路径
+            ctl.configure_takeoff(authorized=True, min_battery=20)
+            self.addCleanup(ctl.configure_takeoff, authorized=False, min_battery=20)
+            original_link = drv._link_ok
+            drv._link_ok = True
+            self.addCleanup(setattr, drv, '_link_ok', original_link)
             ctl.request_control('model')
             ctl.takeoff('model')
             self.assertTrue(drv.action_unknown('takeoff'))

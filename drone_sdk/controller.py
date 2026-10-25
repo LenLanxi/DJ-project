@@ -187,9 +187,13 @@ def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=N
         return CommandResult(True, 'completed')
 
 _takeoff_authorized = False
-_min_battery = 20
+_min_battery = 10
 
-def configure_takeoff(*, authorized=False, min_battery=20):
+def configure_takeoff(*, authorized=False, min_battery=10):
+    """min_battery 默认 10：与 modules/ai/main.py 的 --min-battery 默认值保持一致。
+
+    注意 Tello 固件自己在约 50% 就会回 error 拒飞，这一层只是我们自己的软件闸门。
+    """
     global _takeoff_authorized, _min_battery
     if type(min_battery) is not int or not 1 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
     _takeoff_authorized, _min_battery = bool(authorized), min_battery
