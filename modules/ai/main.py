@@ -72,6 +72,52 @@ EMERGENCY_HELP = ('急停：Ctrl+Shift+Alt+A = 零速度悬停   Ctrl+Shift+Alt+
                   '（任何窗口聚焦都有效）\n'
                   '备选（终端热键）：F12 = 零速度悬停   F11 = 立即降落')
 
+
+class _TeeStream:
+    """把 stdout/stderr 同时写进控制台和日志文件：窗口照常显示，日志一字不落。"""
+
+    def __init__(self, stream, handle):
+        self._stream = stream
+        self._handle = handle
+
+    def write(self, data):
+        try:
+            self._stream.write(data)
+        except Exception:
+            pass
+        try:
+            self._handle.write(data)
+        except Exception:
+            pass
+        return len(data) if isinstance(data, str) else 0
+
+    def flush(self):
+        for target in (self._stream, self._handle):
+            try:
+                target.flush()
+            except Exception:
+                pass
+
+    def isatty(self):
+        try:
+            return self._stream.isatty()
+        except Exception:
+            return False
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
+def install_log_file(path):
+    """开始记录全程日志（控制台输出 + 报错全进文件），返回日志绝对路径。"""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    handle = target.open('a', encoding='utf-8', errors='replace', buffering=1)
+    sys.stdout = _TeeStream(sys.stdout, handle)
+    sys.stderr = _TeeStream(sys.stderr, handle)
+    print('[日志] 本次运行全程写入 %s' % target.resolve(), flush=True)
+    return str(target.resolve())
+
 # 全局物理快捷键：与地面调试台（run_yaw_ground_test.py）共用同一实现，
 # 避免现场记住两套键：Ctrl+Shift+Alt+A=急停/悬停，Ctrl+Shift+Alt+L=降落。
 _EMERGENCY_HOTKEYS = {'listener': None}
@@ -438,7 +484,14 @@ def main():
     parser.add_argument('--audio-config')
     parser.add_argument('--input-device',type=int)
     parser.add_argument('--output-device',type=int)
+    parser.add_argument('--log-file',
+                        help='全程日志文件（控制台输出与报错同时写入，便于事后排查）')
     args = parser.parse_args()
+    if getattr(args, 'log_file', None):
+        try:
+            install_log_file(args.log_file)
+        except OSError as exc:
+            print('[日志] 无法写入 %s（%s）；继续运行，仅控制台输出' % (args.log_file, exc))
     try:
         _dispatch(args)
     finally:
