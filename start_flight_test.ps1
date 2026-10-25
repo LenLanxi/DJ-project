@@ -120,16 +120,30 @@ if ($Volc) {
     $argv = @('modules\ai\main.py', '--real-drone', '--allow-real-takeoff',
               '--offline-voice', '--always-on', '--min-battery', "$MinBattery",
               '--config', 'modules\ai\config.flight-test.json', '--log-file', $logFile)
-    if (-not $NoVideo) { $argv += '--show-video' }
+    # 入口能力探测：四组新架构的 main.py 没有图传窗口/自动补高度参数，硬塞会直接报未知参数
+    $help = ''
+    try { $help = (& $py -X utf8 -B 'modules\ai\main.py' --help 2>&1) -join "`n" } catch { $help = '' }
+    $supportsVideo = $help -match '--show-video'
+    $supportsClimb = $help -match '--climb-target-cm'
+    if (-not $NoVideo) {
+        if ($supportsVideo) { $argv += '--show-video' }
+        else { Write-Host '[画面] 当前入口不支持图传窗口（未检测到 --show-video），已跳过' -ForegroundColor Yellow }
+    }
+    if (-not $supportsClimb) {
+        Write-Host '[高度] 当前入口不支持自动补高度（未检测到 --climb-target-cm），已跳过' -ForegroundColor Yellow
+    }
     Write-Host '[模式] 离线语音：本地 whisper 识别 + SAPI 播报，不需要 API Key' -ForegroundColor Cyan
 }
 # 起飞后自动补高度：Tello 只升到约 1m，补到 120cm 方便人站着举码（-ClimbCm 0 = 不自动升）
-if ($Volc) {
-    if ($ClimbCm -gt 0) { $argv += @('--climb-target-cm', "$ClimbCm") } else { $argv += '--no-auto-climb' }
+if ($supportsClimb -eq $false) {
+    Write-Host ("[高度] 入口不支持自动补高度，本次不补（目标 {0}cm 已忽略）" -f $ClimbCm) -ForegroundColor Yellow
+} elseif ($ClimbCm -gt 0) {
+    $argv += @('--climb-target-cm', "$ClimbCm")
+    Write-Host ("[高度] 起飞后自动补到 {0}cm" -f $ClimbCm) -ForegroundColor Green
 } else {
-    if ($ClimbCm -gt 0) { $argv += @('--climb-target-cm', "$ClimbCm") } else { $argv += '--no-auto-climb' }
+    $argv += '--no-auto-climb'
+    Write-Host '[高度] 不自动补高度（保持 Tello 默认约 1m）' -ForegroundColor Green
 }
-Write-Host ("[高度] 起飞后自动补到 {0}cm（0 = 不自动升）" -f $ClimbCm) -ForegroundColor Green
 
 if ($DryRun) {
     Write-Host ''

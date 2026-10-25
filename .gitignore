@@ -251,3 +251,7 @@ logs/
 
 # --- 三组跟随模块原始交付包（已并入 modules/follow，交付包本身不入库）---
 temp_follow_pid/
+
+# --- 四组音频新架构的交付包/覆盖前备份（临时材料，不入库）---
+temp_ai_new/
+temp_ai_prev_*/

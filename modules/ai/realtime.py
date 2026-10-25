@@ -70,6 +70,7 @@ class RealtimeSession:
         self.last_barge_at=0.0
         self.ready=asyncio.Event()
         self.background_error=asyncio.Queue()
+        self.capture_loss_seen=0; self.input_degraded=False; self.clear_input_pending=False
     def track(self,task):
         self.tool_tasks.add(task)
         def done(t):
@@ -86,13 +87,28 @@ class RealtimeSession:
         else:
             self.response_active=True
             await self.send({'type':'response.create'})
+    def note_input_loss(self):
+        generation=getattr(self.audio,'loss_generation',0)
+        if type(generation) is not int or generation<=self.capture_loss_seen: return
+        self.capture_loss_seen=generation; self.input_degraded=True; self.clear_input_pending=True
+        self.epoch+=1; self.blocked.update(self.response_epoch)
+        self.runner.cancel(); self.audio.speaker.interrupt()
+        if self.runner.running: self.track(asyncio.create_task(self.runner.gateway.interrupt(False)))
+        event={'event':'audio_input_discontinuity','generation':generation,
+               'action':'motion_tools_disabled_until_session_restart'}
+        self.log(event)
+        print(json.dumps(event,ensure_ascii=False),flush=True)
+
     async def call_tool(self,item,epoch):
+        self.note_input_loss()
         name=item.get('name'); call_id=item['call_id']
         try:
             args=json.loads(item.get('arguments','{}'))
             if not isinstance(args,dict): raise ValueError('tool arguments must be object')
             if epoch!=self.epoch:
                 result={'ok':False,'status':'cancelled','reason':'stale_model_turn'}
+            elif self.input_degraded and not (name=='interrupt' and args=={'land':False}):
+                result={'ok':False,'status':'failed','reason':'audio_input_discontinuity_restart_required'}
             elif name=='interrupt':
                 if set(args)!={'land'} or type(args['land']) is not bool: raise ValueError('invalid land flag')
                 self.runner.cancel()
@@ -185,8 +201,14 @@ class RealtimeSession:
     async def stream_input(self):
         await asyncio.wait_for(self.ready.wait(),timeout=20)
         # Do not capture into a finite queue during connection/session negotiation.
+        loop=asyncio.get_running_loop()
+        self.audio.on_input_gap=lambda: loop.call_soon_threadsafe(self.note_input_loss)
         self.audio.start()
         async for chunk in self.audio.chunks():
+            self.note_input_loss()
+            if self.clear_input_pending:
+                self.clear_input_pending=False
+                await self.send({'type':'input_audio_buffer.clear'})
             await self.send({'type':'input_audio_buffer.append','audio':base64.b64encode(chunk).decode()})
     async def stream_events(self):
         async for message in self.ws:

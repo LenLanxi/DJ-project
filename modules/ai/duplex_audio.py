@@ -1,4 +1,4 @@
-"""Independent microphone and speaker streams; PCM16 mono at 24kHz.
+"""Independent device streams; API boundary stays PCM16 mono at 24kHz.
 
 有线耳麦现场注意事项
 --------------------
@@ -14,13 +14,15 @@
 import array
 import asyncio
 import collections
+import json
 import math
 import queue
 import threading
 import time
 
 from audio_config import AudioConfig
-from audio_devices import BLOCK_FRAMES, RATE, describe_endpoints, resolve_endpoints
+from audio_streaming import CaptureQueue, PCMResampler, OutputAdapter
+from audio_devices import RATE, describe_endpoints, resolve_endpoints
 
 
 def output_pcm(mono, channels):
@@ -39,7 +41,7 @@ class PlaybackBuffer:
         self.rate=rate; self.limit=rate*2*max_seconds
         self.parts=collections.deque(); self.size=0
         self.lock=threading.Lock(); self.current=None
-        self.played={}; self.generated={}; self.latency_ms=0
+        self.played={}; self.generated={}; self.latency_ms=0; self.generation=0
     def append(self,item,index,data):
         if len(data)%2: raise ValueError('odd PCM byte count')
         key=(item,index)
@@ -59,6 +61,7 @@ class PlaybackBuffer:
     def interrupt(self):
         with self.lock:
             key=(self.parts[0][0] if self.parts else self.current)
+            self.generation+=1
             self.parts.clear(); self.size=0
             if not key: return None
             # Conservative: subtract estimated device-buffer latency from submitted bytes.
@@ -83,11 +86,12 @@ class DuplexAudio:
     def __init__(self,input_device=None,output_device=None,*,config=None):
         self.config=config or AudioConfig(input_device=input_device,output_device=output_device)
         self.input_device=self.config.input_device; self.output_device=self.config.output_device
-        self.input=queue.Queue(maxsize=100); self.speaker=PlaybackBuffer()
+        self.input=CaptureQueue(RATE,self.config.capture_buffer_ms); self.speaker=PlaybackBuffer()
         self.fault=None; self.streams=[]; self.endpoints=None
         self.closing=False; self.last_capture=0; self.last_render=0
         self.mic_rms=0.0
         self._level_lock=threading.Lock()
+        self.on_input_gap=None
 
     def _update_level(self, data):
         level=pcm_rms(data)
@@ -103,29 +107,38 @@ class DuplexAudio:
         if self.streams: raise RuntimeError('音频流已经启动')
         self.endpoints=resolve_endpoints(sd,self.config)
         describe_endpoints(self.endpoints)
+        self.input=CaptureQueue(self.endpoints[0].rate,self.config.capture_buffer_ms)
+        self.converter=PCMResampler(self.endpoints[0].rate,RATE)
+        self.output_adapter=OutputAdapter(self.speaker,self.endpoints[1].rate)
+        self._diagnostic_at=time.monotonic(); self._converted_generation=0
         self.closing=False; self.fault=None
         self.last_capture=self.last_render=time.monotonic()
         def finished():
             if not self.closing: self.fault='音频设备流已停止；请检查耳机连接并重新启动，不自动切换设备'
         def capture(data,frames,timing,status):
             self.last_capture=time.monotonic()
-            if status: self.fault='麦克风音频丢帧：'+str(status)
             try:
-                self._update_level(data)
-                self.input.put_nowait(bytes(data))
-            except queue.Full: self.fault='麦克风发送积压，停止会话以避免延迟继续增加'
+                raw=bytes(data)
+                if len(raw)!=frames*2: raise ValueError('capture_size_mismatch')
+                self._update_level(raw)
+                before=self.loss_generation
+                self.input.put(raw,overflow=bool(getattr(status,'input_overflow',False)))
+                if self.loss_generation!=before and self.on_input_gap: self.on_input_gap()
             except Exception as exc: self.fault='麦克风读取失败：'+str(exc)[:200]
         def render(out,frames,timing,status):
             self.last_render=time.monotonic()
-            if status: self.fault='耳机音频丢帧：'+str(status)
-            self.speaker.latency_ms=max(0,(timing.outputBufferDacTime-timing.currentTime)*1000)
-            out[:]=output_pcm(self.speaker.consume(frames),self.endpoints[1].channels)
+            if getattr(status,'output_underflow',False): self.input.output_underflows+=1
+            try:
+                pcm=self.output_adapter.render(frames,(timing.outputBufferDacTime-timing.currentTime)*1000)
+                out[:]=output_pcm(pcm,self.endpoints[1].channels)
+            except Exception as exc:
+                out[:]=b'\0'*len(out); self.fault='音频回放失败：'+str(exc)[:200]
         try:
             # Append immediately so failure to open output also closes the input stream.
             self.streams.append(sd.RawInputStream(**self.endpoints[0].stream_kwargs(),
-                blocksize=BLOCK_FRAMES,callback=capture,finished_callback=finished))
+                blocksize=0,callback=capture,finished_callback=finished))
             self.streams.append(sd.RawOutputStream(**self.endpoints[1].stream_kwargs(),
-                blocksize=BLOCK_FRAMES,callback=render,finished_callback=finished))
+                blocksize=0,callback=render,finished_callback=finished))
             for stream in self.streams: stream.start()
         except BaseException:
             self.close(); raise
@@ -136,8 +149,37 @@ class DuplexAudio:
                 raise RuntimeError('音频流未运行；请检查耳机连接并重新启动')
             if time.monotonic()-min(self.last_capture,self.last_render)>2:
                 raise RuntimeError('音频设备超过2秒无回调；请检查连接，不自动切换设备')
-            try: yield self.input.get_nowait()
-            except queue.Empty: await asyncio.sleep(0.005)
+            if time.monotonic()-self._diagnostic_at>=self.config.diagnostics_interval_s:
+                print('audio_diagnostics '+json.dumps(self.diagnostics(),ensure_ascii=False),flush=True)
+                self._diagnostic_at=time.monotonic()
+            try:
+                raw,generation=self.input.get_nowait()
+                if generation!=self._converted_generation:
+                    self.converter.clear(); self._converted_generation=generation
+                pcm=self.converter.process(raw)
+                converted_at=time.monotonic()
+                # Bound API packet size regardless of the host callback's block size.
+                for offset in range(0,len(pcm),960):
+                    if generation!=self.loss_generation: break
+                    if time.monotonic()-converted_at>self.input.seconds:
+                        with self.input.lock:
+                            remaining=len(pcm)-offset
+                            self.input._drop(int(remaining/2*self.input.rate/RATE)*2)
+                        if self.on_input_gap: self.on_input_gap()
+                        break
+                    yield pcm[offset:offset+960]
+            except queue.Empty:
+                if self.on_input_gap: self.on_input_gap()
+                await asyncio.sleep(0.005)
+    @property
+    def loss_generation(self):
+        return self.input.loss_generation
+
+    def diagnostics(self):
+        return {**self.input.diagnostics(),
+                'input_rate':self.endpoints[0].rate if self.endpoints else None,
+                'output_rate':self.endpoints[1].rate if self.endpoints else None,'api_rate':RATE}
+
     def close(self):
         self.closing=True
         self.speaker.interrupt()

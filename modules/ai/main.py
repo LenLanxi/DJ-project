@@ -15,62 +15,87 @@ from session import Session
 from settings import load
 import audio_io
 
-# --- 全局急停热键（Windows）：不依赖终端是否在前台 ---
-# 用 GetAsyncKeyState 读全局键盘状态，无需消息循环、无需管理员权限。
-_VK_F12, _VK_F11 = 0x7B, 0x7A
-try:
-    import ctypes
-    _user32 = ctypes.windll.user32
-    _kernel32 = ctypes.windll.kernel32
-except Exception:                      # 非 Windows 或受限环境：热键自动失效
-    _user32 = _kernel32 = None
-_hotkey_prev = {_VK_F12: False, _VK_F11: False}
-
-
-def key_down(vk):
-    if _user32 is None:
-        return False
-    try:
-        return bool(_user32.GetAsyncKeyState(vk) & 0x8000)
-    except Exception:
-        return False
-
-
-def hotkey_edge(vk):
-    """只在按下的那一瞬间返回 True，按住不会连续触发。"""
-    now = key_down(vk)
-    was = _hotkey_prev.get(vk, False)
-    _hotkey_prev[vk] = now
-    return now and not was
-
-
-def focus_console():
-    """把控制台窗口拉到最前，方便现场随时看到日志并 Ctrl+C。
-
-    Windows 只允许"当前有焦点的进程"调 SetForegroundWindow，因此失败时
-    用一次 ALT 按键解除该限制后再试。
-    """
-    if _user32 is None or _kernel32 is None:
-        return False
-    try:
-        hwnd = _kernel32.GetConsoleWindow()
-        if not hwnd:
-            return False
-        _user32.ShowWindow(hwnd, 9)          # SW_RESTORE
-        if _user32.SetForegroundWindow(hwnd):
-            return True
-        _user32.keybd_event(0x12, 0, 0, 0)   # ALT down，解除前台锁定
-        try:
-            return bool(_user32.SetForegroundWindow(hwnd))
-        finally:
-            _user32.keybd_event(0x12, 0, 2, 0)  # ALT up
-    except Exception:
-        return False
-
-
 EMERGENCY_HELP = ('急停：Ctrl+Shift+Alt+A = 零速度悬停   Ctrl+Shift+Alt+L = 立即降落'
                   '（任何窗口聚焦都有效）\n'
                   '备选（终端热键）：F12 = 零速度悬停   F11 = 立即降落')
+
+# 图传窗口的后台监视器：主线程被 input() 占住，所以画面与跟随状态都放到守护线程里刷
+_VIEW = {'thread': None, 'stop': None, 'window': 'Tello Follow HUD'}
+
+
+def start_view_monitor(printer=None):
+    """开一个守护线程：实时图传 + 绿框/红点 HUD + 每 0.5 秒一行跟随状态。
+
+    画面线程只读，不下发任何指令；任何异常都自愈成"只有终端行"，绝不影响飞行。
+    """
+    if _VIEW['thread'] is not None:
+        return True
+    try:
+        import cv2
+        import follow_hud
+        from drone_sdk import controller as view_ctl
+    except Exception as exc:
+        (printer or print)('[画面] 监控无法启动：%s' % exc)
+        return False
+    stop = threading.Event()
+    _VIEW['stop'] = stop
+
+    def loop():
+        last_line = None
+        hud = {'obs': None, 'mot': None, 'halt': None, 'life': None, 'at': 0.0}
+        window = _VIEW['window']
+        video_ok = True
+        while not stop.is_set():
+            now = time.monotonic()
+            try:
+                if now - hud['at'] >= 0.2:
+                    hud['obs'], hud['mot'], hud['halt'], hud['life'] = follow_hud.follow_snapshot(view_ctl)
+                    hud['at'] = now
+                if now - (hud.get('printed') or 0.0) >= 0.5:
+                    hud['printed'] = now
+                    text = follow_hud.follow_line(hud['obs'], hud['mot'], hud['life'])
+                    if text != last_line:
+                        last_line = text
+                        print(text, flush=True)
+                if video_ok:
+                    try:
+                        packet = view_ctl.get_frame()
+                        frame = getattr(packet, 'frame', None)
+                        if frame is not None:
+                            cv2.imshow(window, follow_hud.draw_follow_overlay(
+                                frame, hud['obs'], hud['mot'], hud['halt'], hud['life']))
+                        if (cv2.waitKey(1) & 0xFF) in (ord('q'), 27):
+                            video_ok = False
+                            cv2.destroyWindow(window)
+                            print('[画面] 预览已关闭（跟随状态继续在终端打印）', flush=True)
+                    except Exception as exc:
+                        video_ok = False
+                        print('[画面] 预览异常，已降级为仅终端输出：%s' % exc, flush=True)
+                        try: cv2.destroyAllWindows()
+                        except Exception: pass
+            except Exception:
+                pass
+            time.sleep(0.05)
+        try: cv2.destroyAllWindows()
+        except Exception: pass
+
+    thread = threading.Thread(target=loop, name='view-monitor', daemon=True)
+    thread.start()
+    _VIEW['thread'] = thread
+    (printer or print)('[画面] 图传窗口已启动（按 q 或 Esc 只关画面，跟随状态继续在终端打印）')
+    return True
+
+
+def stop_view_monitor():
+    stop = _VIEW.get('stop')
+    if stop is not None:
+        stop.set()
+    thread = _VIEW.get('thread')
+    if thread is not None:
+        try: thread.join(1.0)
+        except Exception: pass
+    _VIEW['thread'] = None
+    _VIEW['stop'] = None
 
 
 class _TeeStream:
@@ -118,87 +143,12 @@ def install_log_file(path):
     print('[日志] 本次运行全程写入 %s' % target.resolve(), flush=True)
     return str(target.resolve())
 
-
-# 跟随服务的生命周期事件：最近一条决定"现在到底在不在跟随"
-RUN_LIFECYCLE = ('start', 'pause', 'stop', 'tracking_halted', 'fault',
-                 'handoff_pause', 'handoff_finish', 'cleanup_completed')
-
-
-def follow_status_text(life):
-    """把"跟随为什么没在跑"翻译成一行能直接照做的提示。
-
-    OpenCV 的 Hershey 字体画不了中文，所以这里用 ASCII；中文原因留在窗口1 的日志里。
-    """
-    if life is None:
-        return 'follow: NOT STARTED  -> say "start following"', (0, 165, 255)
-    name = life.get('event')
-    if name == 'start':
-        return 'follow: RUNNING', (0, 255, 0)
-    if name in ('pause', 'handoff_pause'):
-        return 'follow: PAUSED  reason=%s' % (life.get('reason') or '-'), (0, 165, 255)
-    reason = life.get('reason') or life.get('state') or name
-    reason = str(reason)[:32]
-    return 'follow: STOPPED (%s) -> say it again' % reason, (0, 0, 255)
-
-
-def draw_follow_overlay(frame, obs=None, mot=None, halt=None, life=None):
-    """绿框标出 ArUco、红点标中心，并写明跟随状态与 X 轴偏差，一眼看出问题在哪。"""
-    import cv2
-    import numpy as np
-
-    if frame is None:
-        return frame
-    out = frame
-    height, width = out.shape[:2]
-    cv2.line(out, (width // 2, 0), (width // 2, height), (0, 255, 0), 1)
-    status, status_color = follow_status_text(life)
-    lines = []
-    if obs and obs.get('found'):
-        # corners 是整帧像素坐标；按 observation 尺寸等比映射到当前画面
-        src_w = float(obs.get('image_width') or 0) or float(width)
-        src_h = float(obs.get('image_height') or 0) or float(height)
-        scale_x = width / src_w if src_w else 1.0
-        scale_y = height / src_h if src_h else 1.0
-        try:
-            quad = [(int(px * scale_x), int(py * scale_y))
-                    for px, py in (obs.get('corners') or ())]
-            if len(quad) >= 3:
-                cv2.polylines(out, [np.array(quad, dtype=np.int32)], True, (0, 255, 0), 2)
-        except Exception:
-            pass
-        cx = int((obs.get('center_x') or 0) * scale_x)
-        cy = int((obs.get('center_y') or 0) * scale_y)
-        cv2.circle(out, (cx, cy), 5, (0, 0, 255), -1)
-        offset = (obs.get('center_x') or 0) * scale_x - width / 2.0
-        lines.append('found=True  cx=%d  offset=%+.0f px  sr=%.3f' % (
-            cx, offset, obs.get('size_ratio') or 0))
-        if obs.get('detection_ms') is not None:
-            budget = obs.get('processing_budget')
-            lines.append('detect=%.0f ms%s' % (
-                obs['detection_ms'], '' if budget is None else '  budget=%s' % budget))
-    elif obs is not None:
-        lines.append('waiting for marker  reason=%s' % (obs.get('reason') or '-'))
-    if mot is not None:
-        channels = mot.get('channels') or [0, 0, 0, 0]
-        lines.append('v  L%+d F%+d U%+d Y%+d  %s' % (
-            channels[0], channels[1], channels[2], channels[3], mot.get('state')))
-        if mot.get('reason'):
-            lines.append('motion reason: %s' % mot.get('reason'))
-    lines.append(status)
-    for index, text in enumerate(lines):
-        y = 24 + index * 24
-        color = status_color if index == len(lines) - 1 else (0, 255, 255)
-        cv2.putText(out, text, (8, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 3, cv2.LINE_AA)
-        cv2.putText(out, text, (8, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 1, cv2.LINE_AA)
-    return out
-
-# 全局物理快捷键：与地面调试台（run_yaw_ground_test.py）共用同一实现，
-# 避免现场记住两套键：Ctrl+Shift+Alt+A=急停/悬停，Ctrl+Shift+Alt+L=降落。
+# 全局物理快捷键：与地面调试台（run_yaw_ground_test.py）共用同一实现
 _EMERGENCY_HOTKEYS = {'listener': None}
 
 
 def start_emergency_hotkeys(stop_action, land_action, printer=None):
-    """注册 Ctrl+Shift+Alt+A/L；失败只打印，F12/F11 不受影响。"""
+    """注册 Ctrl+Shift+Alt+A/L；失败只打印，不影响其它安全通道。"""
     if _EMERGENCY_HOTKEYS['listener'] is not None:
         return _EMERGENCY_HOTKEYS['listener']
     root = str(Path(__file__).resolve().parents[2])
@@ -207,7 +157,7 @@ def start_emergency_hotkeys(stop_action, land_action, printer=None):
     try:
         from drone_sdk.emergency_hotkeys import EmergencyHotkeys
     except Exception as exc:
-        print('[快捷键] 全局组合键不可用：%s（F12/F11 仍然有效）' % exc, flush=True)
+        print('[快捷键] 全局组合键不可用：%s' % exc, flush=True)
         return None
     say = printer or (lambda text: print(text, flush=True))
 
@@ -244,10 +194,7 @@ HELP = '''输入文字与模拟飞机互动。命令：
 离线样例：还有多少电、起飞、跟着我、向前走30厘米、降落'''
 
 def build_real_runner(args):
-    """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。
-
-    连接之后任何一步失败都必须先断开，不能把半连接状态留给调用者。
-    """
+    """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。"""
     root = str(Path(__file__).resolve().parents[2])      # main.py → modules/ai → modules → 仓库根
     if root not in sys.path:
         sys.path.insert(0, root)
@@ -260,20 +207,8 @@ def build_real_runner(args):
         drv.connect(args.address, timeout=drv.RESPONSE_TIMEOUT_S)
     except Exception as exc:          # djitellopy 抛的是自定义 TelloException，统一转成 RuntimeError
         raise RuntimeError('真机连接失败：%s' % exc) from None
-    try:
-        return _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo)
-    except BaseException:
-        shutdown_real(force=True)     # 半初始化也必须断开/关图传
-        raise
-
-
-def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
     from drone_sdk import controller as ctl
     ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery)
-    # 兜底：任何未捕获异常 / 解释器退出也做一次清理（shutdown_real 幂等）。
-    # 没有这一层时，Ctrl+C 若正好落在阻塞命令里，会只打印 traceback 而不清理。
-    import atexit
-    atexit.register(shutdown_real)
     try: video_ready=drv.start_video()
     except Exception as exc:
         video_ready=False
@@ -317,15 +252,15 @@ def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
             print('[安全] 真机起飞被拒绝：电量 %s%% < %d%%' % (battery, args.min_battery))
             return dict(ok=False, status='failed', simulated=False,
                         message='电量 %s%% 未满足 %d%%门限，拒绝起飞' % (battery, args.min_battery))
-        print('[安全] 真机起飞已授权（电量 %s%%）' % (battery,))
+        print('[安全] 真机起飞已授权（电量 %s%%，桨叶必须已拆除）' % (battery,))
         result = original_takeoff(owner)
         if not result.get('ok'):
             last_error = str(drv.health().get('last_error') or '')
             if 'takeoff_rejected' in last_error:
                 print('[安全] 飞控拒绝了 takeoff：%s' % last_error)
                 if 'battery_low' in last_error:
-                    print('       → 电量太低。实测这台 Tello 在 %d%% 会直接回 error，'
-                          '请充到 60%% 以上再起飞。' % drv.TAKEOFF_FIRMWARE_BATTERY)
+                    print('       → 电量太低。实测这台 Tello 电量不足时会直接回 error，'
+                          '请充到 %d%% 以上再起飞。' % drv.TAKEOFF_FIRMWARE_BATTERY)
                 else:
                     print('       → 检查桨叶是否装反（正/反桨必须对角对应）、飞机是否水平静置。')
         else:
@@ -340,7 +275,7 @@ def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
 
 def climb_after_takeoff(args, drv, owner, timeout=8.0):
     """起飞后把高度补到 --climb-target-cm（默认 120cm）：Tello 只升到约 1m，
-    摄像头平视，算子站着举 ArUco 才够得着。一次性离散上升，不做连续闭环。"""
+    摄像头平视，站着举 ArUco 才够得着。一次性离散上升，不做连续闭环。"""
     target = getattr(args, 'climb_target_cm', 120)
     if getattr(args, 'no_auto_climb', False) or not target:
         return
@@ -368,42 +303,48 @@ def climb_after_takeoff(args, drv, owner, timeout=8.0):
         print('[高度] 自动升高异常：%s: %s（高度保持不变）' % (type(exc).__name__, exc))
 
 
-_SHUTDOWN_DONE = {'done': False}
-
-
-def shutdown_real(force=False):
-    """真机模式统一收尾：停画面转发 → 停速度 → 关图传 → 断开。幂等、绝不抛异常。
-
-    force=True 用于半初始化/异常路径：即使仍在空中也要断开（进程即将退出）。
-    正常退出时若设备仍在空中，则保留链路（避免擅自放弃控制），但一定关掉图传与转发。
-    """
-    import drone_sdk._driver as drv
+def shutdown_real():
+    """真机模式退出：作废队列 → 停速度 → 关图传 → 断开。每一步独立兜底，绝不互相拖累。"""
+    try:
+        import drone_sdk._driver as drv
+    except Exception as exc:
+        print('[清理] 无法加载驱动：%s' % exc)
+        return
+    flying = False
+    try:
+        flying = bool(drv.health()['flying'])
+    except Exception as exc:
+        print('[清理] 读取飞行状态失败（仍继续清理）：%s' % exc)
     bridge = getattr(drv, '_frame_bridge', None)
     if bridge is not None:
-        try: bridge.stop(); bridge.join(1)
-        except Exception as exc: print('[清理] 停止画面转发失败：%s' % exc)
-        try: drv._frame_bridge = None
-        except Exception: pass
-    flying = False
-    try: flying = bool(drv.health()['flying'])
-    except Exception as exc: print('[清理] 读取飞行状态失败（仍继续清理）：%s' % exc)
-    try: drv.cancel_pending('main_exit')
-    except Exception: pass
-    try: drv.set_velocity((0, 0, 0, 0), 'main_exit')
-    except Exception as exc: print('[清理] 零速度发送失败：%s' % exc)
-    try: drv.stop_video()
-    except Exception as exc: print('[清理] 关闭图传失败：%s' % exc)
-    if flying and not force:
-        print('[清理] 设备仍在空中：已零速度并关闭图传，但保留链路；'
-              '退出进程不代表设备已停止，需要独立人工降落确认')
+        try:
+            bridge.stop(); bridge.join(1)
+        except Exception as exc:
+            print('[清理] 停止画面转发失败：%s' % exc)
+        try:
+            drv._frame_bridge = None
+        except Exception:
+            pass
+    if flying:
+        print('设备仍在空中，不主动断开；退出进程不代表设备已停止，需要独立人工降落确认')
         return
     try:
+        drv.cancel_pending('main_exit')
+    except Exception:
+        pass
+    try:
+        drv.set_velocity((0, 0, 0, 0), 'main_exit')
+    except Exception as exc:
+        print('[清理] 零速度发送失败：%s' % exc)
+    try:
+        drv.stop_video()
+    except Exception as exc:
+        print('[清理] 关闭图传失败：%s' % exc)
+    try:
         drv.disconnect()
-        print('[清理] 已零速度、关图传并断开真机')
+        print('[清理] 已停电机、关图传并断开真机')
     except Exception as exc:
         print('[清理] 断开失败（请手动断电）：%s' % exc)
-    finally:
-        _SHUTDOWN_DONE['done'] = True
 
 
 async def run_modern(args):
@@ -434,128 +375,10 @@ async def run_modern(args):
             config=load_audio_config(args.audio_config,args.input_device,args.output_device)
             await RealtimeSession(runner,DuplexAudio(config=config),audio_config=config).run()
     finally:
-        # 无论正常返回、异常还是 Ctrl+C：真机必须断开、关图传、停止画面转发。
-        if getattr(args,'real_drone',False): shutdown_real()
-
-
-VOLC_INSTRUCTIONS = (
-    '你是无人机语音助手，通过耳机用中文简短交流。'
-    '需要操作无人机时调用 run_program，参数 code 是一行 Python，格式 drone.<接口>(参数)。'
-    '允许接口：get_status()、get_battery()、takeoff()、land()、start_follow()、'
-    'stop_follow()、stop_motion()、move_forward(20到500的整数，单位厘米)。'
-    '用户说停、别动、急停或降落时，立即调用 interrupt（land=true 表示降落）。'
-    '只根据工具返回值回答；绝不要编造电量、高度、是否已起飞或画面内容。'
-    '指令不清楚、超出允许范围或你听不懂时，不要调用任何工具，'
-    '直接说：抱歉，我没听清，请再说一遍。'
-)
-
-VOLC_TOOLS = [
-    {'type': 'function', 'name': 'run_program',
-     'description': '执行一行无人机控制代码，例如 drone.takeoff()',
-     'parameters': {'type': 'object',
-                    'properties': {'code': {'type': 'string',
-                                            'description': '形如 drone.takeoff() 的单行调用'}},
-                    'required': ['code'], 'additionalProperties': False}},
-    {'type': 'function', 'name': 'interrupt',
-     'description': '立即停止当前动作；land=true 时直接降落',
-     'parameters': {'type': 'object',
-                    'properties': {'land': {'type': 'boolean'}},
-                    'required': ['land'], 'additionalProperties': False}},
-]
-
-
-async def run_volc_dialog(args):
-    """豆包全双工实时语音（Seeduplex 3.0）。
-
-    与 --always-on 的差别：识别、理解、播报全部由服务端完成，本地只负责执行
-    模型下发的工具调用。模型拿不到真实状态就不会乱说——它只能通过工具返回值
-    了解执行结果。
-    """
-    from audio_config import load_audio_config
-    from duplex_audio import DuplexAudio
-    from volc_dialog import VolcDuplex
-
-    if args.program:
-        raise ValueError('--volc-dialog 不接受 --program')
-    # 凭据检查放在最前面：没有密钥时不应先去连真机
-    if not os.getenv('VOLC_API_KEY'):
-        raise ValueError('缺少 VOLC_API_KEY：到火山控制台「API Key 管理」复制密钥值（不是名称），然后\n'
-                         '  $env:VOLC_API_KEY="xxxx"')
-    if args.real_drone:
-        runner, _drone = build_real_runner(args)
-    else:
-        from demo_text import Demo
-        from program_runner import Runner
-        runner = Runner(Demo(), allow_programs=True)
-    config = load_audio_config(args.audio_config, args.input_device, args.output_device)
-    audio = DuplexAudio(config=config)
-
-    def handle_log(event):
-        name = event.get('event')
-        if name in ('websocket_open', 'session_started', 'response_done', 'tts_started'):
-            print('[豆包] ' + json.dumps(event, ensure_ascii=False), flush=True)
-
-    def handle_user_text(text):
-        print('\n[STT] 识别文本：' + str(text)[:200], flush=True)
-
-    def handle_reply_text(text):
-        print('[豆包] 回复：' + str(text)[:200], flush=True)
-
-    def handle_speech_started():
-        print('[打断] 用户开口，已停止当前播报', flush=True)
-
-    dialog = VolcDuplex(runner, audio, instructions=VOLC_INSTRUCTIONS, tools=VOLC_TOOLS,
-                        on_log=handle_log, on_user_text=handle_user_text,
-                        on_reply_text=handle_reply_text,
-                        on_speech_started=handle_speech_started)
-    dialog.check_credentials()
-    print('[豆包] 模型 %s / 音色 %s' % (dialog.model, dialog.voice))
-    print('[豆包] 端点 %s' % dialog.url)
-    print('[豆包] 已开启工具调用：run_program / interrupt')
-    print(EMERGENCY_HELP)
-    focus_console()
-
-    import asyncio
-    loop = asyncio.get_running_loop()
-    start_emergency_hotkeys(
-        lambda: asyncio.run_coroutine_threadsafe(dialog.emergency(False), loop),
-        lambda: asyncio.run_coroutine_threadsafe(dialog.emergency(True), loop))
-
-    async def watch_hotkeys():
-        """全局热键：终端在后台也能急停。"""
-        while True:
-            stop_now = hotkey_edge(_VK_F12)
-            land_now = hotkey_edge(_VK_F11)
-            if stop_now:
-                print('\n[急停] F12 → 零速度悬停', flush=True)
-                try:
-                    await dialog.emergency(False)
-                    print('[急停] 指令已下发', flush=True)
-                except Exception as exc:
-                    print('[急停] 下发失败：%s' % exc, flush=True)
-            if land_now:
-                print('\n[急停] F11 → 立即降落', flush=True)
-                try:
-                    await dialog.emergency(True)
-                    print('[急停] 降落已下发', flush=True)
-                except Exception as exc:
-                    print('[急停] 下发失败：%s' % exc, flush=True)
-            await asyncio.sleep(0.05)
-
-    import asyncio
-    watcher = asyncio.create_task(watch_hotkeys())
-    try:
-        await dialog.run()
-    finally:
-        watcher.cancel()
-        try:
-            await watcher
-        except asyncio.CancelledError:
-            pass
-        stop_emergency_hotkeys()
-        # 与 --realtime 一致：无论正常返回、异常还是 Ctrl+C，真机必须断开并关图传。
-        if getattr(args, 'real_drone', False):
+        # 失败/中断也要清理真机（与 main() 的兜底一致），绝不把半连接状态留下
+        if args.real_drone:
             shutdown_real()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -574,33 +397,32 @@ def main():
                         help='真机模式下授权"起飞"（默认拒绝，防止误触）')
     parser.add_argument('--address', default=None, help='飞机 IP，默认 192.168.10.1')
     parser.add_argument('--min-battery', type=int, default=10,
-                        help='真机起飞的最低电量（默认 10%%；实测 Tello 固件在 50%% 会自己拒绝 takeoff）')
+                        help='真机起飞的最低电量（默认 10%%，与 controller.configure_takeoff 一致）')
     parser.add_argument('--always-on', action='store_true',
                         help='免按键全双工语音：持续监听，说话自动识别并执行（也可运行时 /listen 开启）')
+    parser.add_argument('--offline-voice', action='store_true',
+                        help='离线语音：本地 faster-whisper 识别 + Windows SAPI 播报，免 API Key')
+    parser.add_argument('--log-file',
+                        help='全程日志文件（控制台输出与报错同时写入，便于事后排查）')
     parser.add_argument('--show-video', action='store_true',
-                        help='语音模式同时弹出无人机实时画面窗口（需配合 --always-on；q 关窗口）')
+                        help='弹出图传窗口：绿框标 ArUco、红点标中心，并叠加偏差与速度（需真机图传）')
+    parser.add_argument('--climb-target-cm', type=int, default=120,
+                        help='起飞后自动补到的目标高度（默认 120cm；Tello 自己只到约 1m）')
+    parser.add_argument('--no-auto-climb', action='store_true',
+                        help='起飞后不自动补高度（保持 Tello 默认高度）')
     parser.add_argument('--silence-s', type=float, default=1.5,
                         help='说多长时间的静音算"说完了"（默认 1.5 秒）')
     parser.add_argument('--max-utterance', type=float, default=10.0,
                         help='单句最长录音时长（默认 10 秒，防止一直录）')
-    parser.add_argument('--offline-voice', action='store_true',
-                        help='离线语音：音频链路（本地 whisper + SAPI 播报）走真声，理解用离线样例，免 API Key')
     parser.add_argument('--realtime',action='store_true',help='使用独立配置的兼容Realtime API，全双工；不回退分段语音')
-    parser.add_argument('--volc-dialog', action='store_true',
-                        help='豆包全双工实时语音（Seeduplex 3.0）：识别与播报在云端，'
-                             '本地执行 run_program / interrupt 工具调用；需要 VOLC_API_KEY')
     parser.add_argument('--program',help='在Docker沙箱执行完整Python文件')
     parser.add_argument('--fixture-vision',action='store_true')
     parser.add_argument('--audio-config')
     parser.add_argument('--input-device',type=int)
     parser.add_argument('--output-device',type=int)
-    parser.add_argument('--log-file',
-                        help='全程日志文件（控制台输出与报错同时写入，便于事后排查）')
-    parser.add_argument('--climb-target-cm', type=int, default=120,
-                        help='起飞后自动补高度到此值（厘米，默认 120；Tello 起飞仅约 100cm）')
-    parser.add_argument('--no-auto-climb', action='store_true',
-                        help='起飞后不自动升高（保持 Tello 默认约 1m）')
     args = parser.parse_args()
+    # 离线语音 = 本地 whisper + SAPI，语义上"语音链路就绪"，但理解仍走离线样例
+    args.voice_ready = bool(args.live or getattr(args, 'offline_voice', False))
     if getattr(args, 'log_file', None):
         try:
             install_log_file(args.log_file)
@@ -609,21 +431,13 @@ def main():
     try:
         _dispatch(args)
     finally:
-        # 兜底：任何分支（含 setup 中途异常、Ctrl+C、正常 return）都要收尾。
+        # 兜底：任何分支（异常/Ctrl+C/正常返回）都要收尾，真机绝不能停在半连接状态
         stop_emergency_hotkeys()
         if getattr(args, 'real_drone', False):
             shutdown_real()
 
 
 def _dispatch(args):
-    # 语音链路是否可用：真实模型（--live）或离线样例（--offline-voice，免 Key）
-    voice_ready = bool(args.live or getattr(args, 'offline_voice', False))
-    if args.volc_dialog:
-        import asyncio
-        try: asyncio.run(run_volc_dialog(args))
-        except KeyboardInterrupt: print('\n[退出] 已中断')
-        except (ValueError,RuntimeError,OSError) as exc: print('执行失败：',exc); raise SystemExit(1)
-        return
     if args.realtime or args.program:
         import asyncio
         try: asyncio.run(run_modern(args))
@@ -670,6 +484,13 @@ def _dispatch(args):
     listener = {'thread': None, 'stop': threading.Event()}
     def output(text):
         with output_lock: print('\n' + text, flush=True)
+    # 全局物理快捷键（Ctrl+Shift+Alt+A/L）：与地面调试台共用 drone_sdk.emergency_hotkeys
+    start_emergency_hotkeys(lambda: session.interrupt(False),
+                            lambda: session.interrupt(True),
+                            printer=output)
+    if getattr(args, 'show_video', False):
+        # 真机图传才有的看；模拟模式下 get_frame 没有帧，窗口会是空的
+        start_view_monitor(printer=output)
     def transcribe(wav):
         # 先走已配置的 STT API；没配或失败时回落本地 faster-whisper（无需 Key）
         try:
@@ -719,7 +540,7 @@ def _dispatch(args):
                     output('日志保存失败；以上执行结果仍有效，请勿因此重复执行动作')
             speech_text = str(record.get('spoken') or record.get('reply', record.get('result', '')))
             cancelled = bool(record.get('cancelled'))
-            if not voice_ready:
+            if not args.voice_ready:
                 output('[TTS] 跳过播报：当前是离线样例模式（需 --live 或 --offline-voice）')
             elif not config['speak_replies']:
                 output('[TTS] 跳过播报：speak_replies=false（在配置里设为 true 就会念出来）')
@@ -741,10 +562,6 @@ def _dispatch(args):
         finally:
             if not resumed:
                 listen_pause.clear()
-    # 全局物理快捷键（Ctrl+Shift+Alt+A/L）：与地面调试台同一实现，接到既有急停通道
-    start_emergency_hotkeys(lambda: session.interrupt(False),
-                            lambda: session.interrupt(True),
-                            printer=output)
     if args.real_drone:
         print('真实模型+真实飞机' if args.live else '离线样例（不是AI）+真实飞机')
         print('⚠ 真机模式：起飞%s（电量阈值 %d%%）' % (
@@ -752,8 +569,8 @@ def _dispatch(args):
             args.min_battery))
     else:
         print('真实模型+本地模拟飞机' if args.live else '离线样例脚本（不是AI）+本地模拟飞机')
-    print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (voice_ready and config['speak_replies'])
-                            else '关%s' % ('（需 --live 或 --offline-voice）' if not voice_ready
+    print('语音合成播报：%s' % ('开（每轮回复会念出来）' if (args.voice_ready and config['speak_replies'])
+                            else '关%s' % ('（需 --live 或 --offline-voice）' if not args.voice_ready
                                            else '（config 里设 "speak_replies": true 打开）')))
     print('语音由AI合成；本版本不能连接真实无人机。\n' + HELP)
 
@@ -770,7 +587,7 @@ def _dispatch(args):
 
     def say_blocking(text):
         """监听线程里的即时播报：说完再继续听，避免自己打断自己。"""
-        if not (voice_ready and config['speak_replies']):
+        if not (args.voice_ready and config['speak_replies']):
             output('[TTS] 跳过播报：需要 --live/--offline-voice 且 speak_replies=true')
             return
         output('[TTS] 准备播报：' + text[:80])
@@ -827,8 +644,8 @@ def _dispatch(args):
     def start_listener():
         if listener['thread'] is not None and listener['thread'].is_alive():
             return False
-        if not voice_ready:
-            output('[监听] 需要 --live（真实模型）或 --offline-voice（离线样例，免 Key）')
+        if not args.voice_ready:
+            output('[监听] 需要 --live 或 --offline-voice（本地 faster-whisper / AI_STT_* 接口）')
             return False
         listener['stop'] = threading.Event()
         thread = threading.Thread(target=listen_loop, args=(listener['stop'],),
@@ -876,130 +693,12 @@ def _dispatch(args):
         interactive = bool(sys.stdin and sys.stdin.isatty())
     except Exception:
         interactive = False
-    # 免按键语音模式在非终端 stdin（后台/管道/nohup）下不能靠 input() 存活：
-    # 一旦 EOF 主循环就退出，飞机会留在空中而控制端已经没了。改为轮询保持存活。
-    headless = (not interactive) and (args.always_on or bool(getattr(args, 'offline_voice', False)))
-    # --show-video 必须跑在 headless 轮询里：input() 会阻塞主线程，窗口就刷不出来。
-    show_video = bool(getattr(args, 'show_video', False))
-    video_window = 'Tello 实时画面 (q 关窗口 / Ctrl+C 结束语音)'
-    if show_video:
-        if not (args.always_on or bool(getattr(args, 'offline_voice', False))):
-            print('[画面] --show-video 需要配合 --always-on（语音模式）使用，已忽略')
-            show_video = False
-        else:
-            headless = True
-            try:
-                import cv2
-                from drone_sdk import controller as _view_ctl
-                print('[画面] 实时预览已开启；画面取的是 controller 里 3 组同一份真帧')
-            except Exception as exc:
-                print('[画面] 预览不可用：%s' % exc)
-                show_video = False
-
-    follow_hud = {'obs': None, 'mot': None, 'halt': None, 'life': None,
-                  'at': 0.0, 'printed': 0.0}
-
-    def follow_snapshot():
-        """从 3 组跟随服务的 session log 事件里取最新一帧状态。"""
-        try:
-            records = _view_ctl._follow.events()
-        except Exception:
-            return None, None, None, None
-        obs = mot = halt = life = None
-        for record in reversed(records):
-            name = record.get('event')
-            if name == 'observation' and obs is None:
-                obs = record
-            elif name == 'motion_request' and mot is None:
-                mot = record
-            elif name in ('tracking_halted', 'fault') and halt is None:
-                halt = record
-            if life is None and name in RUN_LIFECYCLE:
-                life = record
-            if obs is not None and mot is not None and life is not None:
-                break
-        return obs, mot, halt, life
-
-
-    def log_follow_line(obs, mot, life=None):
-        """终端每 0.5 秒一行。静止状态只在变化时打印，避免"未启动"刷屏盖住别的日志。"""
-        if life is not None and life.get('event') != 'start':
-            reason = life.get('reason') or life.get('state') or life.get('event')
-            text = '[跟随] 未在跟随（%s）—— 说「开始跟随」重新启动' % reason
-        elif obs is None:
-            text = '[跟随] 暂无识别数据（跟随可能未启动）'
-        else:
-            if mot is not None:
-                ch = mot.get('channels') or [0, 0, 0, 0]
-                velocity = 'L%+d F%+d U%+d Y%+d' % (ch[0], ch[1], ch[2], ch[3])
-                state = mot.get('state')
-                reason = mot.get('reason')
-            else:
-                velocity, state, reason = 'L+0 F+0 U+0 Y+0', '-', '-'
-            text = '[跟随] %s cx=%6.1f sr=%.3f | %s | %s | %s' % (
-                '可见' if obs.get('found') else '丢失',
-                obs.get('center_x') or 0, obs.get('size_ratio') or 0,
-                velocity, state, reason)
-        if text != follow_hud.get('last_line'):
-            follow_hud['last_line'] = text
-            print(text, flush=True)
-    if headless:
-        print('[监听] stdin 非终端 → 无键盘模式：只用语音控制，Ctrl+C 结束')
-        print(EMERGENCY_HELP)
-        focus_console()
     if args.always_on and not start_listener():
         output('[监听] 未能开启，继续用键盘或 /voice 模式')
     print('免按键语音：%s' % ('开（说话即识别，静音 %.1f 秒判停；输入 /listen 关闭）' % args.silence_s
                           if listener_running() else '关（输入 /listen 开启）'))
     try:
         while True:
-            if headless:
-                # 全局热键：终端不在前台也能急停
-                if hotkey_edge(_VK_F12):
-                    output('[急停] F12 → 零速度悬停')
-                    try:
-                        session.interrupt(False)
-                    except Exception as exc:
-                        output('[急停] 下发失败：%s' % exc)
-                if hotkey_edge(_VK_F11):
-                    output('[急停] F11 → 立即降落')
-                    try:
-                        session.interrupt(True)
-                    except Exception as exc:
-                        output('[急停] 下发失败：%s' % exc)
-                if show_video:
-                    try:
-                        now = time.monotonic()
-                        if now - follow_hud['at'] >= 0.2:
-                            (follow_hud['obs'], follow_hud['mot'], follow_hud['halt'],
-                             follow_hud['life']) = follow_snapshot()
-                            follow_hud['at'] = now
-                        packet = _view_ctl.get_frame()
-                        frame = packet.frame
-                        if frame is not None:
-                            frame = draw_follow_overlay(frame, follow_hud['obs'],
-                                                        follow_hud['mot'], follow_hud['halt'],
-                                                        follow_hud['life'])
-                            cv2.imshow(video_window, frame)
-                        if now - follow_hud['printed'] >= 0.5:
-                            follow_hud['printed'] = now
-                            log_follow_line(follow_hud['obs'], follow_hud['mot'],
-                                            follow_hud['life'])
-                        key = cv2.waitKey(1) & 0xFF
-                        if key in (ord('q'), 27):
-                            show_video = False
-                            cv2.destroyWindow(video_window)
-                            print('[画面] 预览已关闭（语音继续）')
-                    except Exception as exc:
-                        print('[画面] 预览异常，已关闭：%s' % exc)
-                        show_video = False
-                        try:
-                            cv2.destroyAllWindows()
-                        except Exception:
-                            pass
-                else:
-                    time.sleep(0.2)          # 语音线程负责识别与执行，主线程只保活并等待退出
-                continue
             try: text = input('你：').strip()
             except (EOFError, KeyboardInterrupt): break
             except OSError as exc:          # 控制台句柄异常：绝不能 continue，否则会死循环刷屏
@@ -1045,7 +744,7 @@ def _dispatch(args):
                     continue
                 try:
                     if text == '/voice':
-                        if not voice_ready: raise ValueError('语音识别需要 --live 或 --offline-voice（本地 faster-whisper）')
+                        if not args.voice_ready: raise ValueError('语音识别需要 --live 或 --offline-voice（本地 faster-whisper / AI_STT_* 接口）')
                         if session.busy: raise ValueError('请先等待当前任务结束')
                         cancel_audio.set()
                         # Sounddevice allows one recorder/player at a time. Wait for prior speech to end.
@@ -1083,18 +782,15 @@ def _dispatch(args):
     except EOFError:
         print('\n输入流已结束（EOF），退出会话')
     finally:
-        # 会话级清理（真机断开由外层 main() 的 finally 统一兜底，避免重复执行）
-        if getattr(args, 'show_video', False):
-            try:
-                import cv2
-                cv2.destroyAllWindows()
-            except Exception:
-                pass
         listener['stop'].set()
         listen_pause.set()
         cancel_audio.set()
+        stop_emergency_hotkeys()
+        stop_view_monitor()
         session.close()
         audio_io.close()
         speech_worker.shutdown(wait=True, cancel_futures=True)
+        if args.real_drone:
+            shutdown_real()
 
 if __name__ == '__main__': main()

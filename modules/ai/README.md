@@ -88,31 +88,6 @@ python main.py --live --config config.example.json
 这些限制意味着当前**不能把语音当作实机唯一停止渠道**。
 尚不具备连续免按键收音、自动语音端点检测及全双工对话；这些属于体验优化，不依赖他组，但需真实耳机与API测量后再选择方案。
 
-## 全双工语音（豆包 Seeduplex 3.0）
-
-```bash
-$env:VOLC_API_KEY="控制台 API Key 的密钥值"   # 不是名称（api-key-2026... 那种是名称）
-python test_volc_connect.py --hello        # 先自检凭据（不占用声卡）
-python main.py --volc-dialog               # 模拟飞机
-python main.py --volc-dialog --real-drone --allow-real-takeoff
-```
-
-链路：麦克风 24kHz → 重采样 16kHz → 服务端 ASR/理解/播报 → 下行 24kHz PCM → 耳机，
-本地只负责执行模型下发的工具调用。
-
-关键设计：
-
-1. **端点必须是全双工版本**：`/api/v3/duplex/realtime/dialogue`，纯 JSON 文本帧。
-   旧版 `/api/v3/realtime/dialogue` 是二进制协议且没有工具调用，两者不通用。
-2. **鉴权用 `X-Api-Key` 单个头**，不是 App ID + Access Token 那一套。
-3. **原生 function calling**：模型通过 `run_program(code)` 和 `interrupt(land)` 两个工具
-   操作飞机；结果以 `conversation.item.create` + `role=tool` 回传。
-   模型只能看到工具返回值，因此不会编造"已经起飞"或电量高度。
-4. **打断**：`transcription.started` 一到达就清空本地播放缓冲，避免把自己的声音当新指令。
-5. 全双工由服务端原生 VAD 判停，不传 `turn_detection`，也不需要 `input_audio_buffer.commit`。
-
-离线回归：`python test_volc_dialog.py`（8 项，含本地回环 WebSocket 全流程与工具调用校验）。
-
 ## 视觉问答
 
 ```bash

@@ -30,6 +30,11 @@ class AudioConfig:
     output_name: str | None = None
     input_hostapi: str | None = None
     output_hostapi: str | None = None
+    input_samplerate: int | None = None
+    output_samplerate: int | None = None
+    output_channels: int | None = None
+    capture_buffer_ms: int = 200
+    diagnostics_interval_s: int = 5
     wasapi_auto_convert: bool = True
     noise_reduction: str | None = 'near_field'
     vad_threshold: float = 0.7
@@ -45,6 +50,15 @@ class AudioConfig:
             value = getattr(self, field)
             if value is not None and (not isinstance(value, str) or not value.strip()):
                 raise ValueError(f'{field} 必须是非空字符串或 null')
+        if self.output_channels is not None and (type(self.output_channels) is not int or self.output_channels not in (1,2)):
+            raise ValueError('output_channels 必须是1、2或null')
+        for name in ('input_samplerate','output_samplerate'):
+            v=getattr(self,name)
+            if v is not None and (type(v) is not int or not 8000<=v<=192000):
+                raise ValueError(name+' 必须是8000至192000的整数或null')
+        for name,low,high in (('capture_buffer_ms',40,1000),('diagnostics_interval_s',1,60)):
+            v=getattr(self,name)
+            if type(v) is not int or not low<=v<=high: raise ValueError('invalid '+name)
         if type(self.wasapi_auto_convert) is not bool:
             raise ValueError('wasapi_auto_convert 必须是 true 或 false')
         if self.noise_reduction not in ('near_field', 'far_field', None):

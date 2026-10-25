@@ -50,17 +50,16 @@ class MockBackend:
                 return {'ok':False,'status':'failed','reason':'landed'}
             return {'ok':True,'status':'accepted' if name=='update_velocity' else 'completed',
                     'is_blocking':name!='update_velocity','simulated':True}
-    def priority_stop(self, land=False):
-        """模拟后端的保留通道：强制接管后仍走 action()，保持可观测/可注入。"""
-        with self.lock:
-            self.calls.append(('priority_stop', (land,)))
-            self.owner = 'model'
-        result = self.action('land' if land else 'stop_motion')
-        return dict(result, priority=True)
 
+    def emergency(self, land=False):
+        """模拟层的急停：同样跳过队列/控制权检查（真实层走 priority 通道）。"""
+        with self.lock:
+            self.calls.append(('land' if land else 'stop_motion', ()))
+            if land:
+                self.flying=False
+            return {'ok':True,'status':'accepted','simulated':True}
     def get_frame(self):
         raise RuntimeError('模拟器没有摄像头画面；不能伪造实时视觉')
-
     def observe_fixture(self,target):
         # Closed-loop demo data, not an image recognition result.
         i=self.observation_index; self.observation_index+=1
@@ -98,16 +97,6 @@ class SDKBackend:
                 time.sleep(.01)
         return self.normalize(self.sdk._follow.finish_action(ticket,'completed' if success else 'failed'))
     def normalize(self,value): return asdict(value) if is_dataclass(value) else value
-    def priority_stop(self, land=False):
-        """紧急保留通道：无视 action_result_pending / 代次，直接零速度并派发降落。"""
-        grant = self.sdk.request_control('model', priority=True)
-        self.grant = {'control_epoch': grant.control_epoch, 'command_epoch': grant.command_epoch}
-        action = 'land' if land else 'stop_motion'
-        result = self.normalize(getattr(self.sdk, action)('model', priority=True))
-        if result.get('ok'):
-            state = self.sdk.get_status()
-            self.grant = {'control_epoch': state.control_epoch, 'command_epoch': state.command_epoch}
-        return result
     def get_status(self): return self.normalize(self.sdk.get_status())
     def get_frame(self): return self.normalize(self.sdk.get_frame())
     def request_control(self,owner):
@@ -124,4 +113,12 @@ class SDKBackend:
         if result.get('ok') and name in ('stop_motion','land'):
             s=self.sdk.get_status()
             self.grant={'control_epoch':s.control_epoch,'command_epoch':s.command_epoch}
+        return result
+
+    def emergency(self, land=False):
+        """急停走底层 priority 通道：不进动作队列、不受 action_result_pending 阻塞。"""
+        call = self.sdk.land if land else self.sdk.stop_motion
+        result = self.normalize(call('model', priority=True))
+        s = self.sdk.get_status()
+        self.grant = {'control_epoch': s.control_epoch, 'command_epoch': s.command_epoch}
         return result
