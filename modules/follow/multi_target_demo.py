@@ -103,9 +103,12 @@ def run(output):
                     violations.append(dict(step=step, instance=config.instance_id,
                                            reason="inactive_or_missing_motion",
                                            state=state, channels=port.velocity))
+                # 上限来自该机自己的配置（不是全局常量）：只改钳位、不改算法上限时
+                # 这里仍然会抓到"超出本机预算"。升降恒为 0、横移恒为 0 是不可放松的。
                 if (not all(math.isfinite(v) for v in port.velocity)
                         or port.velocity[0] != 0 or port.velocity[2] != 0
-                        or abs(port.velocity[1]) > 30 or abs(port.velocity[3]) > 20):
+                        or abs(port.velocity[1]) > round(config.forward_limit * 100)
+                        or abs(port.velocity[3]) > round(config.yaw_limit * 100)):
                     violations.append(dict(step=step, instance=config.instance_id,
                                            reason="invalid_channels"))
                 truth_x, truth_y, truth_size = expected_geometry(source_step, i)

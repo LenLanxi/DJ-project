@@ -166,6 +166,7 @@ class FollowController:
     def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
                  max_request_rate=None, require_geometry=False,
                  steering_mode=_DEFAULT_STEERING, yaw_limit=0.20,
+                 forward_limit=0.30,
                  alignment_stop=0.30, alignment_resume=0.18,
                  control_profile="legacy"):
         if max_age <= 0 or not math.isfinite(max_age):
@@ -193,6 +194,7 @@ class FollowController:
         if steering_mode == "hybrid" and control_profile != "openpose_pid":
             raise ValueError("hybrid steering requires openpose_pid")
         for name, value in (("yaw_limit", yaw_limit),
+                            ("forward_limit", forward_limit),
                             ("alignment_stop", alignment_stop),
                             ("alignment_resume", alignment_resume)):
             if (not isinstance(value, (int, float)) or isinstance(value, bool)
@@ -202,12 +204,15 @@ class FollowController:
             raise ValueError("alignment_resume must be smaller than alignment_stop")
         self._steering_mode = steering_mode
         self.control_profile = control_profile
-        self._openpose = (OpenPoseMarkerControl(yaw_limit=yaw_limit, max_dt=max_age,
+        self._openpose = (OpenPoseMarkerControl(yaw_limit=yaw_limit,
+                                               forward_limit=forward_limit,
+                                               max_dt=max_age,
                                                steering_mode=steering_mode)
                           if control_profile == "openpose_pid" else None)
         # Dimensionless OFFLINE candidate, not an experimentally measured yaw
         # speed or a claim that this gain/limit is safe for physical flight.
         self.yaw_limit = yaw_limit
+        self.forward_limit = forward_limit
         self.alignment_stop = alignment_stop
         self.alignment_resume = alignment_resume
         self._alignment_blocked = steering_mode == "yaw" and self._openpose is None
@@ -387,6 +392,7 @@ class FollowController:
                 "openpose_control": self._openpose.status() if self._openpose else None,
                 "distance_guard": self.distance_guard.status(),
                 "steering": {"mode": self.steering_mode, "yaw_limit": self.yaw_limit,
+                             "forward_limit": self.forward_limit,
                              "horizontal_limit": self.yaw_limit if self._openpose else None,
                              "constructor_only": True,
                              "alignment_stop": self.alignment_stop if not self._openpose else None,
@@ -466,12 +472,13 @@ class FollowController:
                 self._alignment_blocked = False
             right, yaw = 0.0, adjustment(x_error, self.yaw_limit)
         else:
-            right, yaw = adjustment(x_error), 0.0
+            right, yaw = adjustment(x_error, self.forward_limit), 0.0
         # Ambiguous size or a poorly aligned target must clear OLD forward/back
         # requests before the ramp, including backward requests.
         if not self._openpose:
             forward_blocked = self.distance_guard.blocked or self._alignment_blocked
-            desired = (right, 0.0 if forward_blocked else adjustment(scale_error), yaw)
+            desired = (right, 0.0 if forward_blocked
+                       else adjustment(scale_error, self.forward_limit), yaw)
         if self.max_request_rate is not None:
             elapsed = 0 if self._motion_at is None else max(0, min(.1, now-self._motion_at))
             step = self.max_request_rate * elapsed

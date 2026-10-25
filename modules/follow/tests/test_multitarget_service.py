@@ -385,8 +385,11 @@ class CandidateSdkTests(unittest.TestCase):
                 self.change(x=.7, size=.12)
                 self.wait_for(lambda: self.velocity()[1] > 0 and self.velocity()[3] > 0)
                 self.assertEqual((self.velocity()[0], self.velocity()[2]), (0,0))
-                self.assertLessEqual(self.velocity()[1], 30)
-                self.assertLessEqual(self.velocity()[3], 20)
+                # 预算按该机自己的配置判定（横向/升降恒为 0 才是不可放松的契约）
+                self.assertLessEqual(self.velocity()[1],
+                                     round(service.config.forward_limit * 100))
+                self.assertLessEqual(self.velocity()[3],
+                                     round(service.config.yaw_limit * 100))
                 self.change(marker_id=(target_id+1)%3)
                 self.wait_for(lambda: not service.controller.observation.found
                                       and self.velocity() == (0,0,0,0))

@@ -10,6 +10,10 @@ sounddevice>=0.5,<0.6
 # Realtime API. Without it `--voice` fails at import time.
 websockets>=15,<17
 
+# Global emergency hotkeys for run_yaw_ground_test.py (Windows low-level
+# keyboard hook; no administrator rights required).
+pynput>=1.7,<2
+
 # Merge notes (already checked; do not re-add):
 # - requirements-audio.txt / requirements-vision.txt ask for numpy>=1.26,<3;
 #   numpy==1.26.4 above already satisfies it.

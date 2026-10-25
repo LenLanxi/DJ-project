@@ -19,6 +19,9 @@ _landing_deadline = None
 _landing_delay = .05
 _active_action = None
 _last_velocity_time = 0.
+# 速度看门狗：超过这个时间没有新的非零速度就强制归零。
+# 满杆约 2.5 m/s ⇒ 0.3s 的最坏失控位移约 0.75m（原 0.5s 是 1.25m）。
+VELOCITY_WATCHDOG_S = 0.3
 _frame_lock = threading.RLock()
 _frame = FrameResult(None, 0, 0., True)
 
@@ -56,7 +59,7 @@ def _check(owner, control_epoch=None, command_epoch=None, *, allow_landing=False
 def _watchdog_tick():
     with _velocity_lock:
         _advance()
-        if _last_velocity_time and time.monotonic() - _last_velocity_time > .5:
+        if _last_velocity_time and time.monotonic() - _last_velocity_time > VELOCITY_WATCHDOG_S:
             _zero('watchdog_timeout')
 
 def _watchdog_thread():

@@ -33,6 +33,7 @@ class FollowService:
                  log_directory=None, target_id=0, instance_id="r3-default",
                  dictionary="DICT_4X4_50", control_profile="legacy",
                  physical_distance_m=None, detection_budget_ms=120.,
+                 yaw_limit=0.20, forward_limit=0.30, max_request_rate=0.8,
                  console_notices=False, notice_sink=None):
         if getattr(port, "simulation_only", None) is not True:
             raise ValueError("This version only accepts simulation ports")
@@ -42,7 +43,8 @@ class FollowService:
             raise ValueError("detection_budget_ms must be in (0, 250]")
         self.detection_budget_ms = float(detection_budget_ms)
         self.config = FollowConfig(instance_id, target_id, dictionary,
-                                   control_profile, physical_distance_m, steering_mode)
+                                   control_profile, physical_distance_m, steering_mode,
+                                   yaw_limit, forward_limit, max_request_rate)
         # Display labels may repeat; the session identifier must never repeat,
         # including separate services whose frame IDs and generations coincide.
         self.service_session_id = uuid.uuid4().hex
@@ -56,9 +58,19 @@ class FollowService:
         # bypass the ramp and issue zero immediately; no old target prediction.
         self.controller = FollowController(target_id=target_id,
                                            recovery_window=recovery_window,
-                                           max_request_rate=.8, require_geometry=True,
+                                           max_request_rate=max_request_rate,
+                                           require_geometry=True,
                                            steering_mode=steering_mode,
+                                           yaw_limit=yaw_limit,
+                                           forward_limit=forward_limit,
                                            control_profile=control_profile)
+        # RC clamp is derived from the SAME limits the law uses, so raising the
+        # budget in one place cannot be silently re-clamped here. up_down stays
+        # 0: this law never commands altitude. Hard ceiling is the SDK's RC range.
+        self.rc_caps = (min(100, round(self.controller.forward_limit * 100)),
+                        min(100, round(self.controller.forward_limit * 100)),
+                        0,
+                        min(100, round(self.controller.yaw_limit * 100)))
         self.lock = threading.RLock()
         self.vision_lock = threading.Lock()
         self.shutdown = threading.Event()
@@ -109,6 +121,10 @@ class FollowService:
                 hardware_verified=False, steering_mode=self.controller.steering_mode,
                 recovery_window=self.controller.recovery_window,
                 detection_budget_ms=self.detection_budget_ms,
+                yaw_limit=self.controller.yaw_limit,
+                forward_limit=self.controller.forward_limit,
+                rc_caps=list(self.rc_caps),
+                rc_caps_unit="percentage_of_max_rc_100_not_metres_per_second",
                 detection_budget_policy="cooperative_between_native_calls",
                 motion_unit="RC_channel_value_not_physical_velocity",
                 direction_frame="aircraft_camera_view",
@@ -501,7 +517,7 @@ class FollowService:
                 channels = (round(motion.right * 100), round(motion.forward * 100), 0,
                             round(motion.yaw * 100))
                 channels = tuple(max(-cap, min(cap, value))
-                                 for value, cap in zip(channels, (30, 30, 0, 20)))
+                                 for value, cap in zip(channels, self.rc_caps))
                 now = self.clock()
                 urgent_zero = channels == (0, 0, 0, 0) and channels != self.last_channels
                 urgent_depth_stop = (self.last_channels is not None

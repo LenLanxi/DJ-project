@@ -9,7 +9,9 @@ The actual PID implementation is the unchanged simple-pid 2.0.1 pid.py.
 
 Necessary adaptations: an ArUco center/mean-side replaces the body keypoint/
 shoulder width; ratios are mapped to the original program's 640-pixel frame
-(its line 145); caps are the existing project RC caps 20/30 rather than 100/50;
+(its line 145); the RC cap is set per instance by the follow configuration
+(yaw_limit / forward_limit; the reviewed default is 20/30 RC, aircraft_A_ID0
+raises it to 50/40) instead of the upstream 100/50;
 RC requests are divided by 100 for the existing R3 normalized request contract.
 There is no new off-axis depth gate or PID law. Frame-time bookkeeping and
 reset/shape protection surround the reused equations; no aircraft I/O is here.
@@ -28,6 +30,13 @@ Horizontal routing is an explicit R3 adaptation, not an upstream flight result.
 The same horizontal PID value feeds yaw (default), lateral, or an equal RC
 number split for hybrid. RC translation and RC rotation are different physical
 quantities: this numerical budget does not claim equal thrust, speed or effect.
+
+Horizontal gains: upstream P=.25 with no damping saturated the +/-50 RC budget
+as soon as the marker was ~120 px off-centre on a 960-wide frame, which made
+the loop behave like bang-bang. P is now .12 (saturation moves to ~250 px) and
+a small D=.03 damps the approach. The D term deliberately never uses a frame
+interval shorter than YAW_DERIVATIVE_MIN_DT, because a 1 ms interval would
+multiply pixel jitter into a full-scale spike. Neither tuning is flight-verified.
 """
 import math
 
@@ -35,7 +44,9 @@ from ._vendor.simple_pid import PID
 
 
 EQUIVALENT_FRAME_WIDTH = 640.0
-YAW_GAINS = (0.25, 0.0, 0.0)
+YAW_GAINS = (0.16, 0.0, 0.03)      # P 0.25→0.16（减饱和）+ 少量阻尼；见模块说明
+YAW_DERIVATIVE_MIN_DT = .02        # D 项不使用的短间隔（秒），防帧抖动放大
+YAW_DERIVATIVE_LIMIT = .10         # D 项最多贡献 10 RC，防止大幅跳变时反向打满
 UPSTREAM_PITCH_GAINS = (0.5, 0.04, 0.3)
 PITCH_GAINS = (0.5, 0.01, 0.06)
 DEPTH_FILTER_TAU = .08
@@ -170,7 +181,15 @@ class OpenPoseMarkerControl:
         xoff = int(center_x/image_width*EQUIVALENT_FRAME_WIDTH
                    - EQUIVALENT_FRAME_WIDTH/2)
         size_delta = (size_ratio-reference_size)*EQUIVALENT_FRAME_WIDTH
-        horizontal = int(-self.yaw_pid(xoff, dt=dt))
+        # Same upstream equations, with two documented R3 guards on D: a minimum
+        # interval (frame jitter) and a ceiling (an abrupt target jump must not
+        # turn damping into a full-scale reverse request).
+        self.yaw_pid(xoff, dt=max(dt, YAW_DERIVATIVE_MIN_DT))
+        proportional, integral, derivative = self.yaw_pid.components
+        ceiling = YAW_DERIVATIVE_LIMIT*100
+        derivative = max(-ceiling, min(ceiling, derivative))
+        limit = self.horizontal_limit*100
+        horizontal = int(-max(-limit, min(limit, proportional+integral+derivative)))
         pitch = 0
         if (forward_allowed and self.tuning == "marker_v2"
                 and abs(size_delta) <= DEPTH_REFERENCE_DEADBAND_PX):

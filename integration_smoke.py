@@ -77,7 +77,11 @@ def main():
         check("move_forward(30) 成功", r["accepted"] and "前进" in r["result"], r)
 
         r = runner.run("drone.move_forward(50)")
-        check("非白名单参数被拦截", r["accepted"] is False, r)
+        check("move_forward(50) 成功（program_runner 允许 20-100cm）",
+              r["accepted"] and "前进" in r["result"], r)
+
+        r = runner.run("drone.move_forward(150)")
+        check("超出范围的距离被拦截（20-100cm）", r["accepted"] is False, r)
 
         r = runner.run("drone.stop_motion()")
         check("stop_motion 成功", r["accepted"] and "紧急悬停" in r["result"], r)

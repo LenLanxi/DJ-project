@@ -6,7 +6,7 @@ import unittest
 
 from r3_follow.config import FollowConfig, load_config
 from r3_follow.core import FollowController, Observation, State
-from r3_follow.openpose_control import OpenPoseMarkerControl
+from r3_follow.openpose_control import OpenPoseMarkerControl, YAW_DERIVATIVE_LIMIT
 
 MODES = ("yaw", "lateral", "hybrid")
 
@@ -53,16 +53,27 @@ class HorizontalRoutingTests(unittest.TestCase):
             self.assertLessEqual(abs(right)+abs(yaw), .2+1e-12)
 
     def test_center_and_signs_and_quantization_at_one_rc_unit(self):
+        # P=0.12 后量化步长变成 xoff≈±9 才 1 RC（旧 P=0.25 是 ±4）；每个点用新适配器，
+        # 避免 D 的历史干扰这一条"单 RC 量化"检查。
         for mode in MODES:
-            c=OpenPoseMarkerControl(steering_mode=mode)
-            for seq,cx in enumerate((280,316,320,324,360)):
-                r=self.call(c,seq,seq*.1,cx=cx,size=.2)
-                self.assertEqual(r[1],0)
-                self.assertTrue(all(v*(cx-320)>=0 for v in (r[0],r[2])))
-                if cx==320:self.assertEqual(r,(0,0,0))
-                if mode=="hybrid" and cx in (316,324):
-                    self.assertEqual(r[0],0)
-                    self.assertEqual(abs(r[2]),.01)
+            for cx in (280, 316, 320, 324, 360):
+                c = OpenPoseMarkerControl(steering_mode=mode)
+                r = self.call(c, 0, 0., cx=cx, size=.2)
+                self.assertEqual(r[1], 0)
+                self.assertTrue(all(v*(cx-320) >= 0 for v in (r[0], r[2])))
+                if cx == 320:
+                    self.assertEqual(r, (0, 0, 0))
+                if mode == "hybrid" and cx in (316, 324):
+                    # ±4 的等价偏移在新增益下不足 1 RC，量化到 0
+                    self.assertEqual(r[0], 0)
+                    self.assertEqual(r[2], 0)
+            # 明确量化步长：P=0.16 时 xoff=±7 → 1 RC，±6 → 0（三种路由合计值）
+            c = OpenPoseMarkerControl(steering_mode=mode)
+            routed = self.call(c, 0, 0., cx=327, size=.2)
+            self.assertEqual(abs(round((routed[0]+routed[2])*100)), 1)
+            c = OpenPoseMarkerControl(steering_mode=mode)
+            routed = self.call(c, 0, 0., cx=326, size=.2)
+            self.assertEqual(routed[0]+routed[2], 0)
 
     def test_shape_block_keeps_selected_horizontal_axis_on_same_frame(self):
         for mode in MODES:
@@ -107,8 +118,10 @@ class HorizontalRoutingTests(unittest.TestCase):
                 self.assertLessEqual(abs(r.right)+abs(r.yaw),.2+1e-12)
                 self.assertLessEqual(abs(round(r.right*100))+abs(round(r.yaw*100)),20)
                 self.assertLessEqual(abs(r.forward),.3+1e-12)
-                self.assertGreaterEqual((x-.5)*r.right,0)
-                self.assertGreaterEqual((x-.5)*r.yaw,0)
+                # D 会在急反转的瞬间刹车（甚至短暂反向），幅度被 YAW_DERIVATIVE_LIMIT 限制
+                braking = YAW_DERIVATIVE_LIMIT + 1e-12
+                self.assertGreaterEqual((x-.5)*r.right,-braking)
+                self.assertGreaterEqual((x-.5)*r.yaw,-braking)
                 if mode=="yaw":self.assertEqual(r.right,0)
                 if mode=="lateral":self.assertEqual(r.yaw,0)
 

@@ -8,7 +8,8 @@ import unittest
 
 from r3_follow._vendor.simple_pid import PID
 from r3_follow.core import FollowController, Observation, State
-from r3_follow.openpose_control import OpenPoseMarkerControl
+from r3_follow.openpose_control import (OpenPoseMarkerControl, YAW_DERIVATIVE_LIMIT,
+                                        YAW_DERIVATIVE_MIN_DT, YAW_GAINS)
 
 
 def observation(seq, time, *, x=.5, size=.2, width=640, found=True, narrow=False):
@@ -40,15 +41,20 @@ class OpenPoseAdapterTests(unittest.TestCase):
 
     def test_matches_direct_upstream_two_axis_equations_on_same_frames(self):
         a = OpenPoseMarkerControl(tuning="upstream_reference")
-        yaw = PID(.25, 0, 0, setpoint=0, sample_time=None, output_limits=(-20, 20))
+        yaw = PID(*YAW_GAINS, setpoint=0, sample_time=None, output_limits=(-20, 20))
         pitch = PID(.5, .04, .3, setpoint=0, sample_time=None, output_limits=(-30, 30))
         previous = None
         frames = [(0., 430., .2), (.1, 380., .18), (.23, 350., .17),
                   (.28, 300., .175), (.48, 280., .19), (.68, 310., .22)]
         for seq, (time, cx, size) in enumerate(frames):
             dt = 1e-16 if previous is None else time-previous
-            expected = (0., int(pitch((size-.2)*640, dt=dt))/100,
-                        int(-yaw(int(cx-320), dt=dt))/100)
+            # 同一条上游方程 + 两条 R3 保护：D 的最短间隔与上限
+            yaw(int(cx-320), dt=max(dt, YAW_DERIVATIVE_MIN_DT))
+            proportional, integral, derivative = yaw.components
+            derivative = max(-YAW_DERIVATIVE_LIMIT*100,
+                             min(YAW_DERIVATIVE_LIMIT*100, derivative))
+            horizontal = max(-20, min(20, proportional+integral+derivative))
+            expected = (0., int(pitch((size-.2)*640, dt=dt))/100, int(-horizontal)/100)
             actual = self.call(a, seq, time, center_x=cx, size_ratio=size)
             self.assertEqual(actual, expected)
             self.assertEqual(a.pitch_pid.components, pitch.components)

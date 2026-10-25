@@ -163,6 +163,19 @@
 &#x20;  - 门限自适应：`门限 = max(-55dBFS, 底噪 + 6dB)`，可用 `AI\_VAD\_MIN\_DBFS` / `AI\_VAD\_MARGIN\_DB` 现场微调；日志里的 `[录音] … 自适应门限 -55 dBFS` 就是当前值。
 &#x20;  - 采集用 PortAudio **回调**而非阻塞读：Windows WDM-KS 设备不支持阻塞 API（`PaErrorCode -9999`），采样率不支持时自动退回设备原生率（常见 48kHz）。
 
+3.13 三组 Yaw 偏航算法 · 真机地面调试台（拆桨叶）：
+
+&#x20;  `python run\_yaw\_ground\_test.py --props-removed`（离线自检：`--self-check`，11 项，不连飞机不碰声卡）
+
+&#x20;  - 一个进程出两个界面：**窗口1 终端主控台**（每 2 秒真实电量/高度/飞行状态/链路 + 四组 `[STT]`/`[LLM]`/`[TTS]` 日志）、**窗口2 OpenCV 视觉台**（图传 + 三组 `MarkerTracker` 绿色 ArUco 框 + 中心红点 + 左上角 `cx-480` 偏差与 Yaw 值）。
+&#x20;  - Yaw 直接用现场配置构造 `FollowController`（默认 `modules/follow/configs/aircraft_A_ID0.json`：`openpose_pid` + `yaw`），换算与 `FollowService.control_once()` 完全一致（yaw 夹紧 ±20 RC），所以画面上的数字就是要下发的偏航量。
+&#x20;  - 安全：不含任何起飞指令（`configure_takeoff(authorized=False)` 兜底）；所有非零速度都会打印 `[拦截] 未起飞（地面状态）`；语音「急停/降落」走 priority 通道并打印 `[急停响应]`，地面默认不向飞机真发 `land`（`--allow-real-land` 可强制）。
+&#x20;  - 跟随配置优先级：`--follow-config` > `R3_FOLLOW_CONFIG` > 仓库默认配置；ArUco 必须在镜头里**正对**才能完成参考尺寸标定（失败时终端会提示，按 `c` 重标）。
+&#x20;  - **速度预算（RC 上限）**：配置字段 `yaw_limit` / `forward_limit` / `max_request_rate`（旧默认 0.20 / 0.30 / 0.8）。`configs/aircraft_A_ID0.json` 现为 **0.50 / 0.40 / 2.0 → ±50 / ±40 RC、200 RC/s 斜率**。服务层钳位由这两个数推导，所以"算法输出上限"和"下发钳位"永远一致；只改钳位是无效的（会被算法夹回去）。⚠️ **RC 100 是满杆（Tello 常态模式约 2.5 m/s），不是 1 m/s**；`forward_limit=0.4` 就是按"室内最高 1 m/s"折算的保守值。升降通道恒为 0（三组从不下达高度指令）。
+&#x20;  - **水平增益**：`openpose_control.YAW_GAINS = (0.16, 0, 0.03)`（P 由 0.25 降到 0.16、新增小幅 D，`v3.2-flight-tuned`）。D 有两个保护：不使用短于 20ms 的帧间隔（防抖动放大），且贡献上限 10 RC（防大幅跳变时反向打满）。台架实测：dx→yaw 近似线性（200px→21RC、400px→42RC），饱和点推到 ≈470px 之外。
+&#x20;  - 高速度下的安全兜底：速度看门狗 `controller.VELOCITY_WATCHDOG_S = 0.3s`（满杆最坏失控位移约 0.75m，原 0.5s 是 1.25m），独立守护线程；`stop_motion(priority=True)` / `land(priority=True)` 绕过动作锁与代次校验、立即归零。回归见 `modules/follow/tests/test_rc_budget.py`。
+&#x20;  - **物理安全兜底（全局组合键，pynput 低级键盘钩子，无需管理员权限）**：`Ctrl+Shift+Alt+A` = 急停/悬停（`stop_motion(priority=True)` + 速度归零）、`Ctrl+Shift+Alt+L` = 降落（`land(priority=True)`）。焦点在 OpenCV 窗口 / 终端 / 其它程序上都生效，触发时打印醒目的 `[物理快捷键] 触发急停/降落`，同一指令 1 秒内只执行一次；缺 `pynput` 时脚本自动 `pip install` 一次，装不上则退回 `s` 键方案（`--no-hotkeys` 可关闭全局组合键）。地面状态下的语音「降落」默认只做零速度，加 `--soft-land`；物理快捷键始终真发 `land`。
+
 ⚠️ 同一时间只能跑一个连飞机的脚本（UDP 8889 独占）。第二个进程会报 `WinError 10048`，先关掉上一个窗口，或：
 
 &#x20;  `Get-NetUDPEndpoint -LocalPort 8889`（查占用进程）
