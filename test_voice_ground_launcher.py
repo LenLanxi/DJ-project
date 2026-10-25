@@ -77,6 +77,12 @@ class LauncherSelfTestWiringTests(unittest.TestCase):
         self.assertIn('[switch]$ListDevices', self.text)
         self.assertIn('--devices', self.text)
 
+    def test_no_drone_mode_skips_real_drone_and_preflight(self):
+        # 飞机没电/连不上 Wi-Fi 时，也要能只验语音：此时走模拟飞机、跳过真机预检
+        self.assertIn('[switch]$NoDrone', self.text)
+        self.assertIn("if (-not $NoDrone) { $argv += '--real-drone' }", self.text)
+        self.assertIn('[跳过] -NoDrone', self.text)
+
 
 class CheckerMatchesEntryTests(unittest.TestCase):
     def test_required_flags_still_exist_in_entry(self):

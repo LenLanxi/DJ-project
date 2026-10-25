@@ -23,6 +23,7 @@ param(
     [switch]$ListDevices,
     [switch]$MicTest,
     [switch]$Loopback,
+    [switch]$NoDrone,
     [int]$InputDevice = -1,
     [int]$OutputDevice = -1,
     [switch]$Video,
@@ -41,7 +42,11 @@ $preflight = Join-Path $root 'tools\flight_preflight.py'
 
 Write-Host ''
 Write-Host '=================================================================' -ForegroundColor Cyan
-Write-Host ' AI 语音地面测试（真机连接 · 不授权起飞 · 桨叶必须拔掉）' -ForegroundColor Cyan
+if ($NoDrone) {
+    Write-Host ' AI 语音地面测试（模拟飞机 · 不连接真机）' -ForegroundColor Cyan
+} else {
+    Write-Host ' AI 语音地面测试（真机连接 · 不授权起飞 · 桨叶必须拔掉）' -ForegroundColor Cyan
+}
 Write-Host '=================================================================' -ForegroundColor Cyan
 
 if (-not (Test-Path $py)) {
@@ -102,7 +107,9 @@ if (Test-Path $followCfg) {
     Write-Host "[提示] 找不到 $followCfg，预检的控制档校验会退回默认值" -ForegroundColor DarkGray
 }
 $preflightOk = $true
-if (Test-Path $preflight) {
+if ($NoDrone) {
+    Write-Host '[跳过] -NoDrone：模拟飞机模式，不连接真机' -ForegroundColor Yellow
+} elseif (Test-Path $preflight) {
     $probeArgs = @('tools\flight_preflight.py', '--min-battery', '10',
                    '--temp-max', '95', '--temp-warn', '85')
     if ($DryRun) { $probeArgs += '--no-drone' }
@@ -125,9 +132,10 @@ if (Test-Path $preflight) {
 # ---------- 4. 组装参数（关键：永远不加 --allow-real-takeoff） ----------
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $logFile = Join-Path $root ("logs\voice_ground_{0}.log" -f $stamp)
-$argv = @(
-    'modules\ai\main.py',
-    '--real-drone',
+$argv = @('modules\ai\main.py')
+# -NoDrone：连不上飞机（没电/连不上 Wi-Fi）也要能验语音，此时走模拟飞机
+if (-not $NoDrone) { $argv += '--real-drone' }
+$argv += @(
     '--min-battery', '10',
     '--config', 'modules\ai\config.flight-test.json',
     '--log-file', $logFile,
@@ -168,11 +176,16 @@ Write-Host '  Ctrl+Shift+Alt+A = 零速度悬停      Ctrl+Shift+Alt+L = 立即�
 Write-Host '  终端备用热键 F12 / F11 同样有效' -ForegroundColor DarkGray
 Write-Host ''
 Write-Host '建议按这个顺序说（每句说完停一下，等它播报完再说下一句）：' -ForegroundColor Cyan
-Write-Host '  1) 还有多少电        → 读真实电量并播报'
+Write-Host '  1) 还有多少电        → 读电量并播报'
 Write-Host '  2) 现在什么状态      → 打印电量/高度/链路/是否在飞'
-Write-Host '  3) 现在多高          → 读真实高度'
-Write-Host '  4) 起飞              → 应被拒绝：[安全] 真机起飞被拒绝（地面测试未授权）'
-Write-Host '  5) 向前走30厘米      → 应被底层拦下：尚未起飞 / is_landed'
+Write-Host '  3) 现在多高          → 读高度'
+if ($NoDrone) {
+    Write-Host '  4) 起飞              → 模拟飞机上会"起飞"成功（结果标记 simulated）'
+    Write-Host '  5) 向前走30厘米      → 模拟飞机上会正常执行（结果标记 simulated）'
+} else {
+    Write-Host '  4) 起飞              → 应被拒绝：[安全] 真机起飞被拒绝（地面测试未授权）'
+    Write-Host '  5) 向前走30厘米      → 应被底层拦下：尚未起飞 / is_landed'
+}
 Write-Host '  6) 急停              → 走优先通道，立即零速度'
 Write-Host '  7) 结束              → 关闭免按键监听'
 Write-Host ''
