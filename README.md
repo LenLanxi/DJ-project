@@ -189,7 +189,8 @@
 &#x20;  - **飞行前检查** `tools/flight_preflight.py`：跟随配置（必须 `openpose_pid`）、whisper 模型是否已缓存、SAPI 是否可用、飞机连通、电量与电池温度。只监听 8890 的状态广播（`bat/templ/temph/h`），**不发 `command`**——用临时端口探测会把 Tello 的 UDP 会话抢走，导致 djitellopy 收不到回复。退出码：0 可飞 / 2 连不上 / 3 电量低于硬门限 / 5 SDK 命令口卡住（需断电重启）/ 6 8889 被占 / 7 电池过热；`WARN=battery_below_firmware_line` 只是提醒不拦。
 &#x20;  - **窗口2 HUD 图例**：绿框=ArUco 四角、红点=中心、绿竖线=画面中线；左上角 `found/cx/offset(...px)/sr`、`detect=…ms budget=…`、四通道速度 `v L/F/U/Y`，以及**跟随状态行**：`follow: RUNNING`（绿）/ `follow: STOPPED (原因) -> say it again`（红，需再说一次「开始跟随」）/ `follow: NOT STARTED`（橙）/ `follow: PAUSED`。OpenCV 画不了中文，状态行用 ASCII，中文原因看窗口1。
 &#x20;  - **日志**：`logs/flight_<时间>.log`（stdout+stderr 全程，含 STT/动作/RC/三组状态）+ `logs/flight_turns.jsonl`（每轮对话记录）。`logs/` 已在 `.gitignore` 里。
-&#x20;  - 离线语音是**固定口令**：起飞 / 跟着我 / 停止跟随 / 停在这里 / 降落 / 还有多少电。识别结果会先去标点再匹配，`起飞。`、`好的，起飞吧` 也能命中；「停止跟随」优先于「跟随」。
+&#x20;  - 离线语音是**固定口令**：起飞 / 跟着我 / 停止跟随 / 停在这里 / **升高 / 降低** / 降落 / 还有多少电。识别结果会先去标点再匹配，`起飞。`、`好的，起飞吧` 也能命中；「停止跟随」优先于「跟随」。
+&#x20;  - **起飞后自动补高度**：Tello 起飞只到约 1m，人站着举 ArUco 够不着，所以起飞成功后按真实 `height_cm` 闭环**离散上升**到 `--climb-target-cm`（默认 120cm，`0`/`--no-auto-climb` 关闭；启动器用 `-ClimbCm`）。每步 ≤50cm、8 秒超时、读不到高度或上升被拒就原地放弃；仍受 `_driver` 的 250cm 天花板与 `_plan_ascent` 限幅保护。三组跟随的升降通道**依然是 0**（只由这两个入口改高度，跟随律不受影响）。
 
 4\. 底层硬限制（真机模式生效）：限速 `100 cm/s`（与固件上限一致，室内 1m/s）、限高 `2.5 m`、RC 通道 ±100、地面强制 0 速度、指令超时+断连保护。详见 `API.md` 4.3。
 
