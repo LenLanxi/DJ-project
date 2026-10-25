@@ -147,3 +147,29 @@ https://developers.openai.com/api/reference/resources/chat
 https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create
 https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create
 https://python-sounddevice.readthedocs.io/en/latest/api/convenience-functions.html
+
+## 2组（总装与底层）接入层：实飞入口的额外参数
+
+四组交付的 `main.py` 是模拟包入口；接真实 Tello 时由 2组 在其上补了一层（全量替换后需重新补回，已固化为默认行为）：
+
+| 参数 | 作用 |
+|---|---|
+| `--real-drone --allow-real-takeoff` | 连接真机；起飞默认拒绝，两个参数都加才放行 |
+| `--min-battery 10` | 真机起飞电量门限（与 `controller.configure_takeoff` 一致） |
+| `--offline-voice` | 本地 faster-whisper 识别 + Windows SAPI 播报，免 API Key |
+| `--log-file <path>` | 控制台输出与报错同时落盘 |
+| `--show-video` | 图传窗口：绿框标 ArUco、红点标中心，叠加偏差/速度/跟随状态（守护线程，异常自愈成仅终端输出） |
+| `--climb-target-cm 120` / `--no-auto-climb` | 起飞后自动补高度（Tello 自身只到约 1m，人站着举码够不着） |
+
+急停（任何窗口聚焦都有效）：`Ctrl+Shift+Alt+A` = 零速度悬停，`Ctrl+Shift+Alt+L` = 立即降落。
+两者都走 `controller` 的 priority 通道，不排动作队列。终端里 `F12` / `F11` 为备用。
+
+HUD 与跟随状态行在独立模块 `follow_hud.py`（`follow_status_text` / `draw_follow_overlay` / `follow_snapshot` / `follow_line`），
+不再放在 `main.py` 里 —— 四组整包覆盖会把它一起带走。
+
+自检脚本：
+
+```bash
+python test_bluetooth_ai.py     # 录音→STT→豆包→TTS→丢帧防线，不连飞机（需 DOUBAO_API_KEY）
+python -m unittest discover -s modules/ai -p "test_*.py"
+```
