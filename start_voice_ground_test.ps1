@@ -22,6 +22,7 @@ param(
     [switch]$DryRun,
     [switch]$ListDevices,
     [switch]$MicTest,
+    [switch]$Loopback,
     [int]$InputDevice = -1,
     [int]$OutputDevice = -1,
     [switch]$Video,
@@ -75,6 +76,10 @@ if ($MicTest) {
     # 真录 3 秒：确认蓝牙耳机麦克风真的能收到声音，而不是"能打开但采不到"
     $checkArgs += '--record-test'
     if ($InputDevice -ge 0) { $checkArgs += @('--input-device', "$InputDevice") }
+}
+if ($Loopback) {
+    # 合成语音→识别→口令映射：不用说话也能证明"理解链路"是通的
+    $checkArgs += '--loopback'
 }
 & $py -X utf8 -B @checkArgs
 $checkOk = ($LASTEXITCODE -eq 0)

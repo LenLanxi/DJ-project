@@ -177,10 +177,50 @@ def mic_test(seconds=3.0, device=None):
                            '或改用 -InputDevice 指定别的设备')
 
 
+def loopback_test():
+    """TTS→WAV→whisper→口令映射 全链路自环：不用人说话也能验证识别与意图。"""
+    import tempfile
+    try:
+        import local_stt
+        import offline_tts
+        from demo_ai import scripted_action
+    except Exception as exc:                       # noqa: BLE001
+        report(False, '语音自环', '%s: %s' % (type(exc).__name__, exc))
+        return False
+    phrases = (('现在什么状态', 'get_status()'), ('还有多少电', 'get_battery()'),
+               ('起飞', 'takeoff()'), ('向前走30厘米', 'move_forward(30)'))
+    print('\n--- 语音自环：合成 → 识别 → 口令映射（不用说话）---', flush=True)
+    try:
+        stt = local_stt.LocalWhisper()
+    except Exception as exc:                       # noqa: BLE001
+        report(False, '语音自环', 'whisper 加载失败：%s: %s' % (type(exc).__name__, exc))
+        return False
+    path = tempfile.gettempdir() + '/voice_loopback.wav'
+    hits = 0
+    for text, expected in phrases:
+        try:
+            offline_tts.synthesize_to_wav(text, path)
+            with open(path, 'rb') as handle:
+                heard = stt.transcribe(handle.read()).strip()
+            got = scripted_action(heard)
+        except Exception as exc:                   # noqa: BLE001
+            print('  [FAIL] %-8s %s: %s' % (text, type(exc).__name__, exc), flush=True)
+            continue
+        if got == expected:
+            hits += 1
+            print('  [OK  ] 说「%s」→ 识别「%s」→ %s' % (text, heard, got), flush=True)
+        else:
+            print('  [MISS] 说「%s」→ 识别「%s」→ %s（期望 %s）'
+                  % (text, heard, got, expected), flush=True)
+    return report(hits == len(phrases), '语音自环', '%d/%d 命中' % (hits, len(phrases)))
+
+
 def main():
     parser = argparse.ArgumentParser(description='AI 语音地面测试前置自检')
     parser.add_argument('--devices', action='store_true', help='列出全部音频设备')
     parser.add_argument('--record-test', action='store_true', help='真录 3 秒，确认麦克风能收到声音')
+    parser.add_argument('--loopback', action='store_true',
+                        help='语音自环：合成语音→本地识别→口令映射，验证理解链路（不用说话）')
     parser.add_argument('--input-device', type=int, default=None, help='配合 --record-test 指定设备号')
     args = parser.parse_args()
 
@@ -192,6 +232,8 @@ def main():
     check_devices(args.devices)
     if args.record_test:
         mic_test(device=args.input_device)
+    if args.loopback:
+        loopback_test()
     check_log_dir()
 
     failed = [row for row in results if row[0] == 'FAIL']

@@ -61,6 +61,23 @@ class LauncherSafetyTests(unittest.TestCase):
         self.assertIn("'--log-file'", self.argv_block)
 
 
+class LauncherSelfTestWiringTests(unittest.TestCase):
+    def setUp(self):
+        self.text = LAUNCHER.read_text(encoding='utf-8-sig')
+
+    def test_mic_test_switch_reaches_the_checker(self):
+        self.assertIn('[switch]$MicTest', self.text)
+        self.assertIn("'--record-test'", self.text)
+
+    def test_loopback_switch_reaches_the_checker(self):
+        self.assertIn('[switch]$Loopback', self.text)
+        self.assertIn("'--loopback'", self.text)
+
+    def test_device_listing_switch_exists(self):
+        self.assertIn('[switch]$ListDevices', self.text)
+        self.assertIn('--devices', self.text)
+
+
 class CheckerMatchesEntryTests(unittest.TestCase):
     def test_required_flags_still_exist_in_entry(self):
         checker = load_checker()
