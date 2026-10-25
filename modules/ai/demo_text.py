@@ -4,9 +4,23 @@ from drone_adapter import MockDrone
 
 HELP = '可输入：查看电量、查看状态、起飞、跟着我、前进30厘米、停止跟随、停在这里、降落、退出'
 
+
 class Demo:
     def __init__(self, drone=None):
         self.drone = drone or MockDrone()
+
+    def describe(self):
+        """状态口语化：TTS 要念人话，不能把 status 字典原样念出去。"""
+        status = self.drone.get_status()
+        parts = ['当前电量 %s%%' % status.get('battery')]
+        height = status.get('height_cm')
+        if type(height) is int:
+            parts.append('高度 %d 厘米' % height)
+        parts.append('正在飞行' if status.get('flying') else '未起飞，在地面')
+        if status.get('following'):
+            parts.append('跟随已开启')
+        parts.append('链路正常' if status.get('connected', True) else '链路异常')
+        return '，'.join(parts) + '。'
 
     def handle(self, text):
         text = text.strip()
@@ -15,7 +29,7 @@ class Demo:
         if text == '查看电量':
             return prefix + '当前电量为%d%%。' % drone.get_status()['battery']
         if text == '查看状态':
-            return prefix + json.dumps(drone.get_status(), ensure_ascii=False)
+            return prefix + self.describe()
         if text == '跟着我':
             return prefix + ('已开始跟随' if drone.start_follow()['ok'] else '无法开始跟随，请查看状态')
         if text == '停止跟随':
@@ -33,8 +47,9 @@ class Demo:
             '前进30厘米': lambda: drone.move_forward('model', distance),
         }
         if text not in actions:
-            # 未知/听写错误的指令：绝不执行动作，并且必须让 TTS 能播报这句反问
-            return '抱歉，我没听清，请再说一遍；未识别固定指令，没有执行动作。' + HELP
+            # 未知/听写错误的指令：绝不执行动作，并且必须让 TTS 能播报这句反问。
+            # 这里只给一句短的——help 列表在启动横幅里已经打过了，念出来太啰嗦。
+            return '抱歉，我没听清，请再说一遍；未识别固定指令，没有执行动作。'
         was_following = drone.is_following()
         owns_follow = drone.get_status().get('owner') == 'follow'
         ticket = None

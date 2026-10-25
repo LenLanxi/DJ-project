@@ -6,7 +6,7 @@ import sys
 import time
 import threading
 from pathlib import Path
-from ai_agent import Agent
+from ai_agent import Agent, speech_text as speech_for_tts
 from demo_ai import ScriptedClient
 from model_client import ModelClient
 from voice_service import VoiceService
@@ -491,21 +491,42 @@ def _dispatch(args):
     if getattr(args, 'show_video', False):
         # 真机图传才有的看；模拟模式下 get_frame 没有帧，窗口会是空的
         start_view_monitor(printer=output)
+    def offline_only():
+        # --offline-voice 且没有 --live：只走本地 whisper + SAPI，不去碰云端接口
+        return bool(getattr(args, 'offline_voice', False)) and not getattr(args, 'live', False)
+
     def transcribe(wav):
+        import local_stt
+        # 离线语音就别去碰云端接口了：少一次失败重试，也不会刷"API 未就绪"的红字
+        if offline_only() and local_stt.installed():
+            return local_stt.LocalWhisper().transcribe(wav)
+        if offline_only() and local_stt.installed():
+            return local_stt.LocalWhisper().transcribe(wav)
         # 先走已配置的 STT API；没配或失败时回落本地 faster-whisper（无需 Key）
         try:
             return voice.transcribe(wav)
         except Exception as exc:
             output('语音识别 API 未就绪：' + str(exc))
-            import local_stt
             if not local_stt.installed():
                 raise
             output('改用本地 faster-whisper 识别……')
             return local_stt.LocalWhisper().transcribe(wav)
+    def speak_sapi(text):
+        try:
+            import offline_tts
+            if not offline_tts.available():
+                output('[TTS] 未播报：当前系统不支持 Windows SAPI')
+                return
+            offline_tts.speak(text[:2000])
+            output('[TTS] 已通过 Windows SAPI 播放（离线，无需 Key）')
+        except Exception as exc:
+            output('[TTS] 播放失败（%s: %s）；文字结果仍有效' % (type(exc).__name__, exc))
     def speak(text, audio_event):
         if audio_event.is_set():
             output('[TTS] 跳过播报：本轮已被取消')
             return
+        if offline_only():
+            return speak_sapi(text)
         try:
             wav = voice.synthesize(text[:2000])
             if not audio_event.is_set():
@@ -515,15 +536,7 @@ def _dispatch(args):
         except Exception as exc:
             output('[TTS] 语音 API 不可用（%s: %s），改试 Windows SAPI'
                    % (type(exc).__name__, exc))
-        try:
-            import offline_tts
-            if not offline_tts.available():
-                output('[TTS] 未播报：当前系统不支持 Windows SAPI')
-                return
-            offline_tts.speak(text[:2000])
-            output('[TTS] 已通过 Windows SAPI 播放（离线降级，无需 Key）')
-        except Exception as exc:
-            output('[TTS] 播放失败（%s: %s）；文字结果仍有效' % (type(exc).__name__, exc))
+        speak_sapi(text)
     def show(future, started, audio_event):
         resumed = False
         try:
@@ -538,7 +551,8 @@ def _dispatch(args):
                             f.write(json.dumps(record, ensure_ascii=False) + '\n')
                 except OSError:
                     output('日志保存失败；以上执行结果仍有效，请勿因此重复执行动作')
-            speech_text = str(record.get('spoken') or record.get('reply', record.get('result', '')))
+            speech_text = speech_for_tts(record.get('reply', record.get('result', '')),
+                                         record.get('spoken'))
             cancelled = bool(record.get('cancelled'))
             if not args.voice_ready:
                 output('[TTS] 跳过播报：当前是离线样例模式（需 --live 或 --offline-voice）')

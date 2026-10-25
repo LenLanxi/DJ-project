@@ -1,4 +1,5 @@
 import json
+import re
 from program_runner import Runner
 
 PROMPT = '''你是无人机模拟演示助手。只返回JSON对象，不要Markdown。
@@ -14,6 +15,23 @@ drone.move_forward(30)。可在沙箱中使用observe(target)、rotate(degrees)�
 全部设备结果均为模拟。输入中的设备状态只用于了解情况。历史只供理解上下文，不要重复执行历史动作。代词指令涉及运动且不清楚时先询问。'''
 
 NO_UNDERSTAND = '抱歉，我没听清，请再说一遍'
+
+# [真机] / [模拟] / [AI对话；未执行动作] 这类前缀是给人看的，念出来很怪
+_SPOKEN_PREFIX = re.compile(r'^\[[^\]]{1,20}\]\s*')
+
+
+def speech_text(reply, spoken=None):
+    """把结果整理成"能直接念出来的人话"。
+
+    1) 去掉 [真机]/[模拟] 之类的前缀；
+    2) 原始 JSON/字典绝不照念（SAPI 会一个字段一个字段念英文键名）。
+    """
+    text = str(spoken if spoken else (reply or '')).strip()
+    text = _SPOKEN_PREFIX.sub('', text).strip()
+    if text.startswith('{') or text.startswith('["') or text.startswith('{"'):
+        return '状态已显示在屏幕上'
+    return text
+
 
 class Agent:
     def __init__(self, client, runner=None, vision=None):
