@@ -56,7 +56,7 @@ def probe_voice():
     return 0
 
 
-def probe_drone(timeout=3.0):
+def probe_drone(timeout=2.5):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
 
@@ -69,8 +69,15 @@ def probe_drone(timeout=3.0):
 
     try:
         if ask('command') is None:
-            emit('DRONE', 'no_drone')
-            return 2, None
+            # 'command' 不回：可能是飞机在但 SDK 命令服务卡住（断电重启可恢复），
+            # 也可能已经处在 SDK 模式里。再问一次电量把两种情况区分开。
+            battery = ask('battery?')
+            if battery is None:
+                emit('DRONE', 'no_response')
+                return 2, None
+            emit('DRONE', 'sdk_mode_stuck')
+            emit('BATTERY', battery if battery.isdigit() else 'unknown')
+            return 5, int(battery) if battery.isdigit() else None
         emit('DRONE', 'ok')
         battery = ask('battery?')
         if battery and battery.isdigit():
@@ -100,6 +107,9 @@ def main(argv=None):
         emit('VERDICT', 'ok')
         return 0
     code, battery = probe_drone()
+    if code == 5:
+        emit('VERDICT', 'block:drone_sdk_stuck')
+        return code
     if code:
         emit('VERDICT', 'block:drone_unreachable' if code == 2 else 'block:drone_error')
         return code

@@ -67,6 +67,10 @@ if ($values['SAPI_AVAILABLE'] -ne 'True') {
 }
 
 $verdict = $values['VERDICT']
+if ($verdict -eq 'block:drone_sdk_stuck') {
+    Write-Host '[失败] 飞机在（Wi-Fi 通）但 SDK 命令口不响应：长按电源键关机 → 等 5 秒 → 开机 → 等 20 秒 → 重连 Wi-Fi。' -ForegroundColor Red
+    if (-not $Force) { exit 1 }
+}
 if ($verdict -eq 'block:drone_unreachable' -or $verdict -eq 'block:drone_error') {
     Write-Host '[失败] 连不上飞机（192.168.10.1:8889）：先连 Tello 的 Wi-Fi 再来一次。' -ForegroundColor Red
     if (-not $Force) { exit 1 }
@@ -119,6 +123,8 @@ Write-Host ("[日志] {0}" -f $logFile) -ForegroundColor Green
 Write-Host '====== 启动：窗口1 = 本终端，窗口2 = 图传（q 关窗口，Ctrl+C 结束）======' -ForegroundColor Cyan
 Write-Host ''
 
+# 探测刚占了 Tello 的 UDP 会话，给它 2 秒清掉再让 main.py 正式握手
+Start-Sleep -Milliseconds 2000
 & $py -X utf8 -B @argv
 $code = $LASTEXITCODE
 Write-Host ''
