@@ -3,6 +3,7 @@
 Keep one follow service during a normal model action. Explicit stop invalidates
 its ticket and closes workers. No hardware connection is created here.
 """
+import os
 import sys
 import threading
 import time
@@ -12,7 +13,10 @@ from .contract import ControlResult
 REPOSITORY = Path(__file__).resolve().parent.parent
 MODULES_DIR = REPOSITORY / 'modules' / 'follow'
 FIRST_FRAME_TIMEOUT = 1.0
-RECOVERY_WINDOW = 3
+# 目标丢失后保持"跟随模式"的窗口（秒）：窗口内持续零速度悬停，目标重新稳定出现
+# （连续 3 帧、≥0.15s）就自动恢复跟随；超过窗口才锁定为 target_lost 并要求显式重启。
+# 现场可用环境变量 R3_RECOVERY_WINDOW_S 临时调整，不必改代码。
+RECOVERY_WINDOW = float(os.environ.get('R3_RECOVERY_WINDOW_S', '30'))
 
 
 class FollowIntegration:
