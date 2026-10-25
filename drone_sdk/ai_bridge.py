@@ -179,6 +179,20 @@ class UnifiedDrone:
         text = "前进 %d 厘米完成" % cm if result.status == 'completed' else '动作请求已发送，完成尚未确认'
         return _command_result(result, text)
 
+    def move_up(self, owner, cm):
+        if _landing_in_progress():
+            return _landing_denied()
+        result = self._call('move_up', owner, cm)
+        text = "上升 %d 厘米完成" % cm if result.status == 'completed' else '上升请求已发送，完成尚未确认'
+        return _command_result(result, text)
+
+    def move_down(self, owner, cm):
+        if _landing_in_progress():
+            return _landing_denied()
+        result = self._call('move_down', owner, cm)
+        text = "下降 %d 厘米完成" % cm if result.status == 'completed' else '下降请求已发送，完成尚未确认'
+        return _command_result(result, text)
+
     # --- 跟随 ---
     def start_follow(self):
         if _landing_in_progress():

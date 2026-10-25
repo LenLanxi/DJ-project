@@ -31,6 +31,22 @@ class ScriptedActionTests(unittest.TestCase):
         self.assertEqual(scripted_action('悬停'), 'stop_motion()')
         self.assertEqual(scripted_action('急停'), 'stop_motion()')
 
+    def test_altitude_phrases(self):
+        for text in ('升高', '升高一点', '上升', '抬高'):
+            with self.subTest(text=text):
+                self.assertEqual(scripted_action(text), 'move_up(30)')
+        for text in ('降低', '下降', '放低一点'):
+            with self.subTest(text=text):
+                self.assertEqual(scripted_action(text), 'move_down(30)')
+
+    def test_agent_executes_altitude_commands(self):
+        agent = Agent(ScriptedClient())
+        agent.handle('起飞')
+        record = agent.handle('升高')
+        self.assertTrue(record.get('execution', {}).get('accepted'), record)
+        record = agent.handle('降低')
+        self.assertTrue(record.get('execution', {}).get('accepted'), record)
+
     def test_unknown_still_declines(self):
         for text in ('今天天气怎么样', '', '   ', '帮我写个总结'):
             with self.subTest(text=text):

@@ -6,7 +6,11 @@ from drone_adapter import MockDrone
 COMMANDS = {'get_status': '查看状态', 'get_battery': '查看电量',
             'takeoff': '起飞', 'land': '降落', 'start_follow': '跟着我',
             'stop_follow': '停止跟随', 'stop_motion': '停在这里',
-            'move_forward': '前进30厘米'}
+            'move_forward': '前进30厘米', 'move_up': '升高30厘米',
+            'move_down': '降低30厘米'}
+
+# 允许带"厘米"参数的接口（20~100cm，与 move_forward 同一限制）
+DISTANCE_COMMANDS = ('move_forward', 'move_up', 'move_down')
 
 def validate(code):
     if not isinstance(code, str) or len(code) > 2000:
@@ -23,10 +27,10 @@ def validate(code):
             call.func.attr in COMMANDS and not call.keywords):
         raise ValueError('接口不在允许列表')
     name = call.func.attr
-    if name == 'move_forward':
+    if name in DISTANCE_COMMANDS:
         if not (len(call.args) == 1 and isinstance(call.args[0], ast.Constant)
                 and type(call.args[0].value) is int and 20 <= call.args[0].value <= 100):
-            raise ValueError('当前演示仅支持前进30厘米')
+            raise ValueError('移动类接口只接受 20~100 厘米的整数参数')
     elif call.args:
         raise ValueError('此接口不接受参数')
     return name

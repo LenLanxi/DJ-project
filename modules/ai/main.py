@@ -324,12 +324,44 @@ def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
                           '请充到 60%% 以上再起飞。' % drv.TAKEOFF_FIRMWARE_BATTERY)
                 else:
                     print('       → 检查桨叶是否装反（正/反桨必须对角对应）、飞机是否水平静置。')
+        else:
+            climb_after_takeoff(args, drv, owner)
         return result
     drone.takeoff = guarded_takeoff
 
     print('真机动作授权：起飞=%s，电量阈值 %d%%' % (
         '允许' if args.allow_real_takeoff else '禁止', args.min_battery))
     return Runner(Demo(drone), allow_simulated_sdk=True, allow_programs=True), drone
+
+
+def climb_after_takeoff(args, drv, owner, timeout=8.0):
+    """起飞后把高度补到 --climb-target-cm（默认 120cm）：Tello 只升到约 1m，
+    摄像头平视，算子站着举 ArUco 才够得着。一次性离散上升，不做连续闭环。"""
+    target = getattr(args, 'climb_target_cm', 120)
+    if getattr(args, 'no_auto_climb', False) or not target:
+        return
+    target = max(60, min(200, int(target)))
+    from drone_sdk import controller as ctl
+    deadline = time.monotonic() + timeout
+    try:
+        while time.monotonic() < deadline:
+            height = drv.health()['height_cm']
+            if type(height) is not int:
+                print('[高度] 读不到真实高度（%s），不做自动升高' % (height,))
+                return
+            remaining = target - height
+            if remaining <= 15:
+                print('[高度] 当前 %dcm，已接近目标 %dcm' % (height, target))
+                return
+            step = int(min(50, remaining))
+            print('[高度] %dcm → 目标 %dcm，上升 %dcm' % (height, target, step))
+            result = ctl.move_up(owner, step)
+            if not result.ok:
+                print('[高度] 上升被拒绝：%s（高度保持不变）' % (result.reason,))
+                return
+            time.sleep(1.0)          # 等遥测刷新再判断下一步
+    except Exception as exc:
+        print('[高度] 自动升高异常：%s: %s（高度保持不变）' % (type(exc).__name__, exc))
 
 
 _SHUTDOWN_DONE = {'done': False}
@@ -560,6 +592,10 @@ def main():
     parser.add_argument('--output-device',type=int)
     parser.add_argument('--log-file',
                         help='全程日志文件（控制台输出与报错同时写入，便于事后排查）')
+    parser.add_argument('--climb-target-cm', type=int, default=120,
+                        help='起飞后自动补高度到此值（厘米，默认 120；Tello 起飞仅约 100cm）')
+    parser.add_argument('--no-auto-climb', action='store_true',
+                        help='起飞后不自动升高（保持 Tello 默认约 1m）')
     args = parser.parse_args()
     if getattr(args, 'log_file', None):
         try:
