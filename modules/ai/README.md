@@ -182,6 +182,7 @@ python -m unittest discover -s modules/ai -p "test_*.py"
 ```bat
 start_voice_ground_test.cmd -ListDevices                 :: 连蓝牙耳机后先看设备号
 start_voice_ground_test.cmd -MicTest -InputDevice 5      :: 先真录 3 秒确认麦克风能收到声音
+start_voice_ground_test.cmd -Loopback                    :: 语音自环：合成→识别→口令映射（不用说话）
 start_voice_ground_test.cmd -InputDevice 5 -OutputDevice 7
 start_voice_ground_test.cmd -Video                       :: 顺带弹出图传 HUD
 start_voice_ground_test.cmd -Realtime                    :: 走四组全双工链路（需 AI_REALTIME_* 环境变量）
