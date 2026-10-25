@@ -13,6 +13,7 @@
 param(
     [string]$Config = 'modules\follow\configs\aircraft_A_ID0.json',
     [int]$MinBattery = 10,
+    [int]$ClimbCm = 120,
     [switch]$Hybrid,
     [switch]$Volc,
     [switch]$NoVideo,
@@ -122,6 +123,13 @@ if ($Volc) {
     if (-not $NoVideo) { $argv += '--show-video' }
     Write-Host '[模式] 离线语音：本地 whisper 识别 + SAPI 播报，不需要 API Key' -ForegroundColor Cyan
 }
+# 起飞后自动补高度：Tello 只升到约 1m，补到 120cm 方便人站着举码（-ClimbCm 0 = 不自动升）
+if ($Volc) {
+    if ($ClimbCm -gt 0) { $argv += @('--climb-target-cm', "$ClimbCm") } else { $argv += '--no-auto-climb' }
+} else {
+    if ($ClimbCm -gt 0) { $argv += @('--climb-target-cm', "$ClimbCm") } else { $argv += '--no-auto-climb' }
+}
+Write-Host ("[高度] 起飞后自动补到 {0}cm（0 = 不自动升）" -f $ClimbCm) -ForegroundColor Green
 
 if ($DryRun) {
     Write-Host ''
