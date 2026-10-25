@@ -31,7 +31,11 @@ class Demo:
         if text == '查看状态':
             return prefix + self.describe()
         if text == '跟着我':
-            return prefix + ('已开始跟随' if drone.start_follow()['ok'] else '无法开始跟随，请查看状态')
+            result = drone.start_follow()
+            if result['ok']:
+                return prefix + '已开始跟随'
+            # 带上真实原因（地面状态通常是"尚未起飞"），别只说"请查看状态"
+            return prefix + '无法开始跟随：' + str(result.get('message') or '原因未知')
         if text == '停止跟随':
             return prefix + drone.stop_follow()['message']
         import re
