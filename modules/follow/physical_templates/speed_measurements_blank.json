@@ -1,0 +1,18 @@
+{
+  "note": "模板：空值必须由实际飞机位移与计时填写。不能填人的相对运动或把RC30写成30cm/s。未填写会明确返回未标定。",
+  "records": [
+    {
+      "method": "displacement",
+      "measured_object": "aircraft",
+      "aircraft_key": "",
+      "axis": "forward_back",
+      "rc": null,
+      "signed_displacement_m": null,
+      "elapsed_s": null,
+      "constant_rc_confirmed": false,
+      "other_axes_zero_confirmed": false,
+      "heading_held_confirmed": false,
+      "evidence": ""
+    }
+  ]
+}

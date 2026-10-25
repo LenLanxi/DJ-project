@@ -1,4 +1,9 @@
-"""Rendered ArUco -> real detector -> service -> virtual plant; entirely offline."""
+"""Historical lateral virtual plant with current ArUco detection; offline only.
+
+The plant models translation, not heading. This is a legacy lateral regression,
+not validation of the current open-source yaw/PID profile or actual flight.
+"""
+import argparse
 import csv
 import hashlib
 import json
@@ -107,7 +112,8 @@ def service_loop(case='clean', steps=100):
     now = [0.0]
     port = FailingPort(lambda: now[0])
     service = FollowService(port, monotonic=lambda: now[0],
-                            wall_clock=lambda: 1800000000+now[0], recovery_window=3)
+                            wall_clock=lambda: 1800000000+now[0], recovery_window=3,
+                            steering_mode='lateral', control_profile='legacy', log_directory=False)
     frame, _ = render()
     port.publish(frame, 0, 1800000000)
     service.capture_once()
@@ -170,9 +176,9 @@ def service_loop(case='clean', steps=100):
         service.close()
 
 
-def main():
+def main(output=None):
     cv2.setNumThreads(1)
-    folder = Path(__file__).resolve().parent/'logs'/'image_loop'
+    folder = Path(output) if output is not None else Path(__file__).resolve().parent/'logs'/'image_loop'
     folder.mkdir(parents=True, exist_ok=True)
     comparison = benchmark(folder)
     cases = ('clean','dim','blur','tilted','small','loss','wrong_id','freeze',
@@ -190,12 +196,17 @@ def main():
         summaries.append(summary)
         print(case, summary['final_state'], flush=True)
     write_json(folder/'summary.json', dict(simulation_only=True, hardware_verified=False,
-               baseline='OpenCV default detector', candidate='existing v0.9 multiscale detector, unchanged',
+               baseline='OpenCV default detector', candidate='current R3 marker detector',
+               control_profile='legacy', steering_mode='lateral',
+               current_open_source_yaw_validated=False,
+               experiment='historical lateral-only virtual plant regression',
                timing='Measured processing time; virtual motion clock does not include computation time',
                comparison=comparison, service_cases=summaries))
     assert all(s['nontracking_nonzero']==0 for s in summaries)
-    print('Image loop experiments complete; no UI/camera/network.')
+    print('Historical lateral image-loop regression complete; not current yaw/PID acceptance; no UI/camera/network.')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path)
+    main(parser.parse_args().output)

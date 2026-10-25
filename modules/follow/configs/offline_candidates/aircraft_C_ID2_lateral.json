@@ -1,0 +1,8 @@
+{
+  "instance_id": "aircraft-C",
+  "target_id": 2,
+  "dictionary": "DICT_4X4_50",
+  "control_profile": "openpose_pid",
+  "physical_distance_m": null,
+  "steering_mode": "lateral"
+}

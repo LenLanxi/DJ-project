@@ -1,0 +1,23 @@
+{
+  "note": "仅用于已有同步遥测。需生产方确认轴/正负方向，按已验证单位转换到m/s；不知道vgx等单位不能猜。同一时钟下RC保持不变的区间必须覆盖全部遥测。",
+  "records": [
+    {
+      "method": "telemetry",
+      "measured_object": "aircraft",
+      "aircraft_key": "",
+      "axis": "forward_back",
+      "rc": null,
+      "constant_rc_confirmed": false,
+      "other_axes_zero_confirmed": false,
+      "heading_held_confirmed": false,
+      "telemetry_unit": "m/s",
+      "telemetry_axis": "forward_back",
+      "common_clock_confirmed": false,
+      "axis_mapping_confirmed": false,
+      "rc_start_s": null,
+      "rc_end_s": null,
+      "samples": [],
+      "evidence": ""
+    }
+  ]
+}

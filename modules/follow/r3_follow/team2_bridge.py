@@ -1,11 +1,16 @@
 """Candidate follow callbacks for team 2 to register. No monkeypatch of SDK."""
 from .service import FollowService
+from .config import load_config
 
 
 class Team3FollowBridge:
-    def __init__(self, port, recovery_window=3):
+    def __init__(self, port, recovery_window=3, *, config=None):
+        # No change to team 2's constructor calls is required: each process can
+        # select its own R3_FOLLOW_CONFIG before the bridge is constructed.
+        self.config = load_config(config)
         self.port=port
-        self.service=FollowService(port,recovery_window=recovery_window)
+        self.service=FollowService(port, recovery_window=recovery_window, console_notices=True,
+                                   **self.config.to_dict())
 
     def _control_result(self, result):
         # Match team 2's public follow result, retain internal action tickets.

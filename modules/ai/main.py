@@ -15,6 +15,62 @@ from session import Session
 from settings import load
 import audio_io
 
+# --- 全局急停热键（Windows）：不依赖终端是否在前台 ---
+# 用 GetAsyncKeyState 读全局键盘状态，无需消息循环、无需管理员权限。
+_VK_F12, _VK_F11 = 0x7B, 0x7A
+try:
+    import ctypes
+    _user32 = ctypes.windll.user32
+    _kernel32 = ctypes.windll.kernel32
+except Exception:                      # 非 Windows 或受限环境：热键自动失效
+    _user32 = _kernel32 = None
+_hotkey_prev = {_VK_F12: False, _VK_F11: False}
+
+
+def key_down(vk):
+    if _user32 is None:
+        return False
+    try:
+        return bool(_user32.GetAsyncKeyState(vk) & 0x8000)
+    except Exception:
+        return False
+
+
+def hotkey_edge(vk):
+    """只在按下的那一瞬间返回 True，按住不会连续触发。"""
+    now = key_down(vk)
+    was = _hotkey_prev.get(vk, False)
+    _hotkey_prev[vk] = now
+    return now and not was
+
+
+def focus_console():
+    """把控制台窗口拉到最前，方便现场随时看到日志并 Ctrl+C。
+
+    Windows 只允许"当前有焦点的进程"调 SetForegroundWindow，因此失败时
+    用一次 ALT 按键解除该限制后再试。
+    """
+    if _user32 is None or _kernel32 is None:
+        return False
+    try:
+        hwnd = _kernel32.GetConsoleWindow()
+        if not hwnd:
+            return False
+        _user32.ShowWindow(hwnd, 9)          # SW_RESTORE
+        if _user32.SetForegroundWindow(hwnd):
+            return True
+        _user32.keybd_event(0x12, 0, 0, 0)   # ALT down，解除前台锁定
+        try:
+            return bool(_user32.SetForegroundWindow(hwnd))
+        finally:
+            _user32.keybd_event(0x12, 0, 2, 0)  # ALT up
+    except Exception:
+        return False
+
+
+EMERGENCY_HELP = '急停：F12=零速度悬停  F11=立即降落（终端在后台也有效）'
+
+
 HELP = '''输入文字与模拟飞机互动。命令：
  /listen 开关免按键全双工语音（自动 VAD 录音→识别→执行，默认启动时 --always-on 打开）
  /voice 录音（回车开始，固定时长，识别后直接执行；加 --voice-confirm 可二次确认）
@@ -256,9 +312,40 @@ async def run_volc_dialog(args):
     print('[豆包] 模型 %s / 音色 %s' % (dialog.model, dialog.voice))
     print('[豆包] 端点 %s' % dialog.url)
     print('[豆包] 已开启工具调用：run_program / interrupt')
+    print(EMERGENCY_HELP)
+    focus_console()
+
+    async def watch_hotkeys():
+        """全局热键：终端在后台也能急停。"""
+        while True:
+            stop_now = hotkey_edge(_VK_F12)
+            land_now = hotkey_edge(_VK_F11)
+            if stop_now:
+                print('\n[急停] F12 → 零速度悬停', flush=True)
+                try:
+                    await dialog.emergency(False)
+                    print('[急停] 指令已下发', flush=True)
+                except Exception as exc:
+                    print('[急停] 下发失败：%s' % exc, flush=True)
+            if land_now:
+                print('\n[急停] F11 → 立即降落', flush=True)
+                try:
+                    await dialog.emergency(True)
+                    print('[急停] 降落已下发', flush=True)
+                except Exception as exc:
+                    print('[急停] 下发失败：%s' % exc, flush=True)
+            await asyncio.sleep(0.05)
+
+    import asyncio
+    watcher = asyncio.create_task(watch_hotkeys())
     try:
         await dialog.run()
     finally:
+        watcher.cancel()
+        try:
+            await watcher
+        except asyncio.CancelledError:
+            pass
         # 与 --realtime 一致：无论正常返回、异常还是 Ctrl+C，真机必须断开并关图传。
         if getattr(args, 'real_drone', False):
             shutdown_real()
@@ -654,6 +741,8 @@ def _dispatch(args):
             velocity, state, reason), flush=True)
     if headless:
         print('[监听] stdin 非终端 → 无键盘模式：只用语音控制，Ctrl+C 结束')
+        print(EMERGENCY_HELP)
+        focus_console()
     if args.always_on and not start_listener():
         output('[监听] 未能开启，继续用键盘或 /voice 模式')
     print('免按键语音：%s' % ('开（说话即识别，静音 %.1f 秒判停；输入 /listen 关闭）' % args.silence_s
@@ -661,6 +750,19 @@ def _dispatch(args):
     try:
         while True:
             if headless:
+                # 全局热键：终端不在前台也能急停
+                if hotkey_edge(_VK_F12):
+                    output('[急停] F12 → 零速度悬停')
+                    try:
+                        session.interrupt(False)
+                    except Exception as exc:
+                        output('[急停] 下发失败：%s' % exc)
+                if hotkey_edge(_VK_F11):
+                    output('[急停] F11 → 立即降落')
+                    try:
+                        session.interrupt(True)
+                    except Exception as exc:
+                        output('[急停] 下发失败：%s' % exc)
                 if show_video:
                     try:
                         now = time.monotonic()

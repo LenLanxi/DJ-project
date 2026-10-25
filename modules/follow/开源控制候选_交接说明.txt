@@ -1,0 +1,4 @@
+本次以《本次交接说明.txt》和《接入与环境说明.txt》为准。
+版本r3-9889b47-closeout1；完整保留_vendor目录中的上游来源、MIT许可证和原文件。
+仍复用tello-openpose的横向/前后计算及simple-pid，三组只做标记输入、时序、保护和显式通道分配。
+原参数对照入口openpose_compare.py及pid_ablation_check.py保留；新横向模式的离线证据在包根目录证据/horizontal。

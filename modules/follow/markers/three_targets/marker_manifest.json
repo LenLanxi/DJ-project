@@ -1,0 +1,31 @@
+{
+  "dictionary": "DICT_4X4_50",
+  "synthetic_print_assets": true,
+  "physical_print_size_not_calibrated": true,
+  "assets": [
+    {
+      "target_id": 0,
+      "file": "DICT_4X4_50_ID_0.png",
+      "sha256": "ee50e6f4167f64d9805dda50191d10c5ec688e2ea86a1f67a8165faf64500212",
+      "black_marker_side_px": 600,
+      "white_margin_px": 100,
+      "decoded_id": 0
+    },
+    {
+      "target_id": 1,
+      "file": "DICT_4X4_50_ID_1.png",
+      "sha256": "9971eabd565ef6176d670b8892ba4e6efb4c8b7d7c13b569de1b3a6886fa68dc",
+      "black_marker_side_px": 600,
+      "white_margin_px": 100,
+      "decoded_id": 1
+    },
+    {
+      "target_id": 2,
+      "file": "DICT_4X4_50_ID_2.png",
+      "sha256": "8b815e1c468da1cac6231cb7d05f2b421b1d01492c11bc37861f6c125b5c69a9",
+      "black_marker_side_px": 600,
+      "white_margin_px": 100,
+      "decoded_id": 2
+    }
+  ]
+}

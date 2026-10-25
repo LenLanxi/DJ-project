@@ -1,4 +1,9 @@
-"""Generated-image integration checks. No UI, webcam, drone or networking."""
+"""Historical lateral-control regression with generated images, entirely offline.
+
+This preserves the old translation example; it does not test the new open-source
+yaw/PID profile. Use field_latency_demo.py for the current latency lifecycle.
+"""
+import argparse
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -9,10 +14,13 @@ from r3_follow.vision import synthetic_frame
 
 
 def run(output_dir=None):
+    destination = Path(output_dir) if output_dir else Path(__file__).parent / "logs" / "service_preview"
     now = [10.0]
     port = MockPort(lambda: now[0])
     service = FollowService(port, monotonic=lambda: now[0],
-                            wall_clock=lambda: 1800000000 + now[0])
+                            wall_clock=lambda: 1800000000 + now[0],
+                            steering_mode="lateral", control_profile="legacy",
+                            log_directory=destination / "background")
     seq, checks = 0, []
 
     def frame(**kwargs):
@@ -46,6 +54,9 @@ def run(output_dir=None):
                   and not service.is_following())
             port.release_control(model_lease)
             result = service.finish_action(ticket, "completed")
+            # Starting/resuming seeds the request ramp at zero. A subsequent
+            # new frame advances the normal gradual request, as in operation.
+            frame(x=.2)
             check("完成动作后重新检查目标并恢复", result.ok and port.velocity[0] < 0)
 
             frame(visible=False)
@@ -81,10 +92,11 @@ def run(output_dir=None):
     finally:
         service.close()
 
-    report = dict(component="R3 headless service preview 1", checks_passed=len(checks),
+    report = dict(component="R3 historical lateral service regression", checks_passed=len(checks),
                   input="generated_ArUco_images", simulation_only=True,
+                  control_profile="legacy", steering_mode="lateral",
+                  current_open_source_yaw_validated=False,
                   hardware_verified=False, team2_repository_tested=False, checks=checks)
-    destination = Path(output_dir) if output_dir else Path(__file__).parent / "logs" / "service_preview"
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "result.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     records = [dict(component="service", **e) for e in service.events]
@@ -92,7 +104,7 @@ def run(output_dir=None):
     records.sort(key=lambda e: e["time"])
     (destination / "events.jsonl").write_text(
         "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in records), encoding="utf-8")
-    summary = "三组后台跟随模块：生成图片离线验证\n\n" + "\n".join(
+    summary = "三组历史横移示例：生成图片离线回归（不是本次开源转向控制验收）\n\n" + "\n".join(
         "通过：" + entry["name"] for entry in checks)
     summary += "\n\n这是本地模拟验证，未测试二组仓库、无人机视频、实际飞行和实机中断。\n"
     (destination / "测试结果.txt").write_text(summary, encoding="utf-8-sig")
@@ -101,4 +113,6 @@ def run(output_dir=None):
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path)
+    run(parser.parse_args().output)

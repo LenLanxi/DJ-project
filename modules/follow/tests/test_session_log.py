@@ -42,7 +42,7 @@ class SessionLogTests(unittest.TestCase):
             finally:
                 gate.set()
                 self.assertTrue(log.finished.wait(2))
-            rows = [json.loads(line) for line in log.path.read_text().splitlines()]
+            rows = [json.loads(line) for line in log.path.read_text(encoding="utf-8").splitlines()]
             self.assertFalse(rows[-1]["complete"])
             self.assertTrue(log.status()["incomplete"])
 
@@ -72,7 +72,7 @@ class SessionLogTests(unittest.TestCase):
                 closer.join(1)
             self.assertTrue(log.finished.wait(1))
             self.assertEqual(log.queue.qsize(), 0)
-            self.assertIn('"race"', log.path.read_text())
+            self.assertIn('"race"', log.path.read_text(encoding="utf-8"))
             self.assertFalse(log.submit({"event":"too_late"}))
             self.assertEqual(log.rejected_after_close, 1)
 
@@ -107,7 +107,7 @@ class SessionLogTests(unittest.TestCase):
             service.control_once()
             service.close()
             self.assertTrue(service.session_log.finished.wait(1))
-            rows = [json.loads(line) for line in service.session_log.path.read_text().splitlines()]
+            rows = [json.loads(line) for line in service.session_log.path.read_text(encoding="utf-8").splitlines()]
             events = {row["event"] for row in rows}
             self.assertTrue({"observation","motion_request","cleanup_completed","stop"} <= events)
             self.assertTrue(any(row.get("channels",[0,0,0,0])[3]>0 for row in rows))

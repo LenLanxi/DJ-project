@@ -3,6 +3,18 @@ from dataclasses import dataclass
 from enum import StrEnum
 import math
 
+from .openpose_control import OpenPoseMarkerControl, PROFILE as OPENPOSE_PROFILE
+
+_DEFAULT_STEERING = object()
+
+# Fresh images with no trustworthy observation may wait at zero. Invalid IDs,
+# ambiguous duplicates and stale images are deliberately not recoverable here.
+# An unfinished identity scan supplies NO position, but does not prove that
+# two copies exist. Retry within the same bounded zero-command recovery window.
+# Confirmed ambiguous_duplicate_id deliberately remains a latched stop.
+RECOVERABLE_MISS_REASONS = ("", "not_found", "detection_budget_exceeded",
+                          "ambiguous_scan_budget_exceeded")
+
 
 class State(StrEnum):
     STOPPED = "stopped"
@@ -17,7 +29,7 @@ class State(StrEnum):
 @dataclass(frozen=True)
 class Observation:
     frame_id: int
-    acquired_at: float  # local time.monotonic(), time read completed
+    acquired_at: float  # frame acquisition in local monotonic time, never detection completion
     source: str
     width: int
     height: int
@@ -153,8 +165,9 @@ class ApparentSizeGuard:
 class FollowController:
     def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
                  max_request_rate=None, require_geometry=False,
-                 steering_mode="lateral", yaw_limit=0.20,
-                 alignment_stop=0.30, alignment_resume=0.18):
+                 steering_mode=_DEFAULT_STEERING, yaw_limit=0.20,
+                 alignment_stop=0.30, alignment_resume=0.18,
+                 control_profile="legacy"):
         if max_age <= 0 or not math.isfinite(max_age):
             raise ValueError("max_age must be finite and positive")
         self.target_id = target_id
@@ -168,8 +181,17 @@ class FollowController:
                 or not math.isfinite(max_request_rate) or max_request_rate <= 0):
             raise ValueError("max_request_rate must be None or finite and positive")
         self.max_request_rate = max_request_rate
-        if steering_mode not in ("lateral", "yaw"):
-            raise ValueError("steering_mode must be lateral or yaw")
+        if control_profile not in ("legacy", "openpose_pid"):
+            raise ValueError("control_profile must be legacy or openpose_pid")
+        # Preserve the bare legacy controller's old lateral default. Selecting
+        # the open-source profile alone must still use its original yaw routing;
+        # lateral/hybrid require explicit selection. Explicit None is invalid.
+        if steering_mode is _DEFAULT_STEERING:
+            steering_mode = "yaw" if control_profile == "openpose_pid" else "lateral"
+        if steering_mode not in ("lateral", "yaw", "hybrid"):
+            raise ValueError("steering_mode must be lateral, yaw or hybrid")
+        if steering_mode == "hybrid" and control_profile != "openpose_pid":
+            raise ValueError("hybrid steering requires openpose_pid")
         for name, value in (("yaw_limit", yaw_limit),
                             ("alignment_stop", alignment_stop),
                             ("alignment_resume", alignment_resume)):
@@ -178,13 +200,17 @@ class FollowController:
                 raise ValueError(f"{name} must be finite and in (0, 1]")
         if alignment_resume >= alignment_stop:
             raise ValueError("alignment_resume must be smaller than alignment_stop")
-        self.steering_mode = steering_mode
+        self._steering_mode = steering_mode
+        self.control_profile = control_profile
+        self._openpose = (OpenPoseMarkerControl(yaw_limit=yaw_limit, max_dt=max_age,
+                                               steering_mode=steering_mode)
+                          if control_profile == "openpose_pid" else None)
         # Dimensionless OFFLINE candidate, not an experimentally measured yaw
         # speed or a claim that this gain/limit is safe for physical flight.
         self.yaw_limit = yaw_limit
         self.alignment_stop = alignment_stop
         self.alignment_resume = alignment_resume
-        self._alignment_blocked = steering_mode == "yaw"
+        self._alignment_blocked = steering_mode == "yaw" and self._openpose is None
         self._motion_at = None
         self._motion_values = (0.0, 0.0, 0.0)
         self._loss_at = None
@@ -200,6 +226,11 @@ class FollowController:
         self.last_stop_reason = ""
         self.distance_guard = ApparentSizeGuard(required=require_geometry)
 
+    @property
+    def steering_mode(self):
+        """Read-only for this instance; switching requires a newly built controller."""
+        return self._steering_mode
+
     def _valid(self, obs):
         if not isinstance(obs, Observation):
             return False
@@ -208,14 +239,14 @@ class FollowController:
                 or type(obs.found) is not bool
                 or type(obs.width) is not int or type(obs.height) is not int
                 or obs.width <= 0 or obs.height <= 0
-                or not isinstance(obs.acquired_at, (int, float))
+                or type(obs.acquired_at) not in (int, float)
                 or not math.isfinite(obs.acquired_at)):
             return False
-        if obs.target_id != self.target_id:
+        if type(obs.target_id) is not int or obs.target_id != self.target_id:
             return False
         if obs.found:
             values = (obs.center_x, obs.center_y, obs.size_ratio)
-            if any(not isinstance(x, (int, float)) or not math.isfinite(x) for x in values):
+            if any(type(x) not in (int, float) or not math.isfinite(x) for x in values):
                 return False
             if not (0 <= obs.center_x < obs.width and 0 <= obs.center_y < obs.height
                     and 0 < obs.size_ratio <= 2):
@@ -227,14 +258,19 @@ class FollowController:
         if not self._valid(obs):
             self._invalid = True
             self.distance_guard.block("invalid_input")
+            if self._openpose:
+                self._openpose.reset()
             return False
         if self._source is not None and obs.source != self._source:
             self._invalid = True
             return False  # source switch requires a new controller/calibration
         if obs.frame_id <= self._last_frame_id:
             return False  # duplicates never refresh the stored timestamp
-        if self.observation is not None and obs.acquired_at < self.observation.acquired_at:
+        if self.observation is not None and obs.acquired_at <= self.observation.acquired_at:
             self._invalid = True
+            self.distance_guard.block("nonadvancing_frame_time")
+            if self._openpose:
+                self._openpose.reset()
             return False
         if (self.observation is not None
                 and self.state in (State.TRACKING, State.RECOVERING)
@@ -244,7 +280,7 @@ class FollowController:
             self._clear_recovery()
             self.distance_guard.block("frame_gap")
         if self.state == State.RECOVERING:
-            if not obs.found and obs.reason not in ("", "not_found"):
+            if not obs.found and obs.reason not in RECOVERABLE_MISS_REASONS:
                 self.state = State.LOST
                 self.last_stop_reason = obs.reason
                 self._clear_recovery()
@@ -261,6 +297,8 @@ class FollowController:
         self._last_frame_id = obs.frame_id
         self.observation = obs
         self._invalid = False
+        if self._openpose and not obs.found:
+            self._openpose.reset()
         self.distance_guard.observe(obs)
         return True
 
@@ -281,7 +319,9 @@ class FollowController:
     def _zero(self, reason):
         self._motion_at = None
         self._motion_values = (0.0, 0.0, 0.0)
-        self._alignment_blocked = self.steering_mode == "yaw"
+        self._alignment_blocked = self.steering_mode == "yaw" and self._openpose is None
+        if self._openpose:
+            self._openpose.reset()
         if self.state not in (State.TRACKING, State.RECOVERING) and reason not in (
                 "inactive", "reference_updated", "not_calibrated"):
             self.last_stop_reason = reason
@@ -314,6 +354,8 @@ class FollowController:
         self.last_stop_reason = ""
         self._motion_at = None
         self._motion_values = (0.0, 0.0, 0.0)
+        if self._openpose:
+            self._openpose.reset()
         self.tick(now)
         return True, "Simulation started"
 
@@ -339,12 +381,16 @@ class FollowController:
         return {"state": str(self.state), "target_id": self.target_id,
                 "reference_size": self.reference_size, "request": self.last_request,
                 "last_stop_reason": self.last_stop_reason,
-                "control_profile": ("visible_target_yaw_v1" if self.steering_mode == "yaw"
+                "control_profile": (OPENPOSE_PROFILE if self._openpose else
+                                    "visible_target_yaw_v1" if self.steering_mode == "yaw"
                                     else "local_deadzone_transition_v1"),
+                "openpose_control": self._openpose.status() if self._openpose else None,
                 "distance_guard": self.distance_guard.status(),
                 "steering": {"mode": self.steering_mode, "yaw_limit": self.yaw_limit,
-                             "alignment_stop": self.alignment_stop,
-                             "alignment_resume": self.alignment_resume,
+                             "horizontal_limit": self.yaw_limit if self._openpose else None,
+                             "constructor_only": True,
+                             "alignment_stop": self.alignment_stop if not self._openpose else None,
+                             "alignment_resume": self.alignment_resume if not self._openpose else None,
                              "alignment_blocked": self._alignment_blocked,
                              "physical_tuning_verified": False},
                 "max_request_rate": self.max_request_rate}
@@ -352,7 +398,7 @@ class FollowController:
     def tick(self, now):
         """Call periodically even when video produces no frames."""
         if self.state not in (State.TRACKING, State.RECOVERING):
-            return self._zero("inactive")
+            return self._zero(self.last_stop_reason or "inactive")
         issue = self._issue(now)
         if self.state == State.RECOVERING:
             if issue in (State.STALE, State.INVALID):
@@ -371,7 +417,7 @@ class FollowController:
             else:
                 return self._zero("waiting_for_stable_target")
         elif (issue == State.LOST and self.recovery_window > 0
-              and self.observation.reason in ("", "not_found")):
+              and self.observation.reason in RECOVERABLE_MISS_REASONS):
             self.state = State.RECOVERING
             self._loss_at = now
             self._good_since, self._good_count = None, 0
@@ -400,10 +446,20 @@ class FollowController:
             magnitude = min(limit, 0.6 * abs(error)) * weight
             return math.copysign(magnitude, error)
 
-        # The yaw profile turns toward a currently visible marker, never also
-        # strafes from the same horizontal error. Hysteresis avoids repeated
-        # depth pulses near the alignment boundary. It is NOT target search.
-        if self.steering_mode == "yaw":
+        # Legacy yaw/lateral remain separate. The open-source adapter can route
+        # one horizontal PID value to one axis or explicitly split it, without
+        # adding a second full-strength correction. None is a target search.
+        if self._openpose:
+            # Reused open-source equations calculate both axes in the same
+            # frame. The old image-offset gate is specific to the legacy law.
+            # The existing shape guard, rate limiter and lifecycle still apply.
+            desired = self._openpose.update(
+                frame_id=obs.frame_id, acquired_at=obs.acquired_at,
+                center_x=obs.center_x, image_width=obs.width,
+                size_ratio=obs.size_ratio, reference_size=self.reference_size,
+                forward_allowed=not self.distance_guard.blocked)
+            self._alignment_blocked = False
+        elif self.steering_mode == "yaw":
             if abs(x_error) >= self.alignment_stop - 1e-12:
                 self._alignment_blocked = True
             elif abs(x_error) <= self.alignment_resume + 1e-12:
@@ -413,8 +469,9 @@ class FollowController:
             right, yaw = adjustment(x_error), 0.0
         # Ambiguous size or a poorly aligned target must clear OLD forward/back
         # requests before the ramp, including backward requests.
-        forward_blocked = self.distance_guard.blocked or self._alignment_blocked
-        desired = (right, 0.0 if forward_blocked else adjustment(scale_error), yaw)
+        if not self._openpose:
+            forward_blocked = self.distance_guard.blocked or self._alignment_blocked
+            desired = (right, 0.0 if forward_blocked else adjustment(scale_error), yaw)
         if self.max_request_rate is not None:
             elapsed = 0 if self._motion_at is None else max(0, min(.1, now-self._motion_at))
             step = self.max_request_rate * elapsed

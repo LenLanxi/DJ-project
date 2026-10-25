@@ -1,0 +1,35 @@
+{
+  "license": "MIT; preserve both included license files",
+  "sources": [
+    {
+      "file": "simple_pid/pid.py",
+      "source": "https://github.com/m-lundberg/simple-pid/blob/6e6f4b000cdf7830635674cb89a6e823f5025784/simple_pid/pid.py",
+      "sha256": "bb3873468dc505b939f9c5ce1f1effb15d95faf86c199beab618d68253e46911",
+      "unmodified": true
+    },
+    {
+      "file": "simple_pid/LICENSE",
+      "source": "https://github.com/m-lundberg/simple-pid/blob/6e6f4b000cdf7830635674cb89a6e823f5025784/LICENSE.md",
+      "sha256": "a065b200f76a198209b41194d4f620f50e06181d275cbd58146a9632bbcc183a",
+      "unmodified": true
+    },
+    {
+      "file": "tello_openpose/tello_openpose.py.reference",
+      "source": "https://github.com/geaxgx/tello-openpose/blob/a76c5e2dcd7d444207e79962e93fc1b4956442aa/tello_openpose.py",
+      "sha256": "3df98cc9d128e4611f5ca30bfe6e43384892105d3ec4258460a3b6c0586aa3ff",
+      "unmodified": true
+    },
+    {
+      "file": "tello_openpose/LICENSE",
+      "source": "https://github.com/geaxgx/tello-openpose/blob/a76c5e2dcd7d444207e79962e93fc1b4956442aa/LICENSE",
+      "sha256": "2b1f1b1ccd9742675a38c33566120df16a53691b4a2811c23f44ce2eb2b95499",
+      "unmodified": true
+    }
+  ],
+  "notes": [
+    "simple_pid/pid.py is byte-identical upstream 2.0.1 source, imported locally.",
+    "tello_openpose.py.reference is inert evidence, not imported or executed.",
+    "R3 openpose_control.py adapts only the two-axis equations and their units/time/limits/lifecycle.",
+    "No TelloPy/OpenPose/model dependency is introduced."
+  ]
+}

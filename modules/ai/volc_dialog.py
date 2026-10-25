@@ -270,6 +270,10 @@ class VolcDuplex:
         await self.send({'type': EV_SPEECH_TEXT_COMMIT, 'event_id': str(uuid.uuid4()),
                          'text': text})
 
+    async def emergency(self, land):
+        """热键急停：直接走工具通道，不经过模型判断。"""
+        return await self._dispatch('interrupt', {'land': bool(land)})
+
     # ---------- 事件处理 ----------
     async def _handle(self, event):
         kind = event.get('type')

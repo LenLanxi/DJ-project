@@ -1,5 +1,15 @@
 """终极跨组联调：真机画面 → 3组识别/测速 → 4组离线AI → 底层拦截判定。
 
+[已废弃 · 联调主流程] 本脚本走的是 legacy 跟随路径，换新代码也测不到新算法：
+    · 直接构造 FollowController(target_id=...)，绕开 controller.start_follow() 统一入口
+      → 不受 R3_FOLLOW_CONFIG 影响，control_profile 永远是 legacy
+    · yaw 通道被硬编码为 0，实际只发 (0, forward, 0, 0)，转向恒为零
+请改用：
+    python modules/ai/main.py --real-drone --always-on   # 统一入口（读 R3_FOLLOW_CONFIG）
+    python run_ground_test.py                            # 地面诊断（s 键急停）
+本文件现仅作为两种用途保留：FrameBridge（真机帧共享给跟随/视觉，被统一入口 import）
+与 --self-check 离线自检。确需复跑旧路径做对比时，显式加 --allow-legacy-diagnostic。
+
 真机地面测试（拆桨叶，不起飞），20 秒自动收工：
   1. 连接飞机，启动 av 图传，等真实画面（720x960）
   2. 真帧持续发布进 SDK（controller.publish_frame），3组端口读到的就是真画面
@@ -395,6 +405,8 @@ def parse_args(argv=None):
                         help='电量低于该值自动安全收工（默认 10%%）')
     parser.add_argument('--no-window', action='store_true', help='不弹窗口')
     parser.add_argument('--color', action='store_true', help='强制 ANSI 颜色')
+    parser.add_argument('--allow-legacy-diagnostic', action='store_true',
+                        help='已废弃：允许运行旧 legacy 联调主流程（跟随时 yaw 恒为 0）')
     return parser.parse_args(argv)
 
 
@@ -407,6 +419,16 @@ def main(argv=None):
             return self_check()
         finally:
             close_output()
+    if not args.allow_legacy_diagnostic:
+        print('拒绝运行：本脚本的联调主流程已废弃——它走 legacy 跟随，且 yaw 通道恒为 0，',
+              flush=True)
+        print('          换上新版 PID 代码后在这里也测不到新算法。', flush=True)
+        print('  统一入口：python modules/ai/main.py --real-drone --always-on', flush=True)
+        print('  地面诊断：python run_ground_test.py          （s 键急停）', flush=True)
+        print('  离线自检：python run_final_real_sim.py --self-check', flush=True)
+        print('  确需复跑旧路径对比：加 --allow-legacy-diagnostic', flush=True)
+        close_output()
+        return 3
     if not args.props_removed:
         print('拒绝连接：地面联调必须先拆下桨叶。', flush=True)
         print('  离线自检：python run_final_real_sim.py --self-check', flush=True)

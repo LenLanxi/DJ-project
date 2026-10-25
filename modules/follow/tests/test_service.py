@@ -330,6 +330,9 @@ class WorkerTests(unittest.TestCase):
             service.capture_once()
             self.assertTrue(service.calibrate_reference().ok)
             self.assertTrue(service.start_follow().ok)
+            # Distinct captures need distinct timestamps. Windows time.time()
+            # may return the same value for two immediate synthetic publishes.
+            time.sleep(.02)
             port.publish((True, 550), 2, time.time())
             service.capture_once()
             time.sleep(.11)

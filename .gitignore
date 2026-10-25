@@ -245,3 +245,6 @@ voice_test.wav
 noise_sample.wav
 preflight_frame.jpg
 modules/follow/logs/
+
+# --- 三组跟随模块原始交付包（已并入 modules/follow，交付包本身不入库）---
+temp_follow_pid/

@@ -1,57 +1,50 @@
-﻿三组源码交付｜Python 3.11实测版｜对应二组6d39131
+三组接入与环境说明 — closeout1
 
-用途
-将modules/follow合入DJ-project的modules目录，供二组统一接入三组跟随逻辑。
-这是源码交接，不是学姐的免安装窗口程序。不覆盖公共SDK、根目录依赖或四组代码。
-如仓库已有modules/follow，请先比较差异。旧交接包保留，本包替代“待Python311复测”包用于本次交接。
+范围
+只交接modules/follow。二组保留自己的底层与统一入口，四组保留自己的模块。
+本包按本地已有9889b47接口验证；对方若已有后续提交，先核对接口和绑定，不整包覆盖他的仓库。
+不要把本包的配置、哈希白名单或测试结果自动当成对后续任意提交的认可。
 
-环境与验证
-使用独立的Python 3.11.9（64位）环境，安装二组6d39131根目录requirements.txt。
-关键依赖：numpy==1.26.4、opencv-python==4.8.0.76、djitellopy==2.5.0。
-完整解析后的版本见evidence/python311-freeze.txt，pip依赖检查结果见evidence/pip-check.txt。
-无需叠加安装opencv-contrib-python或opencv-python-headless；当前opencv-python已实际验证所需ArUco接口。
-原3.14环境保留，未在其中安装、卸载或降级依赖。
+必须显式选配置
+三组team2_bridge.Team3FollowBridge创建时读取R3_FOLLOW_CONFIG。
+环境变量不存在时沿用legacy默认；摄像头测试入口的openpose设置不会传给统一SDK。
+在二组原有启动命令之前，在同一个PowerShell窗口、仓库根目录运行：
+$env:R3_FOLLOW_CONFIG = (Resolve-Path -LiteralPath '.\modules\follow\configs\aircraft_A_ID0.json').Path
+然后使用二组原来的Python3.11启动命令。此处没有新增或替换二组启动入口。
+第二架用aircraft_B_ID1.json；第三架用aircraft_C_ID2.json。
+启动后核对get_follow_status()中的configured_control_profile=openpose_pid、
+control_profile=openpose_pid_marker_v2、configured_steering_mode=yaw，以及各自target_id和instance_id。
 
-复现
-在DJ-project根目录，用已经按公共requirements准备好的Python 3.11执行：
-  python modules/follow/offline_check.py --require-team-env
-脚本只检查，不联网安装；窗口、摄像头和网络调用均受离线检查约束。
-结果写入modules/follow/evidence。离线检查使用生成的编号0标记图，不冒充无人机视频。
-本包的检查包含4项已知公共SDK缺口的复现，不代表这些SDK缺口已经修复。
-更广的计算、识别、日志及连续模拟回归记录也附在evidence中，范围及数量以结果JSON为准。
-本轮修正了一处回归测试：OpenCV 4.8直接识别出模糊样例时，不再要求一定走缩图备用路径。
-仍检查目标编号、位置误差和空画面不能复用旧目标；备用路径的坐标还原有单独强制路径测试。
-相关5项检查在原3.14环境也通过，跟随算法和识别参数未因此修改。
+旧诊断入口注意
+本地仓库run_final_real_sim.py第91行直接FollowController(target_id=marker_id)，绕过桥接配置，
+仍使用legacy/lateral；第116和126行将yaw写死为0。设置R3_FOLLOW_CONFIG也不会改变这段直接计算。
+正式三组验证请走二组controller.start_follow()服务入口。
+如果现场仍要用这个诊断脚本，请二组自行适配其配置读取和完整四通道展示/转发；我们未改它。
+这里的行号对应本包所用9889b47副本，二组后续版本需按函数内容定位。
 
-入口与接线
-把modules/follow加入项目模块搜索路径后：
-  from r3_follow.team2_adapter import Team2StubPort
-  from r3_follow.team2_bridge import Team3FollowBridge
-  port = Team2StubPort(仓库根目录)
-  bridge = Team3FollowBridge(port, recovery_window=3)
-  bridge.service.start_background()
-等待有效且新鲜的画面和唯一编号0标记，再调用bridge.service.calibrate_reference()记录参考大小。
-校准成功才调用bridge.start_follow()；stop_follow()停止；is_following()查询；bridge.close()关闭后台服务。
-跟随需要模拟飞行状态flying，三组模块不会自动起飞。返回对象为二组ControlResult；实际字段按对象属性读取。
-二组目前get_frame()仍返回None，原样接入会拒绝启动。测试图来自显式注入的frame_provider。
-请把公共start_follow/stop_follow/is_following委托给同一个bridge实例，不再仅切换SDK的_following布尔值。
+可选模式
+configs/aircraft_*.json为保守默认yaw；configs/offline_candidates下有lateral、hybrid候选。
+如要离线检查hybrid，可把上面路径换为：
+.\modules\follow\configs\offline_candidates\aircraft_A_ID0_hybrid.json
+必须停止并销毁旧服务后新建服务；仅修改文件或环境变量不会改变已运行实例。
+不要边飞边热切换。新模式只验证了程序请求，实际运动效果未验证。
 
-控制权与二四组联调
-1. 当前ai_bridge.UnifiedDrone.start_follow会先request_control('follow')；本模块内部也会申请。
-   二组包装层应统一由本模块申请，避免重复申请导致busy；并检查桥接返回值，不能无条件报告已开始。
-2. ai_bridge中的target_visible=True仍是占位，不能作为恢复依据。恢复以本模块检查的新画面与实际识别为准。
-3. 普通模型动作：bridge.pause_for_action()成功后保存ticket，再让model申请控制权。
-   accepted只表示接收，不恢复；动作确实完成、model释放后，调用bridge.finish_action(ticket,'completed')。
-   接管前必须正在跟随；恢复时必须有新的有效目标、飞行状态和可用控制权。
-4. 明确停止或降落：公共包装层先bridge.stop_follow()取消ticket，再执行停止/降落请求。
-   即使随后收到旧动作的completed，也不能恢复；本包有两项“状态仍为flying但指令返回成功”的测试。
-5. 最新API规定land/stop_motion发送即返回。它们返回completed也不证明落地或悬停。
-   落地须查询get_status().flight_state，并确认数据有效且来自真实遥测；当前模拟层立即写landed不是实机证据。
-   停止、降落、失败及超时不自动恢复跟随，不能直接套用普通动作的恢复分支。
+多机边界
+ID0、1、2对应不同完整ArUco图案，字典均为DICT_4X4_50。
+每个进程的配置只指定跟随哪个图案；实际飞机连接必须各自正确绑定。
+不把同一图案贴在不同的人身上。多编号同框测试不等于三机网络或实飞已经验证。
 
-交付边界
-已审阅并校验的模拟SDK版本：6d39131cd427cda66e5142dd06e32861e8cc3f2e。
-忽略Git的CRLF/LF差别，其余SDK代码变更需重新审阅；不要删掉校验直接接实机。
-公共SDK仍有空画面刷新编号/时间、错误owner释放返回不一致、速度范围缺少底层验证，以及看门狗仅打印等缺口。
-公共入口自动绑定未完成；并发测试不证明真实动作被取消；本地租约不能防住所有外部同owner重新授权情形。
-本包验证了指定环境中的离线行为，不证明真实摄像头稳定、实际跟随距离或无人机飞行效果。
+接口保持
+start_follow/stop_follow/is_following、get_follow_status、pause_for_action/finish_action保持原调用方式。
+四组仍走二组统一入口，不另接第二套飞机控制通道。
+physical_distance_m只是已有配置中的人工备注，不能单凭该字段让统一SDK报告精确米数。
+本次有条件的估距接在三组本机测试窗口中；统一界面后续如需显示，可读三组工具结果，不能伪造单位。
+
+环境与自检
+Python3.11；本轮复用现有环境，没有下载安装依赖。
+camera_pid_bench.py使用OpenCV、NumPy、Tkinter，只接MockPort。
+本机包根目录的cmd入口自动寻找当前项目的.venv311；其他电脑可先设置R3_PYTHON为已有3.11解释器绝对路径。
+不修改原Python3.14环境。
+不打开相机的检查：python -X utf8 -B modules/follow/camera_pid_bench.py --self-check
+完整仓库上下文中的回归：python -X utf8 -B modules/follow/verify_r3_changes.py --output <新的输出目录>
+完整回归需要二组SDK及测试引用的四组文件；本包仅含三组，因此不要脱离原仓库宣称联调已验收。
