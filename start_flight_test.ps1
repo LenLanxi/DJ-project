@@ -12,7 +12,7 @@
 
 param(
     [string]$Config = 'modules\follow\configs\aircraft_A_ID0.json',
-    [int]$MinBattery = 60,
+    [int]$MinBattery = 10,
     [switch]$Hybrid,
     [switch]$Volc,
     [switch]$NoVideo,
@@ -80,11 +80,18 @@ if ($verdict -eq 'block:drone_unreachable' -or $verdict -eq 'block:drone_error')
     if (-not $Force) { exit 1 }
 }
 if ($verdict -eq 'block:battery_low') {
-    Write-Host ("[失败] 电量 {0}% 低于门限 {1}%：Tello 在 50% 左右会直接拒绝 takeoff，先充电。" -f $values['BATTERY'], $MinBattery) -ForegroundColor Red
+    Write-Host ("[失败] 电量 {0}% 低于硬门限 {1}%（--min-battery）：先充电。" -f $values['BATTERY'], $MinBattery) -ForegroundColor Red
     if (-not $Force) { exit 1 }
 }
+if ($values['WARN'] -eq 'battery_below_firmware_line') {
+    Write-Host ("[警告] 电量 {0}% 低于固件拒飞线（≈50%）：Tello 很可能直接回 error 拒绝起飞，且空中时间很短。" -f $values['BATTERY']) -ForegroundColor Yellow
+    Write-Host '        想按自己的门限试飞，本提示不会拦住你；但更稳的做法是先充电。' -ForegroundColor DarkGray
+}
+if ($values['WARN'] -eq 'battery_very_low') {
+    Write-Host ("[警告] 电量 {0}% 已经很低：起飞几乎必失败，且掉电会自动降落。" -f $values['BATTERY']) -ForegroundColor Yellow
+}
 if ($values['BATTERY']) {
-    Write-Host ("[电量] {0}%（门限 {1}%）" -f $values['BATTERY'], $MinBattery) -ForegroundColor Green
+    Write-Host ("[电量] {0}%（硬门限 {1}%，固件拒飞线 ≈50%）" -f $values['BATTERY'], $MinBattery) -ForegroundColor Green
 }
 
 # ---- 3) 现场提醒 ----

@@ -184,8 +184,9 @@
 
 &#x20;  `start_flight_test.cmd`（双击或命令行）→ 先跑飞行前检查，再拉起**窗口1 终端 + 窗口2 图传**。`-DryRun` 只检查不启动，`-Hybrid` 换横移+转向配置，`-Volc` 走豆包全双工（需 `VOLC_API_KEY`，无图传窗口），`-NoVideo` 关画面省 CPU。
 
-&#x20;  - 默认**离线语音**（本地 faster-whisper 识别 + Windows SAPI 播报，不需要任何 API Key），启动参数：`--real-drone --allow-real-takeoff --offline-voice --always-on --show-video --min-battery 60 --config modules/ai/config.flight-test.json --log-file logs/flight_<时间>.log`。
-&#x20;  - **飞行前检查** `tools/flight_preflight.py`：跟随配置（必须 `openpose_pid`）、whisper 模型是否已缓存、SAPI 是否可用、飞机连通、**电量与电池温度**。只监听 8890 的状态广播（`bat/templ/temph/h`），**不发 `command`**——用临时端口探测会把 Tello 的 UDP 会话抢走，导致 djitellopy 收不到回复。退出码：0 可飞 / 2 连不上 / 3 电量低 / 5 SDK 命令口卡住（需断电重启）/ 6 8889 被占 / 7 电池过热（`--temp-max` 默认 75℃）。
+&#x20;  - 默认**离线语音**（本地 faster-whisper 识别 + Windows SAPI 播报，不需要任何 API Key），启动参数：`--real-drone --allow-real-takeoff --offline-voice --always-on --show-video --min-battery 10 --config modules/ai/config.flight-test.json --log-file logs/flight_<时间>.log`。
+&#x20;  - **起飞电量门限**：默认 **10%**（与 `main.py --min-battery` 的默认值一致，`-MinBattery` 可改）。低于 10% 直接拦；10%~20% 与 20%~50% 只发**黄色警告**——因为 Tello 固件自己在 ≈50% 就回 `error` 拒飞，软件门限压得再低也飞不起来，真正该看的是电量和温度。**温度门禁是硬拦截**（`--temp-max` 默认 75℃）。
+&#x20;  - **飞行前检查** `tools/flight_preflight.py`：跟随配置（必须 `openpose_pid`）、whisper 模型是否已缓存、SAPI 是否可用、飞机连通、电量与电池温度。只监听 8890 的状态广播（`bat/templ/temph/h`），**不发 `command`**——用临时端口探测会把 Tello 的 UDP 会话抢走，导致 djitellopy 收不到回复。退出码：0 可飞 / 2 连不上 / 3 电量低于硬门限 / 5 SDK 命令口卡住（需断电重启）/ 6 8889 被占 / 7 电池过热；`WARN=battery_below_firmware_line` 只是提醒不拦。
 &#x20;  - **窗口2 HUD 图例**：绿框=ArUco 四角、红点=中心、绿竖线=画面中线；左上角 `found/cx/offset(...px)/sr`、`detect=…ms budget=…`、四通道速度 `v L/F/U/Y`，以及**跟随状态行**：`follow: RUNNING`（绿）/ `follow: STOPPED (原因) -> say it again`（红，需再说一次「开始跟随」）/ `follow: NOT STARTED`（橙）/ `follow: PAUSED`。OpenCV 画不了中文，状态行用 ASCII，中文原因看窗口1。
 &#x20;  - **日志**：`logs/flight_<时间>.log`（stdout+stderr 全程，含 STT/动作/RC/三组状态）+ `logs/flight_turns.jsonl`（每轮对话记录）。`logs/` 已在 `.gitignore` 里。
 &#x20;  - 离线语音是**固定口令**：起飞 / 跟着我 / 停止跟随 / 停在这里 / 降落 / 还有多少电。识别结果会先去标点再匹配，`起飞。`、`好的，起飞吧` 也能命中；「停止跟随」优先于「跟随」。

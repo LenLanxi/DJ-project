@@ -143,9 +143,25 @@ def probe_drone(timeout=2.5):
         sock.close()
 
 
+def battery_verdict(battery, min_battery, firmware_battery):
+    """电量结论：硬门限才拦，固件拒飞线只警告（警告让操作者自己判断，别假装能飞）。"""
+    if battery is None:
+        return None, None
+    if battery < min_battery:
+        return 'block:battery_low', None
+    if battery < 20:
+        return None, 'battery_very_low'
+    if battery < firmware_battery:
+        return None, 'battery_below_firmware_line'
+    return None, None
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--min-battery', type=int, default=60)
+    parser.add_argument('--min-battery', type=int, default=10,
+                        help='起飞硬门限（低于此值直接拦下；默认 10，与 main.py --min-battery 一致）')
+    parser.add_argument('--firmware-battery', type=int, default=50,
+                        help='Tello 固件的实际拒飞线，低于此值只警告不拦截')
     parser.add_argument('--temp-max', type=int, default=75,
                         help='电池温度上限（℃）：templ/temph 超过就禁止起飞')
     parser.add_argument('--no-drone', action='store_true', help='不连接飞机（离线自检用）')
@@ -178,8 +194,11 @@ def main(argv=None):
         if hottest is not None and hottest >= args.temp_max:
             emit('VERDICT', 'block:battery_too_hot')
             return 7
-        if battery is not None and battery < args.min_battery:
-            emit('VERDICT', 'block:battery_low')
+        block, warn = battery_verdict(battery, args.min_battery, args.firmware_battery)
+        if warn:
+            emit('WARN', warn)
+        if block:
+            emit('VERDICT', block)
             return 3
         emit('VERDICT', 'ok')
         return 0
@@ -191,8 +210,11 @@ def main(argv=None):
     if code:
         emit('VERDICT', 'block:drone_unreachable' if code == 2 else 'block:drone_error')
         return code
-    if battery is not None and battery < args.min_battery:
-        emit('VERDICT', 'block:battery_low')
+    block, warn = battery_verdict(battery, args.min_battery, args.firmware_battery)
+    if warn:
+        emit('WARN', warn)
+    if block:
+        emit('VERDICT', block)
         return 3
     emit('VERDICT', 'ok')
     return 0
