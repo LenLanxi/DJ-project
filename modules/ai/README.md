@@ -173,3 +173,23 @@ HUD 与跟随状态行在独立模块 `follow_hud.py`（`follow_status_text` / `
 python test_bluetooth_ai.py     # 录音→STT→豆包→TTS→丢帧防线，不连飞机（需 DOUBAO_API_KEY）
 python -m unittest discover -s modules/ai -p "test_*.py"
 ```
+
+### 语音地面测试（桨叶拔掉，连真机但不授权起飞）
+
+`start_voice_ground_test.cmd` 是专用入口：连真机、读真实电量/高度，但**启动参数里永远没有
+`--allow-real-takeoff`**，所以语音说"起飞"会被拒绝，动作指令会被底层以 `尚未起飞` 拦下。
+
+```bat
+start_voice_ground_test.cmd -ListDevices                 :: 连蓝牙耳机后先看设备号
+start_voice_ground_test.cmd -MicTest -InputDevice 5      :: 先真录 3 秒确认麦克风能收到声音
+start_voice_ground_test.cmd -InputDevice 5 -OutputDevice 7
+start_voice_ground_test.cmd -Video                       :: 顺带弹出图传 HUD
+start_voice_ground_test.cmd -Realtime                    :: 走四组全双工链路（需 AI_REALTIME_* 环境变量）
+```
+
+语音口令（离线模式，归一化后匹配，带标点也能命中）：还有多少电 / 现在什么状态 / 现在多高 /
+起飞 / 跟着我 / 停止跟随 / 停在这里 / 升高 / 降低 / 向前的距离 / 降落 / 结束。
+
+`tools/voice_ground_check.py` 负责前置自检（设备、本地 STT、SAPI、pynput、入口参数），
+`test_voice_ground_launcher.py` 是它的回归护栏：入口参数被整包覆盖删掉时、或启动器哪天
+不小心带上起飞授权时，单测会直接失败。

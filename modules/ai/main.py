@@ -191,7 +191,7 @@ HELP = '''输入文字与模拟飞机互动。命令：
  /image 图片路径 | 问题   本地测试图片问答
  /stop 停止模拟运动；/land 模拟降落（均绕过模型）
  /mute 停止当前播报；/reset 清空对话；/status 查看模拟状态；/quit 退出
-离线样例：还有多少电、起飞、跟着我、向前走30厘米、降落'''
+离线样例：还有多少电、现在什么状态、现在多高、起飞、跟着我、向前走30厘米、升高、降低、降落'''
 
 def build_real_runner(args):
     """真机模式：连接 Tello、给"起飞"上闸、把状态换成真实读数。"""
@@ -782,8 +782,8 @@ def _dispatch(args):
     except EOFError:
         print('\n输入流已结束（EOF），退出会话')
     finally:
-        listener['stop'].set()
-        listen_pause.set()
+        listen_pause.set()          # 先放行正在采集的那一轮
+        stop_listener()             # 等监听线程真正退出：守护线程在解释器收尾时还在打印会直接 Fatal
         cancel_audio.set()
         stop_emergency_hotkeys()
         stop_view_monitor()

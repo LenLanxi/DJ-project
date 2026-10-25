@@ -39,6 +39,22 @@ class ScriptedActionTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(scripted_action(text), 'move_down(30)')
 
+    def test_status_and_height_queries(self):
+        # 地面语音测试第一句话就是问状态/高度：必须映射成只读的 get_status()
+        for text in ('现在多高', '飞行高度是多少', '离地多高'):
+            with self.subTest(text=text):
+                self.assertEqual(scripted_action(text), 'get_status()')
+        for text in ('现在什么状态', '链路状态怎么样', '飞行状态'):
+            with self.subTest(text=text):
+                self.assertEqual(scripted_action(text), 'get_status()')
+        self.assertEqual(scripted_action('还有多少电'), 'get_battery()')
+
+    def test_status_query_does_not_shadow_motion(self):
+        # 新加的状态口令不能吃掉原有的运动口令（顺序即优先级）
+        self.assertEqual(scripted_action('起飞'), 'takeoff()')
+        self.assertEqual(scripted_action('降落'), 'land()')
+        self.assertEqual(scripted_action('停在这里'), 'stop_motion()')
+
     def test_agent_executes_altitude_commands(self):
         agent = Agent(ScriptedClient())
         agent.handle('起飞')
