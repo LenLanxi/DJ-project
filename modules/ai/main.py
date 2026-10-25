@@ -270,6 +270,10 @@ def build_real_runner(args):
 def _wire_real_runner(args, drv, UnifiedDrone, Runner, Demo):
     from drone_sdk import controller as ctl
     ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery)
+    # 兜底：任何未捕获异常 / 解释器退出也做一次清理（shutdown_real 幂等）。
+    # 没有这一层时，Ctrl+C 若正好落在阻塞命令里，会只打印 traceback 而不清理。
+    import atexit
+    atexit.register(shutdown_real)
     try: video_ready=drv.start_video()
     except Exception as exc:
         video_ready=False
