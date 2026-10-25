@@ -67,6 +67,10 @@ if ($values['SAPI_AVAILABLE'] -ne 'True') {
 }
 
 $verdict = $values['VERDICT']
+if ($verdict -eq 'block:battery_too_hot') {
+    Write-Host ("[失败] 电池温度 {0}~{1}℃ 过高（正常应低于 60℃）：先静置冷却、充满电再飞，别硬上。" -f $values['TEMP_LOW'], $values['TEMP_HIGH']) -ForegroundColor Red
+    if (-not $Force) { exit 1 }
+}
 if ($verdict -eq 'block:drone_sdk_stuck') {
     Write-Host '[失败] 飞机在（Wi-Fi 通）但 SDK 命令口不响应：长按电源键关机 → 等 5 秒 → 开机 → 等 20 秒 → 重连 Wi-Fi。' -ForegroundColor Red
     if (-not $Force) { exit 1 }
