@@ -1,0 +1,2 @@
+# Vendored source hashes describe original LF bytes, even on Windows.
+modules/follow/r3_follow/_vendor/** -text

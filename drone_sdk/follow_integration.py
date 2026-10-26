@@ -178,7 +178,10 @@ class FollowIntegration:
             if self._bridge is None:
                 return dict(state='stopped', following=False,
                             background_running=any(w.is_alive() for w in self._retired_workers),
-                            target_visible=False)
+                            target_visible=False,
+                            cleanup_pending=bool(self._pending_cleanup),
+                            cleanup_pending_count=len(self._pending_cleanup),
+                            cleanup_confirmed=not self._pending_cleanup)
             service = self._bridge.service
             state = self._bridge.get_follow_status()
             with service.lock:

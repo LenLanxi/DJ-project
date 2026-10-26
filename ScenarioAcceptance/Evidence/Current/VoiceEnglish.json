@@ -1,0 +1,122 @@
+{
+  "ok": true,
+  "scope": "real_cloud_prerecorded_synthetic_speech_fake_device",
+  "model": "1.2.6.1",
+  "endpoint": "wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue",
+  "elapsed_seconds": 16.746,
+  "wav_seconds": 6.793,
+  "transcripts": [
+    "pleaseplease checkplease check theplease check the dronesplease check the drone statusplease check the drone status andplease check the drone status and tellplease check the drone status and tell meplease check the drone status and tell me theplease check the drone status and tell me the batteryplease check the drone status and tell me the battery levelPlease check the drone status and tell me the battery level.please check the drone status and tell me the battery levelPlease check the drone status and tell me the battery level."
+  ],
+  "model_replies": [
+    "This is a simulated test status of a fake drone. The battery level is 73%, and the current flight state is landed."
+  ],
+  "calls": [
+    {
+      "code": "print(drone.get_status())",
+      "allowed_status_query": true
+    }
+  ],
+  "tool_results": [
+    {
+      "event": "tool_result",
+      "name": "run_program",
+      "call_id": "1128baae-2138-44b5-8cbb-982b55ab4946",
+      "epoch": 1,
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "battery": 73,
+              "flight_state": "landed",
+              "owner": null,
+              "simulated": true,
+              "source": "test_fixture_not_a_real_drone"
+            }
+          }
+        ],
+        "debug": "{\"battery\": 73, \"flight_state\": \"landed\", \"owner\": null, \"simulated\": true, \"source\": \"test_fixture_not_a_real_drone\"}"
+      }
+    }
+  ],
+  "usage": [
+    {
+      "total_tokens": 6043,
+      "input_tokens": 3164,
+      "output_tokens": 319,
+      "input_token_details": {
+        "text_tokens": 3026,
+        "audio_tokens": 138,
+        "image_tokens": 0,
+        "cached_tokens": 2560,
+        "cached_tokens_details": {
+          "text_tokens": 2560,
+          "audio_tokens": 0,
+          "image_tokens": 0
+        }
+      },
+      "output_token_details": {
+        "text_tokens": 100,
+        "audio_tokens": 219
+      },
+      "duration_details": {
+        "vision_duration_ms": 0,
+        "audio_duration_ms": 0
+      }
+    }
+  ],
+  "event_schemas": {
+    "conversation.item.input_audio_transcription.started": [
+      "event_id",
+      "item_id",
+      "round_id",
+      "type"
+    ],
+    "conversation.item.input_audio_transcription.delta": [
+      "content_index",
+      "delta",
+      "event_id",
+      "item_id",
+      "type"
+    ],
+    "conversation.item.input_audio_transcription.completed": [
+      "content_index",
+      "event_id",
+      "item_id",
+      "text",
+      "type"
+    ],
+    "response.function_call_arguments.done": [
+      "event_id",
+      "items",
+      "type"
+    ],
+    "response.done": [
+      "event_id",
+      "response",
+      "type"
+    ]
+  },
+  "tts_bytes_received_not_played": 422132,
+  "audio_closed": true,
+  "error": null,
+  "verified": {
+    "real_cloud_asr": true,
+    "real_cloud_function_call": true,
+    "tool_result_returned": true,
+    "microphone": false,
+    "speaker": false,
+    "drone": false,
+    "vision": false,
+    "docker": false
+  },
+  "cost_rmb": null,
+  "cost_note": "usage retained; exact bill requires provider billing records",
+  "evidence_note": "Direct WebSocket diagnostic only; not RTC mixed orchestration, headset, vision, or aircraft acceptance."
+}

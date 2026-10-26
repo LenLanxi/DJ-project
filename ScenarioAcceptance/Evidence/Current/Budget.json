@@ -1,0 +1,56 @@
+{
+  "budget_rmb": 15,
+  "estimated_rmb": 0.37335,
+  "actual_bill_verified": false,
+  "rates_rmb_per_million_tokens": {
+    "input_text": 10,
+    "input_audio": 80,
+    "cached_text": 5,
+    "cached_audio": 5,
+    "output_text": 80,
+    "output_audio": 300
+  },
+  "price_source": "https://docs.volcengine.com/docs/DoubaoVoice/Billinginstructions-21?lang=zh",
+  "assumptions": "Uses the published real-time speech pricing table (output text 80, not inconsistent worked-example 30). Token categories counted separately as received; exact account billing not available. One additional session-created-only connection did not return usage. No paid RTC or visual inference was made.",
+  "calls": [
+    {
+      "receipt": "VoiceEnglish.json",
+      "elapsed_seconds": 16.746,
+      "estimated_rmb": 0.1278,
+      "tokens": {
+        "input_text": 3026,
+        "input_audio": 138,
+        "cached_text": 2560,
+        "cached_audio": 0,
+        "output_text": 100,
+        "output_audio": 219
+      }
+    },
+    {
+      "receipt": "VoiceCleanupFailure.json",
+      "elapsed_seconds": 18.32,
+      "estimated_rmb": 0.1298,
+      "tokens": {
+        "input_text": 3130,
+        "input_audio": 158,
+        "cached_text": 2560,
+        "cached_audio": 0,
+        "output_text": 107,
+        "output_audio": 215
+      }
+    },
+    {
+      "receipt": "VoiceCloud.json",
+      "elapsed_seconds": 17.79,
+      "estimated_rmb": 0.11575,
+      "tokens": {
+        "input_text": 390,
+        "input_audio": 156,
+        "cached_text": 5278,
+        "cached_audio": 0,
+        "output_text": 106,
+        "output_audio": 215
+      }
+    }
+  ]
+}

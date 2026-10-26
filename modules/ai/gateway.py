@@ -1,148 +1,288 @@
+"""One host gateway for every model program; device grants never cross the RPC boundary."""
 import asyncio
-import inspect
+import math
 import threading
 import time
 from backends import GRANT
 
-DISTANCE={'move_forward','move_back','move_left','move_right','move_up','move_down'}
-MOTION=DISTANCE|{'takeoff','land','stop_motion','rotate','update_velocity'}
+DISTANCE = {'move_forward', 'move_back', 'move_left', 'move_right', 'move_up', 'move_down'}
+MOTION = DISTANCE | {'takeoff', 'land', 'stop_motion', 'rotate', 'update_velocity'}
+LAND_CONFIRM_TIMEOUT_S = 25.
+
 
 class Gateway:
-    def __init__(self,backend,vision=None,fixture_vision=False):
-        self.backend,self.vision=backend,vision
-        self.fixture_vision=fixture_vision
-        self.simulated=backend.simulated
-        self.cancelled=threading.Event()
-        self.acquired=False; self.was_following=False; self.resume=False
-        self.observations=set()
-        self.control_lock=asyncio.Lock()
-        self.generation=0; self.ticket=None; self.observation=None
+    def __init__(self, backend, vision=None):
+        self.backend, self.vision = backend, vision
+        self.simulated = backend.simulated
+        self.cancelled = threading.Event()
+        self.control_lock = asyncio.Lock()
+        self.generation = 0
+        self.acquired = False
+        self.grant = None
+        self.ticket = None
+        self.was_following = False
+        self.resume = False
+        self.observation = None
+        self.observations = set()
+        self.cleanup = {'status': 'idle'}
 
     def begin(self):
-        self.generation+=1; self.observation=None
-        self.cancelled.clear(); self.acquired=False; self.was_following=False
-        self.resume=True; self.observations.clear()
+        if self.acquired:
+            raise RuntimeError('previous_control_cleanup_unconfirmed')
+        self.generation += 1
+        self.cancelled.clear()
+        self.grant = self.ticket = self.observation = None
+        self.was_following = False
+        self.resume = True
+        self.observations.clear()
+        self.cleanup = {'status': 'pending'}
+
+    def _current(self, generation):
+        if self.cancelled.is_set() or generation != self.generation:
+            raise RuntimeError('program_cancelled')
+
+    async def _bound(self, fn, *args, grant=None):
+        # asyncio.to_thread propagates this context. A new priority controller
+        # may mutate backend.grant while an old program is awaiting a result;
+        # that old program and its cleanup must retain their original lease.
+        token = GRANT.set(dict(self.grant if grant is None else grant) if (self.grant if grant is None else grant) is not None else {})
+        try:
+            return await asyncio.to_thread(fn, *args)
+        finally:
+            GRANT.reset(token)
 
     async def acquire(self):
+        generation = self.generation
         async with self.control_lock:
-            if self.cancelled.is_set(): raise RuntimeError('program_cancelled')
-            if self.acquired: return
-            self.was_following=await asyncio.to_thread(self.backend.is_following)
-            if self.was_following:
-                if hasattr(self.backend,'pause_follow_for_action'):
-                    r=await asyncio.to_thread(self.backend.pause_follow_for_action)
-                    self.ticket=r.get('ticket')
-                else: r=await asyncio.to_thread(self.backend.stop_follow)
-                if not r.get('ok'): raise RuntimeError('cannot_pause_follow')
-            r=await asyncio.to_thread(self.backend.request_control,'model')
-            if not r.get('ok'):
-                state=await asyncio.to_thread(self.backend.get_status)
-                if self.ticket is not None and state.get('control_owner') in (None,'none'):
-                    recovered=await asyncio.to_thread(self.backend.finish_follow_action,self.ticket,True)
-                    if not recovered.get('ok'): raise RuntimeError('control_denied_and_follow_recovery_failed')
-                raise RuntimeError('control_busy: '+r.get('reason','unknown'))
-            self.acquired=True
-            if self.cancelled.is_set(): raise RuntimeError('program_cancelled')
+            self._current(generation)
+            if self.acquired:
+                return
+            following = await asyncio.to_thread(self.backend.is_following)
+            self._current(generation)
+            if following:
+                if not hasattr(self.backend, 'pause_follow_for_action'):
+                    raise RuntimeError('follow_handoff_not_supported')
+                paused = await asyncio.to_thread(self.backend.pause_follow_for_action)
+                self._current(generation)
+                if not paused.get('ok'):
+                    raise RuntimeError('cannot_pause_follow: ' + str(paused))
+                self.ticket = paused.get('ticket')
+                self.was_following = True
+            result = await asyncio.to_thread(self.backend.request_control, 'model')
+            self._current(generation)
+            if not result.get('ok'):
+                # No forced stop or recovery is safe if somebody else acquired
+                # the drone meanwhile. Leave the ticket failed and report it.
+                self.resume = False
+                raise RuntimeError('control_busy: ' + str(result.get('reason', 'unknown')))
+            grant = {key: result.get(key) for key in ('control_epoch', 'command_epoch')}
+            if any(type(v) is not int for v in grant.values()):
+                # Test-only substitutes may have no SDK epochs; their action
+                # contract remains explicit. Real SDK always returns both.
+                grant = dict(getattr(self.backend, 'grant', None) or {})
+                if not self.simulated:
+                    raise RuntimeError('control_grant_missing')
+            self.grant, self.acquired = grant, True
 
-    async def dispatch(self,method,args,kwargs):
-        if self.cancelled.is_set(): raise RuntimeError('program_cancelled')
-        if not isinstance(args,list) or not isinstance(kwargs,dict) or kwargs:
-            raise ValueError('RPC仅接受位置参数；这是接口协议，不限制Python语法')
-        if method=='get_status' and not args:
-            return await asyncio.to_thread(self.backend.get_status)
-        if method=='is_following' and not args:
-            return await asyncio.to_thread(self.backend.is_following)
-        if method in ('observe','get_frame'):
-            if method=='observe':
-                if len(args)!=1 or not isinstance(args[0],str) or not 0<len(args[0])<=2000:
-                    raise ValueError('observe(target)需要目标文字')
-                if self.fixture_vision:
-                    result=self.backend.observe_fixture(args[0])
-                elif self.vision:
-                    result=await asyncio.to_thread(self.vision.observe,args[0])
-                else: raise RuntimeError('没有配置视觉模型/画面源')
-                identity=(result.get('source'),result.get('frame_id'))
-                if identity in self.observations and result.get('source')=='sdk_camera':
-                    raise RuntimeError('没有新帧，不能继续基于旧帧运动')
-                self.observations.add(identity)
-                self.observation=result
-                if self.cancelled.is_set(): raise RuntimeError('program_cancelled')
-                return result
-            if args: raise ValueError('get_frame不接受参数')
-            if not self.vision: raise RuntimeError('没有可用画面源')
-            return await asyncio.to_thread(self.vision.frame)
-        if method in ('start_follow','stop_follow'):
-            if args: raise ValueError('跟随接口不接受参数')
-            self.resume=False
-            if method=='start_follow':
-                if self.acquired:
-                    await asyncio.to_thread(self.backend.release_control,'model'); self.acquired=False
-                return await asyncio.to_thread(self.backend.start_follow)
-            return await asyncio.to_thread(self.backend.stop_follow)
-        if method not in MOTION: raise ValueError('未暴露的宿主机能力：'+str(method))
-        if method in DISTANCE:
-            if len(args)!=1 or type(args[0]) is not int or not 20<=args[0]<=500:
-                raise ValueError('移动距离为SDK规定的20至500厘米整数')
-        elif method=='rotate':
-            if len(args)!=1 or type(args[0]) is not int or not -360<=args[0]<=360 or args[0]==0:
-                raise ValueError('旋转需要非零-360至360度整数；SDK实机符号仍需确认')
-        elif method=='update_velocity':
-            if len(args)!=4 or any(type(v) is not int or not -100<=v<=100 for v in args):
-                raise ValueError('速度需要四个-100至100整数百分比')
-        elif args: raise ValueError('该动作不接受参数')
-        await self.acquire()
-        if self.cancelled.is_set(): raise RuntimeError('program_cancelled')
-        if method=='land': self.resume=False
-        if method=='stop_motion' and self.observation is None: self.resume=False
-        if method in DISTANCE|{'rotate','update_velocity'} and self.observation is not None:
-            o=self.observation
-            if not self.backend.simulated and o.get('source')!='sdk_camera':
-                raise RuntimeError('real_navigation_requires_live_camera')
-            if o.get('source')=='sdk_camera' and not 0 <= time.time()-o.get('timestamp',0) <= .5:
+    def _navigation_evidence(self, method, args):
+        observation = self.observation
+        if observation is None:
+            # Direct low-level movement is a supported API; it does not claim
+            # autonomous target navigation or obstacle clearance.
+            return
+        if method == 'rotate':
+            # Rotation may deliberately inspect a direction with no target in
+            # sight. It never establishes distance, clearance or arrival.
+            return
+        if method == 'update_velocity' and not any(args):
+            return
+        if observation.get('consumed'):
+            raise RuntimeError('navigation_requires_new_observation')
+        if observation.get('visible') is not True:
+            raise RuntimeError('navigation_target_not_visible')
+        if not self.simulated and observation.get('source') != 'sdk_camera':
+            raise RuntimeError('real_navigation_requires_live_camera')
+        if observation.get('source') == 'sdk_camera':
+            stamp = observation.get('timestamp')
+            if type(stamp) not in (int, float) or not math.isfinite(stamp) or not 0 <= time.time() - stamp <= .5:
                 raise RuntimeError('navigation_observation_expired')
-        generation=self.generation
-        token=GRANT.set(dict(getattr(self.backend,'grant',None) or {}))
-        try: result=await asyncio.to_thread(self.backend.action,method,*args)
-        finally: GRANT.reset(token)
-        if generation!=self.generation: return {'ok':False,'status':'cancelled'}
-        if not result.get('ok') or result.get('status') not in ('completed','accepted'):
-            self.resume=False
-            raise RuntimeError('SDK动作失败：'+str(result))
-        return result
 
-    async def interrupt(self,land=False):
-        """最高优先级保留通道：先本地作废排队命令并零速度，再派发 stop/land。
+    async def _confirm_landed(self, generation):
+        deadline = time.monotonic() + LAND_CONFIRM_TIMEOUT_S
+        while time.monotonic() < deadline:
+            self._current(generation)
+            state = await asyncio.to_thread(self.backend.get_status)
+            self._current(generation)
+            stamp = state.get('timestamp')
+            if (state.get('connected') is True and state.get('flight_state') == 'landed'
+                    and state.get('height_cm') == 0 and type(stamp) in (int, float)
+                    and math.isfinite(stamp) and 0 <= time.time() - stamp <= .5):
+                return
+            await asyncio.sleep(min(.05, max(0., deadline - time.monotonic())))
+        raise RuntimeError('landing_confirmation_timeout')
 
-        常规动作的 control_busy / action_result_pending 不得拦住这里 —— 这正是
-        复查发现的“急停被动作队列卡死”。Cancel 在第一个 await 之前完成。
-        """
-        self.cancelled.set(); self.resume=False
-        try:
-            await asyncio.to_thread(self.backend.stop_follow)
-        except Exception as exc:               # 跟随停止失败也不能拖住急停
-            self.cancel_note = 'stop_follow_failed: %s' % exc
-        takeover = getattr(self.backend,'priority_stop',None)
-        if callable(takeover):
-            result = await asyncio.to_thread(takeover,bool(land))
-            if result.get('ok'): self.acquired=True
+    async def dispatch(self, method, args, kwargs):
+        generation = self.generation
+        self._current(generation)
+        if not isinstance(args, list) or not isinstance(kwargs, dict) or kwargs:
+            raise ValueError('RPC accepts positional arguments only')
+        if method in ('get_status', 'is_following'):
+            if args:
+                raise ValueError('read-only status takes no arguments')
+            result = await asyncio.to_thread(getattr(self.backend, method))
+            self._current(generation)
             return result
-        control=await asyncio.to_thread(self.backend.request_control,'model')
-        if not control.get('ok'): return {'ok':False,'reason':'control_busy','detail':control}
-        self.acquired=True
-        return await asyncio.to_thread(self.backend.action,'land' if land else 'stop_motion')
+        if method in ('observe', 'describe'):
+            if len(args) != 1 or not isinstance(args[0], str) or not 0 < len(args[0]) <= 2000:
+                raise ValueError('vision requires a target/question of 1 to 2000 characters')
+            if self.vision is None:
+                raise RuntimeError('vision_model_not_configured')
+            result = await asyncio.to_thread(getattr(self.vision, method), args[0])
+            self._current(generation)
+            if method == 'observe':
+                if not isinstance(result, dict) or type(result.get('visible')) is not bool:
+                    raise ValueError('invalid_navigation_observation')
+                identity = (result.get('source'), result.get('frame_id'))
+                if identity in self.observations and result.get('source') == 'sdk_camera':
+                    raise RuntimeError('navigation_requires_new_frame')
+                self.observations.add(identity)
+                self.observation = result
+            # describe is read-only and must never authorize a later motion.
+            return result
+        if method == 'get_frame':
+            if args or self.vision is None:
+                raise ValueError('get_frame needs a configured camera and no arguments')
+            result = await asyncio.to_thread(self.vision.frame)
+            self._current(generation)
+            return result
+        if method in ('start_follow', 'stop_follow'):
+            if args:
+                raise ValueError('follow takes no arguments')
+            self.resume = False
+            if method == 'stop_follow':
+                result = await asyncio.to_thread(self.backend.stop_follow)
+                self._current(generation)
+                if not result.get('ok'):
+                    raise RuntimeError('follow_stop_unconfirmed: ' + str(result))
+                return result
+            if await asyncio.to_thread(self.backend.is_following):
+                self._current(generation)
+                return {'ok': True, 'status': 'already_following', 'simulated': self.simulated}
+            # The priority stop lease may remain after an interrupted program.
+            # Acquire a NEW lease before releasing model ownership to follow.
+            await self.acquire()
+            self._current(generation)
+            released = await self._bound(self.backend.release_control, 'model')
+            if not released.get('ok'):
+                raise RuntimeError('follow_handoff_release_failed: ' + str(released))
+            self.acquired = False
+            self._current(generation)
+            result = await asyncio.to_thread(self.backend.start_follow)
+            self._current(generation)
+            if not result.get('ok'):
+                raise RuntimeError('follow_start_failed: ' + str(result))
+            return result
+        if method not in MOTION:
+            raise ValueError('host capability not exposed: ' + str(method))
+        if method in DISTANCE:
+            if len(args) != 1 or type(args[0]) is not int or not 20 <= args[0] <= 500:
+                raise ValueError('distance must be an integer from 20 to 500 cm')
+        elif method == 'rotate':
+            if len(args) != 1 or type(args[0]) is not int or not -360 <= args[0] <= 360 or args[0] == 0:
+                raise ValueError('rotation must be a nonzero integer from -360 to 360 degrees')
+        elif method == 'update_velocity':
+            if len(args) != 4 or any(type(v) is not int or not -100 <= v <= 100 for v in args):
+                raise ValueError('RC requires four integers from -100 to 100')
+        elif args:
+            raise ValueError('action takes no arguments')
+        if method in DISTANCE | {'rotate', 'update_velocity'}:
+            self._navigation_evidence(method, args)
+        if method in ('land', 'stop_motion'):
+            self.resume = False
+        await self.acquire()
+        self._current(generation)
+        result = await self._bound(self.backend.action, method, *args)
+        self._current(generation)
+        permitted = ('completed', 'accepted') if method in ('stop_motion', 'land', 'update_velocity') else ('completed',)
+        if not result.get('ok') or result.get('status') not in permitted:
+            self.resume = False
+            raise RuntimeError('SDK_action_failed: ' + str(result))
+        if isinstance(result.get('grant'), dict):
+            self.grant = dict(result['grant'])
+        if method == 'land':
+            await self._confirm_landed(generation)
+            result = dict(result, status='completed', is_blocking=True, landed_confirmed=True)
+        if method in DISTANCE | {'rotate', 'update_velocity'} and self.observation is not None:
+            # One image cannot justify repeated moves after the view changed.
+            self.observation = dict(self.observation, consumed=True)
+        return {key: value for key, value in result.items() if key != 'grant'}
 
-    async def finish(self,success):
-        if not self.acquired: return
+    async def interrupt(self, land=False):
+        self.cancelled.set()
+        self.resume = False
+        # Dispatch directly first. A follow cleanup lock, a model action, or a
+        # network wait must not sit in front of the trusted emergency channel.
+        takeover = getattr(self.backend, 'priority_stop', None)
+        if not callable(takeover):
+            return {'ok': False, 'reason': 'priority_channel_unavailable'}
+        result = await asyncio.to_thread(takeover, bool(land))
+        try:
+            stopped = await asyncio.to_thread(self.backend.stop_follow)
+            if not stopped.get('ok'):
+                result = dict(result, follow_cleanup=stopped)
+        except Exception as exc:
+            result = dict(result, follow_cleanup_error=str(exc))
+        # Do NOT replace self.grant with the emergency grant. An old finish()
+        # can only operate on its old lease, which the priority action revoked.
+        return {key: value for key, value in result.items() if key != 'grant'}
+
+    async def _superseded(self, grant):
+        state = await asyncio.to_thread(self.backend.get_status)
+        epoch = grant.get('control_epoch')
+        command = grant.get('command_epoch')
+        return (type(epoch) is int and state.get('control_epoch') != epoch
+                or type(command) is int and state.get('command_epoch') != command
+                or state.get('control_owner') not in ('model',))
+
+    async def finish(self, success):
+        if not self.acquired:
+            self.cleanup = {'status': 'no_control'}
+            return
+        generation = self.generation
+        grant = dict(self.grant or {})
+        ticket = self.ticket
+        if await self._superseded(grant):
+            self.acquired = False
+            self.cleanup = {'status': 'superseded'}
+            return
         if not success or self.cancelled.is_set():
-            # 收尾用带 token 校验的常规 stop：失败必须抛出（T32），不能被吞。
-            r=await asyncio.to_thread(self.backend.action,'stop_motion')
-            if not r.get('ok'): raise RuntimeError('cleanup_stop_failed: '+str(r))
-        r=await asyncio.to_thread(self.backend.release_control,'model')
-        if not r.get('ok'): raise RuntimeError('cleanup_release_failed: '+str(r))
-        self.acquired=False
-        if success and self.resume and self.was_following and not self.cancelled.is_set():
-            # Actual target/frame checks belong to group's start_follow implementation.
-            if self.ticket is not None:
-                r=await asyncio.to_thread(self.backend.finish_follow_action,self.ticket,True)
-            else: r=await asyncio.to_thread(self.backend.start_follow)
-            if not r.get('ok'): raise RuntimeError('跟随未恢复：'+str(r))
+            stopped = await self._bound(self.backend.action, 'stop_motion', grant=grant)
+            if not stopped.get('ok'):
+                if await self._superseded(grant):
+                    self.acquired = False
+                    self.cleanup = {'status': 'superseded'}
+                    return
+                self.cleanup = {'status': 'stop_unconfirmed', 'result': stopped}
+                raise RuntimeError('cleanup_stop_failed: ' + str(stopped))
+            if isinstance(stopped.get('grant'), dict):
+                grant = self.grant = dict(stopped['grant'])
+        released = await self._bound(self.backend.release_control, 'model', grant=grant)
+        if not released.get('ok'):
+            if await self._superseded(grant):
+                self.acquired = False
+                self.cleanup = {'status': 'superseded'}
+                return
+            self.cleanup = {'status': 'release_unconfirmed', 'result': released}
+            raise RuntimeError('cleanup_release_failed: ' + str(released))
+        self.acquired = False
+        self.cleanup = {'status': 'released'}
+        if (generation == self.generation and success and self.resume
+                and self.was_following and not self.cancelled.is_set()):
+            if ticket is None:
+                raise RuntimeError('follow_recovery_ticket_missing')
+            recovered = await asyncio.to_thread(self.backend.finish_follow_action, ticket, True)
+            self._current(generation)
+            if not recovered.get('ok'):
+                self.cleanup = {'status': 'follow_resume_failed', 'result': recovered}
+                raise RuntimeError('follow_resume_failed: ' + str(recovered))
+            self.cleanup = {'status': 'follow_resumed'}

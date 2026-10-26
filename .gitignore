@@ -251,3 +251,9 @@ logs/
 
 # --- 三组跟随模块原始交付包（已并入 modules/follow，交付包本身不入库）---
 temp_follow_pid/
+
+# Local credentials and RTC build dependencies
+.env.*
+!.env.example
+node_modules/
+modules/rtc/Build/

@@ -1,92 +1,69 @@
-﻿# 实飞一键启动：豆包全双工语音 + 三组 openpose_pid 跟随（hybrid 横移/转向）+ 全局急停热键
-#
-# 用法（在本目录打开 PowerShell）：
-#     $env:VOLC_API_KEY = "<你的豆包密钥>"     # 只需设一次，仅存在当前窗口
-#     .\start_flight.ps1
-#
-# 急停：F12 = 零速度悬停 / F11 = 立即降落（全局热键，终端在后台也有效；Ctrl+C 只是收尾不降落）
-
+# One production launcher. uv owns the project environment; no pip or silent fallback.
+# No argument means real voice control with takeoff blocked until explicitly authorized.
+# .\start_flight.ps1 -AllowTakeoff
+# .\start_flight.ps1 -DryRun                 inspect settings, no network/hardware/API
 param(
-    [string]$Config = 'modules\follow\configs\offline_candidates\aircraft_A_ID0_hybrid.json',
-    [int]$MinBattery = 10,
-    [switch]$NoVideo,
+    [string]$Config = 'modules\follow\configs\aircraft_A_ID0.json',
+    [string]$Address = '',
+    [int]$MinBattery = 30,
+    [int]$MaxSessionSeconds = 180,
+    [ValidateSet('land', 'hover')][string]$ExitAction = 'land',
+    [string]$Program = '',
+    [string]$Text = '',
+    [switch]$PlanOnly,
+    [switch]$AllowTakeoff,
+    [switch]$ShowVideo,
     [switch]$DryRun
 )
-
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $root
-
-$py = Join-Path $root '.venv\Scripts\python.exe'
-if (-not (Test-Path $py)) { $py = 'python' }
+$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location -LiteralPath $projectRoot
 $env:PYTHONIOENCODING = 'utf-8'
-
-Write-Host '================ 实飞启动检查 ================' -ForegroundColor Cyan
-
-# ---- 1) 跟随配置：必须显式指定，否则退回 legacy（旧算法，无横移）----
-$cfgPath = Join-Path $root $Config
-if (-not (Test-Path $cfgPath)) {
-    Write-Host "[失败] 找不到跟随配置：$cfgPath" -ForegroundColor Red
-    exit 1
+$env:PYTHONUTF8 = '1'
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    throw 'uv is required. Install uv first; this launcher never installs into global Python.'
 }
-$env:R3_FOLLOW_CONFIG = $cfgPath
-
-Push-Location (Join-Path $root 'modules\follow')
-try {
-    $dump = & $py -X utf8 -B -c @'
-from r3_follow.config import load_config
-c = load_config()
-print('control_profile=' + c.control_profile)
-print('steering_mode=' + c.steering_mode)
-print('target_id=' + str(c.target_id))
-print('instance_id=' + c.instance_id)
-print('dictionary=' + c.dictionary)
-'@
-} finally {
-    Pop-Location
-}
-Write-Host '[跟随配置] R3_FOLLOW_CONFIG =' $cfgPath -ForegroundColor Green
-$dump | ForEach-Object { Write-Host ('           ' + $_) }
-
-$dumpText = ($dump -join "`n")
-if ($dumpText -notmatch 'control_profile=openpose_pid') {
-    Write-Host '[失败] control_profile 不是 openpose_pid —— 会跑旧算法，先检查配置文件' -ForegroundColor Red
-    exit 1
+if ($Program -and $Text) { throw 'Choose either -Program or -Text.' }
+if ($PlanOnly -and -not $Text) { throw '-PlanOnly requires -Text.' }
+if ($MinBattery -lt 20 -or $MinBattery -gt 100) { throw '-MinBattery must be 20..100.' }
+if ($MaxSessionSeconds -lt 1 -or $MaxSessionSeconds -gt 900) { throw '-MaxSessionSeconds must be 1..900.' }
+if (-not $Program -and -not $Text -and $MaxSessionSeconds -gt 180) {
+    throw 'RTC voice -MaxSessionSeconds must be 1..180, including DryRun.'
 }
 
-# ---- 2) 豆包密钥：只从环境变量读，脚本里绝不写死 ----
-if (-not $env:VOLC_API_KEY) {
-    Write-Host ''
-    Write-Host '[失败] 缺少 VOLC_API_KEY（脚本不保存密钥，需你先在窗口里设置）' -ForegroundColor Red
-    Write-Host '       $env:VOLC_API_KEY = "<火山控制台 API Key 管理里的密钥值>"' -ForegroundColor Yellow
-    Write-Host '       注意：api-key-2026xxxx 那串是"名称"，真正要用的是 UUID 形式的密钥值' -ForegroundColor DarkGray
-    exit 1
+$configPath = if ([IO.Path]::IsPathRooted($Config)) { $Config } else { Join-Path $projectRoot $Config }
+$configPath = (Resolve-Path -LiteralPath $configPath).Path
+$followConfig = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($followConfig.control_profile -ne 'openpose_pid') {
+    throw 'Production requires an explicit openpose_pid configuration. Follow source is unchanged.'
 }
-Write-Host ('[豆包密钥] 已设置（长度 {0}，前 4 位 {1}****）' -f $env:VOLC_API_KEY.Length, $env:VOLC_API_KEY.Substring(0, [Math]::Min(4, $env:VOLC_API_KEY.Length))) -ForegroundColor Green
+$env:R3_FOLLOW_CONFIG = $configPath
+Write-Host ('Follow config: {0}' -f $configPath)
+Write-Host ('Profile: {0}; steering: {1}; marker ID: {2}' -f $followConfig.control_profile, $followConfig.steering_mode, $followConfig.target_id)
+Write-Host ('Takeoff authorized: {0}; min battery: {1}%; exit action: {2}' -f $AllowTakeoff.IsPresent, $MinBattery, $ExitAction)
+Write-Host 'Emergency: Ctrl+Shift+Alt+A = stop; Ctrl+Shift+Alt+L = land; F12/F11 are alternatives.'
+Write-Host 'One process controls one Tello. Three ordinary Tellos do not become a swarm from three config files.'
 
-# ---- 3) 起飞门限：Tello 固件在电量约 50% 时会直接拒绝起飞 ----
-Write-Host ("[电量门限] 低于 {0}% 拒绝起飞" -f $MinBattery) -ForegroundColor Green
-Write-Host '[急停] F12 = 零速度悬停   F11 = 立即降落（全局热键，无需切回终端）' -ForegroundColor Yellow
-
-# ---- 4) 起飞参数 ----
-$argv = @(
-    'modules\ai\main.py',
-    '--real-drone',
-    '--allow-real-takeoff',
-    '--volc-dialog',
-    '--min-battery', $MinBattery
-)
-if (-not $NoVideo) { $argv += '--show-video' }
-
+$runtimeArgs = @('modules\ai\main.py', '--follow-config', $configPath,
+    '--min-battery', "$MinBattery", '--max-session-seconds', "$MaxSessionSeconds", '--exit-action', $ExitAction)
+if (-not $PlanOnly) { $runtimeArgs += '--real-drone' }
+if ($AllowTakeoff) { $runtimeArgs += '--allow-real-takeoff' }
+if ($Address) { $runtimeArgs += @('--address', $Address) }
+if ($Program) { $runtimeArgs += @('--program', $Program) }
+if ($Text) { $runtimeArgs += @('--text', $Text) }
+if ($PlanOnly) { $runtimeArgs += '--plan-only' }
+if ($ShowVideo -and -not $PlanOnly) { $runtimeArgs += '--show-video' }
 if ($DryRun) {
-    Write-Host ''
-    Write-Host '[DryRun] 仅检查，不启动：' -ForegroundColor Cyan
-    Write-Host ('         ' + $py + ' ' + ($argv -join ' '))
+    Write-Host 'DryRun: configuration only. No aircraft, audio stream, Docker or API is opened.'
+    Write-Host ('uv run --frozen --python 3.11 python -X utf8 -B ' + ($runtimeArgs -join ' '))
     exit 0
 }
-
-Write-Host ''
-Write-Host '================ 启动 ================' -ForegroundColor Cyan
-Write-Host '语音可这样说：起飞 / 开始跟随 / 停止跟随 / 降落' -ForegroundColor DarkGray
-Write-Host ''
-& $py -X utf8 -B @argv
+if (-not $Text -and -not $Program) {
+    $required = @('RTC_APP_ID','RTC_APP_KEY','VOLCENGINE_ACCESS_KEY_ID','VOLCENGINE_SECRET_ACCESS_KEY',
+        'VOLC_S2S_APP_ID','VOLC_S2S_TOKEN','RTC_VLM_MODEL')
+    $missing = @($required | Where-Object { -not [Environment]::GetEnvironmentVariable($_) })
+    if ($missing.Count) { throw ('RTC configuration missing: ' + ($missing -join ', ')) }
+    Write-Host 'Open the printed local URL manually and select the Bluetooth microphone and speaker in the browser.'
+}
+& uv run --frozen --python 3.11 python -X utf8 -B @runtimeArgs
+exit $LASTEXITCODE

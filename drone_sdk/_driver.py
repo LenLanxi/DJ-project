@@ -18,6 +18,7 @@ Real-mode safety contract
     can never delay an emergency stop
 """
 from collections import deque
+import math
 import re
 import threading
 import time
@@ -47,6 +48,11 @@ TAKEOFF_FIRMWARE_BATTERY = 50
 
 _lock = threading.RLock()
 _command_lock = threading.Lock()
+# Only the final UDP send holds this lock, never a network response wait.
+# Cancellation and sending have a single ordering point: once cancellation
+# returns, an old command cannot subsequently reach socket.sendto().
+_send_gate = threading.RLock()
+_command_context = threading.local()
 _delay = 0.0
 _velocity = (0, 0, 0, 0)
 _events = deque(maxlen=2000)
@@ -63,8 +69,36 @@ _pending_commands = set()
 _cancel_epoch = 0
 _unknown_actions = set()
 _unknown_since = {}
+_landing_acknowledged = False
+_response_quarantine = None
+_last_wire_send = 0.
 TAKEOFF_CONFIRM_CM = 10
 RECONCILE_SETTLE_S = 2.0
+TELEMETRY_MAX_AGE_S = 1.0
+
+
+def capture_cancel_epoch():
+    with _lock:
+        return _cancel_epoch
+
+
+def command_channel_clear():
+    with _lock:
+        return _response_quarantine is None
+
+
+def _mark_response_unknown(action, reason):
+    """UDP replies carry no command IDs. A late reply cannot safely answer B.
+
+    No timer clears this barrier. Normal motion is disabled until an explicit
+    disconnect/reconnect; emergency RC zero and landing remain available.
+    """
+    global _response_quarantine
+    with _lock:
+        if _response_quarantine is None:
+            _response_quarantine = {'action':action, 'reason':reason, 'timestamp':time.time()}
+        _unknown_actions.add(action)
+    _record('command_channel_ambiguous', action=action, reason=reason)
 
 def action_pending():
     with _lock: return bool(_pending_commands) if not SIMULATED else False
@@ -80,9 +114,10 @@ def action_unknown(action=None):
 def cancel_pending(reason='cancelled'):
     """作废所有尚未真正发给飞机的命令（拿到锁后还会二次校验编号）。"""
     global _cancel_epoch
-    with _lock:
-        _cancel_epoch += 1
-        epoch = _cancel_epoch
+    with _send_gate:
+        with _lock:
+            _cancel_epoch += 1
+            epoch = _cancel_epoch
     _record('commands_cancelled', reason=reason, epoch=epoch)
     return epoch
 
@@ -132,6 +167,26 @@ TOF_MIN_CM = 20          # 低于此值视为贴地或不可信
 TOF_MAX_TRUSTED_CM = 300
 
 
+def _telemetry(tello=None):
+    """Return the last received packet and its receipt age, never a poll time."""
+    with _lock:
+        target = tello or _tello
+    getter = getattr(target, 'get_current_state', None)
+    if not callable(getter):
+        return {}, None, None, False
+    try:
+        packet = getter()
+        stamp = packet.get('_received_at')
+        mono = packet.get('_received_monotonic')
+        age = time.monotonic() - mono if type(mono) in (int, float) else None
+        fresh = bool(type(stamp) in (int, float) and age is not None
+                     and math.isfinite(stamp) and math.isfinite(age)
+                     and 0 <= age <= TELEMETRY_MAX_AGE_S)
+        return packet, stamp, age, fresh
+    except Exception:
+        return {}, None, None, False
+
+
 def _height_probe(tello=None):
     """返回 (高度cm 或 None, 来源)。None = 读数不可信，调用方必须保守处理。
 
@@ -144,6 +199,9 @@ def _height_probe(tello=None):
         flying, cached = _flying, _height_cm
     if tello is None:
         return (cached, 'cached')
+    packet, _stamp, _age, fresh = _telemetry(tello)
+    if callable(getattr(tello, 'get_current_state', None)) and not fresh:
+        return (None, 'stale_telemetry')
     height = None
     try:
         height = tello.get_height()
@@ -151,8 +209,8 @@ def _height_probe(tello=None):
         height = None
     if type(height) is int and height > 0:
         return (height, 'baro')
-    if not flying:
-        return (0, 'ground')
+    # A software flag is not a measurement: after a timed-out takeoff it can
+    # still say False while the vehicle is already airborne. Always inspect ToF.
     tof = None
     try:
         tof = tello.get_distance_tof()
@@ -160,6 +218,8 @@ def _height_probe(tello=None):
         tof = None
     if type(tof) is int and TOF_MIN_CM <= tof <= TOF_MAX_TRUSTED_CM:
         return (tof, 'tof')
+    if not flying and type(height) is int and height == 0 and type(tof) is int and 0 <= tof < TOF_MIN_CM:
+        return (0, 'ground_telemetry')
     return (None, 'unknown')
 
 
@@ -224,7 +284,7 @@ def _sanitise_rc(channels):
     return (left_right, forward_back, up_down, yaw)
 
 
-def _call_real(fn, *, action, deadline, epoch=None):
+def _call_real(fn, *, action, deadline, epoch=None, on_success=None):
     """Run one blocking Tello command on a worker and cap the caller's wait.
 
     取消语义：调用时绑定当时的取消编号；worker 真正拿到命令锁后、调用 fn 之前
@@ -233,7 +293,9 @@ def _call_real(fn, *, action, deadline, epoch=None):
     """
     with _lock:
         bound_epoch = _cancel_epoch if epoch is None else epoch
-    outcome = {'ok': False, 'error': 'timeout'}
+        if _response_quarantine is not None and action not in ('land', 'streamoff'):
+            return False, 'command_channel_ambiguous'
+    outcome = {'ok': False, 'error': 'timeout', 'wire_sent':False}
     done = threading.Event()
 
     with _lock: _pending_commands.add(done)
@@ -244,29 +306,44 @@ def _call_real(fn, *, action, deadline, epoch=None):
             done.set()
             return
         try:
+            _command_context.epoch = bound_epoch
+            _command_context.action = action
+            _command_context.outcome = outcome
             with _lock: cancelled = _cancel_epoch != bound_epoch
             if cancelled:
                 outcome['error'] = 'cancelled_before_send'
                 _record('command_dropped', action=action, reason='cancelled_before_send',
                         bound_epoch=bound_epoch, cancel_epoch=_cancel_epoch)
             else:
+                if not command_channel_clear() and action not in ('land','streamoff'):
+                    outcome['error'] = 'command_channel_ambiguous'
+                    return
                 fn()
+                if on_success is not None:
+                    on_success()
                 outcome['ok'], outcome['error'] = True, ''
         except Exception as exc:
-            outcome['error'] = '%s: %s' % (type(exc).__name__, exc)
+            outcome['error'] = (str(exc) if str(exc) in ('cancelled_before_send', 'cancelled_after_send',
+                                                        'response_timeout_after_send','command_channel_ambiguous')
+                                else '%s: %s' % (type(exc).__name__, exc))
         finally:
+            _command_context.epoch = None
+            _command_context.action = None
+            _command_context.outcome = None
             _command_lock.release()
             with _lock: _pending_commands.discard(done)
             done.set()
 
     threading.Thread(target=runner, daemon=True, name='tello-command').start()
     if not done.wait(deadline):
+        if outcome['wire_sent']:
+            _mark_response_unknown(action, 'caller_deadline_after_send')
         _link_fault('deadline_exceeded:%s' % action)
         return False, 'timeout'
     if outcome['ok']:
         _set_link_ok()
         return True, ''
-    if outcome['error'] == 'cancelled_before_send':
+    if outcome['error'] in ('cancelled_before_send', 'cancelled_after_send', 'command_channel_ambiguous'):
         return False, outcome['error']          # 主动丢弃不是链路故障
     _link_fault(outcome['error'])
     return False, outcome['error']
@@ -286,7 +363,7 @@ def _execute_move(tello, action, cm):
         getattr(tello, 'move_%s' % action)(cm)
 
 
-def _execute_real(action, param=None):
+def _execute_real(action, param=None, *, epoch=None):
     global _flying, _height_cm, _last_error
     with _lock:
         tello = _tello
@@ -295,17 +372,24 @@ def _execute_real(action, param=None):
             _events.append(dict(event='action_rejected', action=action, reason='link_down',
                                 monotonic=time.monotonic(), simulated=False))
             return False
-    _record('action_sent', action=action, param=param)
+    _record('action_queued', action=action, param=param)
     if action in ('takeoff', 'land'):
-        ok, error = _call_real(getattr(tello, action), action=action,
-                               deadline=_move_deadline(action, None))
-        if ok:
+        def acknowledged():
+            global _flying, _height_cm, _landing_acknowledged
             with _lock:
+                if _tello is not tello:
+                    return
                 _flying = action == 'takeoff'
+                _landing_acknowledged = action == 'land'
                 if action == 'land': _height_cm = 0
+            _record('action_acknowledged', action=action)
+        ok, error = _call_real(getattr(tello, action), action=action,
+                               deadline=_move_deadline(action, None), epoch=epoch,
+                               on_success=acknowledged)
+        if ok:
             if action == 'takeoff': _current_height(tello)
             return True
-        if action == 'takeoff' and error in ('timeout', 'cancelled_before_send'):
+        if action == 'takeoff' and error in ('timeout', 'cancelled_after_send', 'response_timeout_after_send'):
             # 超时/被丢弃都不等于没起飞：标记结果未知，交给真实遥测修正，绝不擅自改回 landed。
             token = object()
             with _lock:
@@ -314,7 +398,7 @@ def _execute_real(action, param=None):
             _record('action_unknown', action='takeoff', error=error)
             threading.Thread(target=_reconcile_later, args=(tello, token), daemon=True,
                              name='tello-reconcile').start()
-        elif action == 'takeoff' and error not in ('command_busy', 'link_down'):
+        elif action == 'takeoff' and error not in ('command_busy', 'link_down','cancelled_before_send','command_channel_ambiguous'):
             # 飞控明确回 error（区别于超时）。现场原因基本只有低电量一条：
             # 电量 50% 时 takeoff 会在 0.1s 内被拒。记下可操作的诊断，
             # 别让上层只看到 "takeoff was unsuccessful for 2 tries"。
@@ -334,7 +418,7 @@ def _execute_real(action, param=None):
              _plan_descent(param) if action == 'down' else param)
         if cm is None: return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, cm), action=action,
-                                deadline=_move_deadline(action, cm))
+                                deadline=_move_deadline(action, cm), epoch=epoch)
         if ok:
             if action in ('up', 'down'):
                 with _lock:
@@ -346,20 +430,23 @@ def _execute_real(action, param=None):
             _record('action_rejected', action=action, reason='invalid_degrees', param=param)
             return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, param), action=action,
-                                deadline=_move_deadline(action, param))
+                                deadline=_move_deadline(action, param), epoch=epoch)
         return ok
     _record('action_rejected', action=action, reason='unknown_action', param=param)
     return False
 
 
-def execute(action, param=None):
+def execute(action, param=None, *, epoch=None):
     with _lock:
         real, delay = not SIMULATED, _delay
     if not real:
+        if epoch is not None and epoch != capture_cancel_epoch():
+            _record('command_dropped', action=action, reason='cancelled_before_send')
+            return False
         _record('action_sent', action=action, param=param)
         if delay: time.sleep(delay)
         return True
-    return _execute_real(action, param)
+    return _execute_real(action, param, epoch=epoch)
 
 
 def _reconcile_later(tello, token=None, delay=1.5):
@@ -377,18 +464,19 @@ def reconcile_state(tello=None, token=None):
         if not unknown: return True          # 没有未决动作，状态已是可信的
         if token is not None and _unknown_since.get('takeoff', (0, None))[1] is not token:
             return True                      # 这条是更早那次超时的收尾线程，别动新状态
-    height = _current_height(target)
+    height, source = _height_probe(target)
     with _lock:
         resolved = False
         if 'takeoff' in unknown:
             since = _unknown_since.get('takeoff', (0.0, None))[0]
             settled = time.monotonic() - since >= RECONCILE_SETTLE_S
-            if _flying or height >= TAKEOFF_CONFIRM_CM:
+            if _flying or (source == 'baro' and height is not None and height >= TAKEOFF_CONFIRM_CM):
                 _flying, resolved = True, True
                 _unknown_actions.discard('takeoff')
                 _unknown_since.pop('takeoff', None)
                 _record('action_reconciled', action='takeoff', result='flying', height_cm=height)
-            elif settled and not _pending_commands:
+            elif (settled and not _pending_commands and height == 0 and source == 'ground_telemetry'
+                    and _response_quarantine is None):
                 resolved = True                       # 只有过了稳定期且遥测为地面才敢下结论
                 _unknown_actions.discard('takeoff')
                 _unknown_since.pop('takeoff', None)
@@ -399,6 +487,9 @@ def reconcile_state(tello=None, token=None):
 def set_velocity(channels, reason):
     global _velocity
     with _lock: real = not SIMULATED
+    if real and any(channels) and not command_channel_clear():
+        _record('velocity_rejected', reason='command_channel_ambiguous')
+        return False
     applied = _sanitise_rc(channels) if real else tuple(channels)
     with _lock:
         _velocity = applied
@@ -439,22 +530,35 @@ def interrupt(action):
 
 def _dispatch_land(tello):
     """Landing is fire-and-forget here: the caller only needs the command out."""
+    global _landing_acknowledged
+    pending = threading.Event()
+    with _lock:
+        _landing_acknowledged = False
+        _pending_commands.add(pending)
     def worker():
-        global _flying, _height_cm
+        global _flying, _height_cm, _landing_acknowledged
         while not _command_lock.acquire(timeout=LAND_DISPATCH_TIMEOUT_S):
             _record('land_deferred', reason='command_busy')
             with _lock:
-                if _tello is not tello: return
+                if _tello is not tello:
+                    _pending_commands.discard(pending)
+                    pending.set()
+                    return
         try:
+            with _lock:
+                if _tello is not tello: return
             tello.land()
             with _lock:
                 _flying, _height_cm = False, 0
+                _landing_acknowledged = True
             _set_link_ok()
             _record('land_sent', action='land', blocking=False)
         except Exception as exc:
             _link_fault('land: %s' % exc)
         finally:
             _command_lock.release()
+            with _lock: _pending_commands.discard(pending)
+            pending.set()
 
     threading.Thread(target=worker, daemon=True, name='tello-land').start()
 
@@ -477,8 +581,20 @@ def health():
                     speed_cm_s=_speed_cm_s, velocity=_velocity,
                     video=_video is not None, battery=None, flight_time_s=None,
                     ceiling_cm=MAX_HEIGHT_CM, max_speed_cm_s=MAX_SPEED_CM_S,
-                    action_unknown=unknown)
+                    action_unknown=unknown, landing_acknowledged=_landing_acknowledged,
+                    command_channel_ambiguous=_response_quarantine is not None,
+                    command_uncertainty=dict(_response_quarantine) if _response_quarantine else None,
+                    telemetry_timestamp=None,
+                    telemetry_age_s=None, telemetry_fresh=False,
+                    temperature_c=None, height_source='unavailable')
     if connected and tello is not None:
+        packet, stamp, age, fresh = _telemetry(tello)
+        data.update(telemetry_timestamp=stamp, telemetry_age_s=age,
+                    telemetry_fresh=fresh)
+        temperatures = [packet.get(k) for k in ('templ', 'temph')]
+        temperatures = [v for v in temperatures if type(v) in (int, float) and -20 <= v <= 150]
+        if fresh and temperatures:
+            data['temperature_c'] = max(temperatures)
         for key, name in (('battery', 'get_battery'), ('flight_time_s', 'get_flight_time')):
             getter = getattr(tello, name, None)     # 驱动替身可能没有这些方法
             if not callable(getter): continue
@@ -486,8 +602,10 @@ def health():
                 value = getter()
             except Exception:
                 continue
-            if type(value) is int and value >= 0: data[key] = value
-        data['height_cm'] = _current_height(tello)
+            if type(value) is int and value >= 0 and (fresh or not callable(getattr(tello, 'get_current_state', None))):
+                data[key] = value
+        height, source = _height_probe(tello)
+        data['height_cm'], data['height_source'] = height, source
         if unknown:
             # 有“结果未知”的动作时，用这一轮真实遥测修正状态。
             reconcile_state(tello)
@@ -495,8 +613,55 @@ def health():
     return data
 
 
+def _wire_send(command, send):
+    """The cancellation check immediately adjacent to the actual UDP write.
+
+    The gate is deliberately released before waiting for a reply. A command
+    already sent cannot be unsent; an accepted stop prevents later old sends.
+    """
+    global _last_wire_send
+    with _send_gate:
+        bound = getattr(_command_context, 'epoch', None)
+        with _lock:
+            if bound is not None and bound != _cancel_epoch:
+                _record('command_dropped', command=command, reason='cancelled_before_wire_send')
+                raise RuntimeError('cancelled_before_send')
+            safe = command in ('land','streamoff') or command.split() == ['rc','0','0','0','0']
+            if _response_quarantine is not None and not safe:
+                raise RuntimeError('command_channel_ambiguous')
+        send(command)
+        with _lock:
+            _last_wire_send = time.monotonic()
+            outcome = getattr(_command_context, 'outcome', None)
+            if outcome is not None and not command.startswith('rc '):
+                outcome['wire_sent'] = True
+        _record('wire_sent', command=command)
+
+
+def _install_telemetry_clock(tello_type):
+    """djitellopy 2.5 replaces its state dict per UDP packet but timestamps none.
+
+    Stamp in its parser, which is invoked by the actual UDP receiver. Polling
+    getters must never refresh this stamp. No additional socket is created.
+    """
+    if getattr(tello_type, '_companion_receipt_clock', False):
+        return
+    original = tello_type.parse_state
+    def stamped(raw):
+        state = original(raw)
+        if state:
+            state['_received_at'] = time.time()
+            state['_received_monotonic'] = time.monotonic()
+        return state
+    tello_type.parse_state = staticmethod(stamped)
+    tello_type._companion_receipt_clock = True
+
+
 def _tello_class(timeout):
     import djitellopy
+    import importlib
+    wire = importlib.import_module('djitellopy.tello')
+    _install_telemetry_clock(djitellopy.Tello)
 
     # djitellopy 的 send_control_command 被 @enforce_types 校验，timeout 必须是 int
     timeout = max(1, int(round(float(timeout))))
@@ -508,16 +673,44 @@ def _tello_class(timeout):
             # 基类 __init__ 的 host 默认值在定义时就绑死成 TELLO_IP，必须显式传
             super().__init__(**({} if host is None else {'host': host}))
             self.retry_count = 1
+        def send_command_with_return(self, command, timeout=timeout):
+            # Copy the narrow 2.5 protocol wait, replacing only its final send
+            # with the cancellation gate. Do not hold a lock during a reply.
+            elapsed = time.time() - self.last_received_command_timestamp
+            if elapsed < self.TIME_BTW_COMMANDS:
+                time.sleep(self.TIME_BTW_COMMANDS - elapsed)
+            responses = self.get_own_udp_object()['responses']
+            responses.clear()  # completed previous commands cannot answer this one
+            _wire_send(command, lambda value: wire.client_socket.sendto(value.encode('utf-8'), self.address))
+            started = time.monotonic()
+            while not responses:
+                bound = getattr(_command_context, 'epoch', None)
+                if bound is not None and bound != capture_cancel_epoch():
+                    _mark_response_unknown(getattr(_command_context, 'action', None) or command.split()[0], 'cancelled_after_send')
+                    raise RuntimeError('cancelled_after_send')
+                if time.monotonic() - started >= timeout:
+                    _mark_response_unknown(getattr(_command_context, 'action', None) or command.split()[0], 'response_timeout_after_send')
+                    raise RuntimeError('response_timeout_after_send')
+                time.sleep(.01)
+            response = responses.pop(0).decode('utf-8').strip()
+            self.last_received_command_timestamp = time.time()
+            return response
+        def send_command_without_return(self, command):
+            _wire_send(command, lambda value: wire.client_socket.sendto(value.encode('utf-8'), self.address))
         def send_control_command(self, command, timeout=timeout):
-            return djitellopy.Tello.send_control_command(self, command, timeout=timeout)
+            response = self.send_command_with_return(command, timeout=timeout)
+            if response.lower() != 'ok':
+                self.raise_result_error(command, response)
+            return True
 
     return _Tello
 
 
 def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
-    global _tello, SIMULATED, _link_ok, _faults, _last_error, _height_cm, _flying, _keepalive_stop
+    global _tello, SIMULATED, _link_ok, _faults, _last_error, _height_cm, _flying, _keepalive_stop, _landing_acknowledged, _response_quarantine
     with _lock:
         if _tello is not None: return health()
+        _response_quarantine = None  # explicit new connection, never a timer
     if address and not re.match(r'^\d{1,3}(\.\d{1,3}){3}$', str(address)):
         raise ValueError('invalid_address:%s' % (address,))
     try:
@@ -544,6 +737,7 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
         _tello, SIMULATED = tello, False
         _link_ok, _faults, _last_error = True, 0, ''
         _flying, _height_cm = False, 0
+        _landing_acknowledged = False
         stop = _keepalive_stop = threading.Event()
     _record('connected', address=getattr(tello, 'address', (address or 'unknown', 0))[0])
     set_speed(DEFAULT_SPEED_CM_S)
@@ -561,9 +755,10 @@ def _keepalive_loop(tello, stop):
     ``rc`` 是不需要响应的指令，既能重置 15 秒自动降落计时器，又不占响应队列。
     """
     while not stop.wait(KEEPALIVE_INTERVAL_S):
-        with _lock: flying, linked = _flying, _link_ok
+        with _lock: flying, linked, last_send = _flying, _link_ok, _last_wire_send
         if not flying or not linked: continue
         if action_pending(): continue        # 有在途命令时不插队
+        if time.monotonic() - last_send < KEEPALIVE_INTERVAL_S: continue
         try:
             tello.send_rc_control(0, 0, 0, 0)
             _record('keepalive_sent', mode='rc_zero')
@@ -652,7 +847,11 @@ def stop_video():
 _PLACEHOLDER_SHAPE = (300, 400, 3)
 VIDEO_BACKEND = 'av'          # 现场已验证：自研 av 后端（真机实测 720x960 出图）
 VIDEO_BACKENDS = ('av', 'djitellopy')
-VIDEO_URL_OPTIONS = '?overrun_nonfatal=1&fifo_size=50000000'
+# FFmpeg fifo_size is in 188-byte units, not bytes. Its documented default
+# 7*4096 is 5,390,336 bytes. 50,000,000 overflows the byte-size multiplication
+# in some libavformat versions and permits a huge stale queue in others.
+# A full queue must surface an error/reconnect, not silently discard new input.
+VIDEO_URL_OPTIONS = '?overrun_nonfatal=0&fifo_size=28672'
 
 
 class _VideoDecoder(threading.Thread):
@@ -687,12 +886,13 @@ class _VideoDecoder(threading.Thread):
         import av
         while not self._halt.is_set():
             container = None
-            for url in (self.url + VIDEO_URL_OPTIONS, self.url):
-                try:
-                    container = av.open(url, timeout=(self.open_timeout, self.read_timeout))
-                    break
-                except Exception as exc:
-                    self._note('open(%s): %s' % ('opts' if url.endswith('50') else 'plain', exc))
+            try:
+                container = av.open(self.url + VIDEO_URL_OPTIONS,
+                                    timeout=(self.open_timeout, self.read_timeout))
+            except Exception as exc:
+                # A plain-URL fallback would silently bypass the chosen queue
+                # and overflow policy. Retry the same explicit policy instead.
+                self._note('open(bounded_udp): %s' % exc)
             if container is None:
                 self._halt.wait(1.0)
                 self.reconnects += 1
@@ -713,6 +913,9 @@ class _VideoDecoder(threading.Thread):
                         self._frame = frame
                         self.count += 1
                         self.last_frame_at = time.monotonic()
+                        # Host decode-completion time, NOT camera exposure or
+                        # network reception. Fresh decode age cannot prove
+                        # sensor-to-controller latency when upstream is queued.
                         self.last_frame_timestamp = time.time()
             except Exception as exc:
                 self._note('decode: %s' % exc)
@@ -810,13 +1013,15 @@ def await_video(timeout=8.0, interval=.05):
 
 
 def disconnect(*, safe=True):
-    global _tello, _video, _keepalive_stop, SIMULATED, _flying, _height_cm
+    global _tello, _video, _keepalive_stop, SIMULATED, _flying, _height_cm, _response_quarantine
+    cancel_pending('disconnect')
     with _lock:
         tello, _tello = _tello, None
         reader, _video = _video, None
         stop, _keepalive_stop = _keepalive_stop, None
         _unknown_actions.clear()
         _unknown_since.clear()
+        _response_quarantine = None
         _pending_commands.clear()
     if stop is not None: stop.set()
     stopper = getattr(reader, 'stop', None)
@@ -842,7 +1047,11 @@ def disconnect(*, safe=True):
 
 
 def capture_metadata(frame):
-    """Return decoder acquisition metadata atomically; never turn polling into capture."""
+    """Return decoder identity/completion time atomically, not sensor capture time.
+
+    Polling does not refresh this timestamp. The half-second age gate detects a
+    stalled publication, but cannot establish camera-to-control video latency.
+    """
     with _lock: reader=_video
     if not isinstance(reader,_VideoDecoder): return None
     with reader._lock:

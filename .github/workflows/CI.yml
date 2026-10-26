@@ -1,0 +1,38 @@
+name: Companion
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: uv sync --frozen
+      - run: npm --prefix modules/rtc ci --ignore-scripts --no-audit --no-fund
+      - run: uv run --frozen pytest -q
+      - run: npm --prefix modules/rtc test
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      PYNPUT_BACKEND: dummy
+      RUN_DOCKER_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --frozen
+      - run: docker build -t companion-sandbox:0.4 modules/ai/sandbox
+      - run: uv run --frozen pytest tests/SandboxSafetyTests.py tests/GatewayTests.py -q
