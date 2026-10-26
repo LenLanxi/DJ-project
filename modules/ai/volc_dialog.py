@@ -427,9 +427,14 @@ class VolcDuplex:
             return result
         if name == 'get_status':
             backend = self._backend()
-            if backend is None:
-                raise RuntimeError('当前执行器不支持读取状态')
-            state = await asyncio.to_thread(backend.get_status)
+            if backend is not None:
+                state = await asyncio.to_thread(backend.get_status)
+            else:
+                # 本地白名单执行器（无 docker 时的退路）没有 gateway，状态从 demo.drone 取
+                drone = getattr(getattr(self.runner, 'demo', None), 'drone', None)
+                if drone is None:
+                    raise RuntimeError('当前执行器不支持读取状态')
+                state = await asyncio.to_thread(drone.get_status)
             return {'ok': True, 'status': 'ok', 'state': state}
         if name == 'interrupt':
             land = arguments.get('land')

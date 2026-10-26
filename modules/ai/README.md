@@ -162,7 +162,8 @@ https://python-sounddevice.readthedocs.io/en/latest/api/convenience-functions.ht
 | `--volc-dialog` | 豆包全双工实时语音（火山 Seeduplex）：ASR/对话/TTS 都在服务端，鉴权 `X-Api-Key`，需 `VOLC_API_KEY`；必须显式 `--input-device/--output-device`（`DuplexAudio` 拒绝系统默认） |
 
 豆包模式的三个实测要点：
-- **状态类口令**走 `get_status` 工具（直接读 backend，毫秒级返回）；`run_program` 需要 Docker 沙箱，本机没装 docker 时启动会打印提示并自动收起该工具（动作类口令因此不可用）
+- **没有 docker 时退到本地白名单执行器**：`program_runner.Runner` 只接受单条 `drone.xxx()` 调用（无循环/无 import），动作照样走 `controller` 安全锁 —— 所以地面阶段能把"尚未起飞"这类拦截演示出来；装了 docker 则走沙箱跑完整程序
+- **状态类口令**走 `get_status` 工具（直读 backend/drone，毫秒级）
 - **回音**：默认播报期间不上行麦克风（外放时扬声器声音会被自己当指令）。想保留"说话打断我"就设 `VOLC_BARGE_IN=1`，此时必须戴耳机
 - **急停**：`interrupt` 工具走 `backend.emergency()` priority 通道，与快捷键同一条路
 | `--climb-target-cm 120` / `--no-auto-climb` | 起飞后自动补高度（Tello 自身只到约 1m，人站着举码够不着） |

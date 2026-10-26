@@ -354,9 +354,10 @@ async def run_modern(args):
     from vision import Vision
     import asyncio
     backend=MockBackend()
+    real_runner=None
     try:
         if args.real_drone:
-            build_real_runner(args)
+            real_runner,_real_drone=build_real_runner(args)
             backend=SDKBackend(Path(__file__).resolve().parents[2])
         if args.image and not backend.simulated: raise ValueError('真机模式禁止静态测试图片')
         client=ModelClient() if os.getenv('AI_CHAT_URL') else None
@@ -364,6 +365,20 @@ async def run_modern(args):
         gateway=Gateway(backend,vision,args.fixture_vision)
         if args.fixture_vision and not backend.simulated: raise ValueError('真机模式禁止视觉夹具')
         runner=SandboxRunner(gateway)
+        # 没有 docker 时退到本地白名单执行器（program_runner.Runner）：仍是单调用白名单，
+        # 仍走 controller 的安全锁，但不需要沙箱 —— 否则地面阶段连"不能起飞"都演示不出来。
+        import shutil
+        sandbox_ready = shutil.which('docker') is not None
+        if getattr(args,'volc_dialog',False) and not sandbox_ready:
+            if real_runner is not None:
+                runner = real_runner
+            else:
+                from program_runner import Runner as LocalRunner
+                from demo_text import Demo
+                from drone_adapter import MockDrone
+                runner = LocalRunner(Demo(MockDrone()))
+            print('[豆包] 未检测到 docker：改用本地白名单执行器'
+                  '（只允许单条 drone.xxx() 调用，动作仍走 controller 安全锁）', flush=True)
         if args.program:
             result=await runner.run(Path(args.program).read_text(encoding='utf-8'))
             print(json.dumps(result,ensure_ascii=False,indent=2))
@@ -377,15 +392,8 @@ async def run_modern(args):
                 # 豆包全双工：ASR/对话/TTS 都在服务端，鉴权用 X-Api-Key（与 OpenAI Realtime 不同）
                 from volc_dialog import VolcDuplex, STATUS_TOOL
                 from realtime import INSTRUCTIONS, TOOLS
-                import shutil
-                # run_program 要起 Docker 沙箱；没装 docker 就别把工具给模型，免得它一直失败
-                sandbox_ready = shutil.which('docker') is not None
-                tools = [item for item in TOOLS
-                         if sandbox_ready or item.get('name') != 'run_program']
-                tools = tools + [STATUS_TOOL]
-                if not sandbox_ready:
-                    print('[豆包] 未检测到 docker：run_program 不可用，'
-                          '状态类口令走 get_status 工具（动作类口令会被拒绝）', flush=True)
+                # run_program 需要执行器；没有 docker 时已经退到本地白名单执行器，工具照给
+                tools = list(TOOLS) + [STATUS_TOOL]
                 def _log(event):
                     name=event.get('event') if isinstance(event,dict) else event
                     if name in ('asr_text','reply_text','tool_result','error','audio_first'):
