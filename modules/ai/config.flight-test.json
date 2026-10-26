@@ -1,5 +1,0 @@
-{
-  "record_seconds": 5,
-  "speak_replies": true,
-  "log_path": "logs/flight_turns.jsonl"
-}

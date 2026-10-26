@@ -6,12 +6,9 @@
     Ctrl+Shift+Alt+A   急停 / 悬停
     Ctrl+Shift+Alt+L   降落
 
-不需要管理员权限；焦点在任何窗口都有效。缺少 pynput 时尝试自动安装一次，
-失败则只打印提示（调用方的 F12/F11 等备用通道不受影响）。
+不需要管理员权限；焦点在任何窗口都有效。依赖必须提前由项目环境准备；
+缺少 pynput 明确报告，不在飞行现场安装包或改变环境。
 """
-import os
-import subprocess
-import sys
 import threading
 import time
 
@@ -32,36 +29,19 @@ def _default_emit(tag, text):
 
 
 def ensure_pynput(emit=None):
-    """没有 pynput 就现场装一次（同一个解释器）；返回 keyboard 模块或 None。"""
+    """Import an already-installed dependency; never install at runtime."""
     emit = emit or _default_emit
     try:
         from pynput import keyboard
         return keyboard
     except Exception as exc:
-        emit('快捷键', '缺少 pynput（%s），正在自动安装…' % exc)
-    try:
-        completed = subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', 'pynput'],
-            capture_output=True, text=True, timeout=300)
-        lines = [line for line in ((completed.stdout or '') +
-                                   (completed.stderr or '')).splitlines() if line.strip()]
-        emit('快捷键', 'pip install pynput %s %s' % (
-            '成功' if completed.returncode == 0 else '失败（返回码 %s）' % completed.returncode,
-            lines[-1] if lines else ''))
-    except Exception as exc:
-        emit('快捷键', '自动安装失败：%s: %s' % (type(exc).__name__, exc))
-    try:
-        import importlib
-        importlib.invalidate_caches()
-        from pynput import keyboard
-        return keyboard
-    except Exception as exc:
-        emit('快捷键', 'pynput 仍不可用（%s）：全局组合键关闭，F12/F11 或 s 键仍可用' % exc)
-        emit('提示', '手动安装：%s -m pip install pynput' % sys.executable)
+        emit('快捷键', 'pynput 不可用（%s）：全局组合键未启用；飞行前请用 uv 同步项目依赖并重试' % exc)
         return None
 
 
 def command_failed(result):
+    if isinstance(result, dict):
+        return result.get('ok') is not True
     return result is not None and not getattr(result, 'ok', True)
 
 
@@ -107,6 +87,7 @@ class EmergencyHotkeys(threading.Thread):
     def run(self):
         keyboard = ensure_pynput(self._emit)
         if keyboard is None:
+            self.error = 'pynput_unavailable'
             return
         try:
             self.listener = keyboard.GlobalHotKeys({

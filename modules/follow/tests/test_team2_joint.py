@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from r3_follow.service_ports import FrameSnapshot
 from r3_follow.team2_adapter import Team2StubPort
-from r3_follow.team2_joint import JointRuntime, JointDemo
+from r3_follow.team2_joint import JointRuntime
 from r3_follow.vision import synthetic_frame
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -87,11 +87,11 @@ class JointTests(unittest.TestCase):
     def test_successful_model_handoff_releases_and_conditionally_resumes(self):
         self.following()
         execute = self.sdk._driver.execute
-        def moved(*args):
+        def moved(*args, **kwargs):
             self.assertFalse(self.runtime.is_following())
             self.assertEqual(self.sdk.get_status().control_owner, "model")
             self.frame(x=.2)
-            return execute(*args)
+            return execute(*args, **kwargs)
         with patch.object(self.sdk._driver, "execute", side_effect=moved):
             result = self.runtime.run_action("move_forward", 30)
         self.assertTrue(result["ok"])
@@ -110,7 +110,7 @@ class JointTests(unittest.TestCase):
 
     def test_invisible_target_during_action_cannot_resume(self):
         self.following()
-        with patch.object(self.sdk._driver, "execute", side_effect=lambda *a: (self.frame(visible=False), True)[1]):
+        with patch.object(self.sdk._driver, "execute", side_effect=lambda *a, **kw: (self.frame(visible=False), True)[1]):
             result = self.runtime.run_action("move_forward", 30)
         self.assertFalse(result["resumed"])
         self.assertFalse(self.runtime.is_following())
@@ -282,7 +282,7 @@ class JointTests(unittest.TestCase):
         self.following()
         entered, release, interrupted = threading.Event(), threading.Event(), threading.Event()
         results = {}
-        def blocking(*args):
+        def blocking(*args, **kwargs):
             entered.set()
             if not release.wait(2):
                 raise RuntimeError("test barrier timed out")
@@ -353,67 +353,74 @@ class JointTests(unittest.TestCase):
                     priority.join(2)
         self.assertFalse(self.runtime.is_following())
 
-    def test_repository_group4_agent_and_runner_use_actual_follow_entry(self):
-        import program_runner
-        from ai_agent import Agent
-        from demo_ai import ScriptedClient
-        # Upstream itself uses this explicit test-only type injection. Keep its
-        # expression validator unchanged; never enables arbitrary code or a device.
-        with patch.object(program_runner, "MockDrone", JointRuntime):
-            runner = program_runner.Runner(JointDemo(self.runtime))
-        agent = Agent(ScriptedClient(), runner)
-        record = agent.handle("跟着我")
-        self.assertTrue(record["execution"]["accepted"])
-        self.assertTrue(self.runtime.is_following())
-        self.frame(x=.8)
-        with patch.object(self.sdk._driver, "execute", side_effect=lambda *a: (self.frame(x=.2), True)[1]):
-            record = agent.handle("向前走30厘米")
-        self.assertTrue(json.loads(record["reply"].removeprefix("[模拟] "))["resumed"])
-        self.assertTrue(runner.run("drone.move_forward(50)")["accepted"])
-        self.assertFalse(runner.run("import os")["accepted"])
-        record = agent.handle("降落")
-        data = json.loads(record["reply"].removeprefix("[模拟] "))
-        self.assertEqual(data["status"], "accepted")
-        self.assertFalse(data["landed_confirmed"])
+    def test_current_runtime_uses_actual_follow_entry(self):
+        """Current runtime replaces the retired canned Agent/Demo integration."""
+        import asyncio
+        sys.path.insert(0, str(REPO / 'tests'))
+        from RuntimeFixture import SyntheticFeed, container, reset, runtime
+        self.runtime.close()
+        reset(flying=True)
+        feed = SyntheticFeed()
+        self.sdk.set_frame_provider(feed)
+        app = runtime()
+        async def scenario():
+            with container([('start_follow', [])]):
+                record = await app.run('drone.start_follow()')
+            self.assertTrue(record['ok'], record)
+            self.assertTrue(self.sdk.is_following())
+            before = self.sdk._follow._bridge.service.controller.reference_size
+            feed.position = .2
+            with container([('move_forward', [30]), ('get_status', [])]):
+                record = await app.run('drone.move_forward(30)\nprint(drone.get_status())')
+            self.assertTrue(record['ok'], record)
+            self.assertEqual(app.gateway.cleanup['status'], 'follow_resumed')
+            self.assertTrue(self.sdk.is_following())
+            self.assertAlmostEqual(before, self.sdk._follow._bridge.service.controller.reference_size)
+            stopped = await app.interrupt(True)
+            self.assertTrue(stopped['ok'])
+            # Send acknowledgement must not be advertised as physical landing.
+            self.assertNotIn('landed_confirmed', stopped)
+            self.assertFalse(self.sdk.is_following())
+        try:
+            asyncio.run(scenario())
+        finally:
+            reset()
 
 
 class UpstreamSessionTests(JointTests):
     # Only the test defined here is loaded by the runner (not inherited cases).
     def test_updated_session_dispatches_stop_before_blocked_action_finishes(self):
-        import program_runner
-        from ai_agent import Agent
-        from demo_ai import ScriptedClient
-        from session import Session
-        with patch.object(program_runner, "MockDrone", JointRuntime):
-            runner = program_runner.Runner(JointDemo(self.runtime))
-        session = Session(Agent(ScriptedClient(), runner))
-        entered, release, returned = threading.Event(), threading.Event(), threading.Event()
-        futures = []
-        def block(*args):
+        import asyncio
+        sys.path.insert(0, str(REPO / 'tests'))
+        from RuntimeFixture import SyntheticFeed, container, reset, runtime, wait_until
+        self.runtime.close()
+        reset(flying=True)
+        self.sdk.set_frame_provider(SyntheticFeed())
+        app = runtime()
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        def block(*args, **kwargs):
             entered.set()
-            release.wait(2)
-        def interrupt():
-            futures.append(session.interrupt())
-            returned.set()
-        thread = threading.Thread(target=interrupt)
-        with patch.object(self.sdk._driver, "execute", side_effect=block):
-            try:
-                turn = session.submit("向前走30厘米")
-                self.assertTrue(entered.wait(1))
-                thread.start()
-                self.assertTrue(returned.wait(.5), "Session dispatch waited for the action")
-                self.assertTrue(futures[0].result(timeout=.5)["accepted"])
-                self.assertFalse(turn.done(), "Action must still be blocked")
-                self.assertFalse(self.runtime.is_following())
-            finally:
-                release.set()
-                turn.result(timeout=2)
-                if thread.ident:
-                    thread.join(2)
-                for future in futures:
-                    future.result(timeout=2)
-                session.close()
-        self.assertTrue(returned.is_set())
-        self.frame(x=.8)
-        self.assertFalse(self.runtime.is_following(), "Late action return must not resume follow")
+            if not release.wait(2):
+                raise RuntimeError('test barrier timeout')
+            finished.set()
+            return True
+        async def scenario():
+            self.assertTrue(self.sdk.start_follow().ok)
+            with patch.object(self.sdk._driver, 'execute', side_effect=block), container([('move_forward',[30])]):
+                turn = asyncio.create_task(app.run('drone.move_forward(30)'))
+                try:
+                    await wait_until(entered.is_set)
+                    result = await asyncio.wait_for(app.interrupt(), .5)
+                    self.assertTrue(result['ok'])
+                    self.assertFalse(finished.is_set(), 'driver must still be blocked')
+                    self.assertFalse(self.sdk.is_following())
+                finally:
+                    release.set()
+                    result = await asyncio.wait_for(turn, 3)
+            self.assertFalse(result['ok'])
+            self.assertFalse(self.sdk.is_following(), 'late result must not resume follow')
+        try:
+            asyncio.run(scenario())
+        finally:
+            reset()
 

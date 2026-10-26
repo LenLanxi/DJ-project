@@ -30,6 +30,8 @@ class StatusResult:
     command_epoch: int = 0
     velocity: tuple = (0, 0, 0, 0)
     simulated: bool = True
+    command_channel_ambiguous: bool = False
+    command_uncertainty: Optional[dict] = None
 
 @dataclass
 class FrameResult:

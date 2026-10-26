@@ -1,0 +1,77 @@
+{
+  "status": "software_candidate_visual_navigation_blocked_pending_rtc_media_and_field_acceptance",
+  "all_requirements_satisfied": false,
+  "source_commit": "ee8567c62f63c59b91883abb1a2e9a6f72afc243",
+  "base_commit": "4f586860bc7dbcf46dd8be97aa259fc7027d02a8",
+  "recorded_utc": "2026-10-26T15:22:46Z",
+  "python": {
+    "command": "uv run --frozen pytest -q --tb=short --junitxml=ScenarioAcceptance/Evidence/Current/Python.xml",
+    "RUN_DOCKER_TESTS": "1",
+    "passed_items": 863,
+    "unique_function_origins": 836,
+    "inherited_or_parameterized_additional_items": 27,
+    "passed_subtests": 458,
+    "failed": 0,
+    "skipped": 0,
+    "junit_cases_including_subtests": 1321,
+    "seconds": 158.69
+  },
+  "node": {
+    "command": "npm --prefix modules/rtc test",
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": {
+    "os": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15",
+    "numpy": "1.26.4",
+    "opencv": "4.8.0",
+    "pyav": "16.1.0",
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "pytest": "9.1.1",
+    "djitellopy": "2.5.0",
+    "node": "v24.14.1",
+    "rtc_web_sdk": "4.69.3",
+    "openapi_sdk": "1.22.0",
+    "docker_image": "sha256:2072cb33c2daa396b312ba0b2867ea280ba8e647d5010b5a27f8fcfa2ef2e1eb"
+  },
+  "verified": {
+    "actual_docker_execution": true,
+    "actual_djitellopy_methods_with_fake_wire": true,
+    "real_loopback_websocket_http_udp": true,
+    "prerecorded_speech_real_cloud_function_call": true,
+    "model_program_real_docker_fake_device_feedback": true,
+    "real_rtc_cloud": false,
+    "real_vision_model": true,
+    "physical_microphone_or_speaker": false,
+    "real_aircraft": false,
+    "field_scenario": false,
+    "real_rtc_cloud_control_plane_start_stop": true,
+    "vision_input_synthetic": true,
+    "real_rtc_media": false
+  },
+  "limitations": [
+    "RTC StartVoiceChat and StopVoiceChat succeeded using the production configuration, including ThinkingType disabled. No client joined or published media; this does not prove RTC speech/video or bot readiness.",
+    "Real visual model calls used a synthetic tent image, not a physical camera. Default thinking structured observation took 16.703s; disabled thinking took 2.125s. Both exceeded the 0.5s guard and were rejected. This remains a concrete obstacle to the requested red-tent navigation.",
+    "Cloud speech diagnostics use a separate direct WebSocket transport; they do not verify RTC mixed media orchestration.",
+    "Red tent approach, obstacle clearance, actual arrival, physical braking and reacquiring the user after rotation are not field-verified.",
+    "Timestamp measures host decoder completion, not camera exposure; local H264/UDP reproduces old imagery with near-zero decoder age.",
+    "Actual cloud bill not queried. Budget.json speech estimate excludes new RTC and visual calls; their actual cost remains unverified."
+  ],
+  "files": {
+    "python_results": "Python.xml",
+    "node_results": "Node.xml",
+    "paid_success": "VoiceCloud.json",
+    "paid_failure_before_cleanup_fix": "VoiceCleanupFailure.json",
+    "budget": "Budget.json",
+    "rtc_cloud": "RtcCloud.json",
+    "rtc_cloud_no_thinking": "RtcCloudFast.json",
+    "visual_default": "VisionCloud.json",
+    "visual_no_thinking": "VisionFast.json"
+  }
+}

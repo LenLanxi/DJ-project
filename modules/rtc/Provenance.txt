@@ -1,0 +1,22 @@
+Official sources checked 2026-10-26:
+
+https://github.com/volcengine/rtc-aigc-demo
+https://github.com/volcengine/rtc-aigc-demo/blob/f8464c0783d50e5497261802fc4ab7c932962af9/server/app.js
+https://github.com/volcengine/rtc-aigc-demo/blob/f8464c0783d50e5497261802fc4ab7c932962af9/server/token.js
+
+RTCToken.js adapts the official 001 RTC token binary layout and HMAC-SHA256
+construction. It uses a cryptographic per-token nonce, bounded token/privilege
+expiry and dynamic buffers. It does not copy the original token parser.
+
+RTCService.js adapts the official OpenAPI Signer request shape (service rtc,
+region cn-north-1, API version 2025-06-01). The HTTP service, single-session
+lifecycle, deadline, heartbeat, cleanup retry, same-origin checks, response
+validation and test suite are project changes, not upstream guarantees.
+
+The complete upstream BSD-3-Clause license and attribution are in License.txt.
+Node dependencies retain their own licenses inside node_modules. package-lock.json
+pins dependency resolution; npm ci --ignore-scripts reproduces the install.
+
+No upstream UI or complete repository has been copied. No source file contains
+real credentials. Real cloud authentication and media tests require configured
+RTC, S2S and model credentials; offline tests substitute the OpenAPI boundary.

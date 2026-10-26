@@ -1,25 +1,8 @@
-# ===== Group 2: unified drone SDK =====
+# Authoritative reproducible environment: uv sync --frozen (pyproject.toml + uv.lock).
+# This file lists runtime dependencies for external tooling only.
 djitellopy==2.5.0
-opencv-python==4.8.0.76
 numpy==1.26.4
-
-# ===== Group 4: AI module (modules/ai) =====
-# Voice recording/playback; only needed for /voice input and spoken replies.
-sounddevice>=0.5,<0.6
-# Realtime duplex voice entry (docs/v4-reference): WebSocket client for the
-# Realtime API. Without it `--voice` fails at import time.
+opencv-python==4.8.0.76
+av>=12,<17
 websockets>=15,<17
-
-# Global emergency hotkeys for run_yaw_ground_test.py (Windows low-level
-# keyboard hook; no administrator rights required).
 pynput>=1.7,<2
-
-# Merge notes (already checked; do not re-add):
-# - requirements-audio.txt / requirements-vision.txt ask for numpy>=1.26,<3;
-#   numpy==1.26.4 above already satisfies it.
-# - opencv-python-headless (group 4) conflicts with opencv-python (both provide cv2
-#   and cannot coexist); opencv-python 4.8.0.76 satisfies its >=4.8,<5 requirement.
-# - Group 4 does not use openai / speech_recognition SDKs; HTTP is stdlib urllib.
-# - Keep this file ASCII-only: pip on a GBK (cp936) Windows console cannot decode
-#   non-ASCII requirements files and fails with UnicodeDecodeError.
-

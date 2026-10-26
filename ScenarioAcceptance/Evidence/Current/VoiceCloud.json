@@ -1,0 +1,148 @@
+{
+  "ok": true,
+  "scope": "real_cloud_prerecorded_synthetic_speech_fake_device",
+  "model": "1.2.6.1",
+  "endpoint": "wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue",
+  "elapsed_seconds": 17.79,
+  "wav_seconds": 5.573,
+  "transcripts": [
+    "请查询无人机状态，告诉我电量，不要起飞。"
+  ],
+  "execution": "real_docker_gateway_fake_device",
+  "model_replies": [
+    "这是模拟设备的测试状态，当前无人机电量为80%，处于已着陆、已连接状态，高度0厘米。"
+  ],
+  "calls": [
+    {
+      "code": "print(drone.get_status())",
+      "allowed_status_query": true
+    }
+  ],
+  "tool_results": [
+    {
+      "event": "tool_result",
+      "name": "run_program",
+      "call_id": "c6038851-fc01-4f7c-9bb3-8ad9d2877976",
+      "epoch": 1,
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "battery": 80,
+              "height_cm": 0,
+              "connected": true,
+              "flight_state": "landed",
+              "control_owner": "none",
+              "timestamp": 1793023219.621922,
+              "control_epoch": 0,
+              "command_epoch": 0,
+              "simulated": true
+            }
+          }
+        ],
+        "debug": "{'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793023219.621922, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\n"
+      }
+    }
+  ],
+  "usage": [
+    {
+      "total_tokens": 6145,
+      "input_tokens": 546,
+      "output_tokens": 321,
+      "input_token_details": {
+        "text_tokens": 390,
+        "audio_tokens": 156,
+        "image_tokens": 0,
+        "cached_tokens": 5278,
+        "cached_tokens_details": {
+          "text_tokens": 5278,
+          "audio_tokens": 0,
+          "image_tokens": 0
+        }
+      },
+      "output_token_details": {
+        "text_tokens": 106,
+        "audio_tokens": 215
+      },
+      "duration_details": {
+        "vision_duration_ms": 0,
+        "audio_duration_ms": 0
+      }
+    }
+  ],
+  "event_schemas": {
+    "conversation.item.input_audio_transcription.started": [
+      "event_id",
+      "item_id",
+      "round_id",
+      "type"
+    ],
+    "conversation.item.input_audio_transcription.delta": [
+      "content_index",
+      "delta",
+      "event_id",
+      "item_id",
+      "type"
+    ],
+    "conversation.item.input_audio_transcription.completed": [
+      "content_index",
+      "event_id",
+      "item_id",
+      "text",
+      "type"
+    ],
+    "response.function_call_arguments.done": [
+      "event_id",
+      "items",
+      "type"
+    ],
+    "tool_item": [
+      "arguments",
+      "call_id",
+      "name"
+    ],
+    "response.output_audio.started": [
+      "event_id",
+      "question_id",
+      "response_id",
+      "tts_type",
+      "type"
+    ],
+    "response.output_audio.delta": [
+      "delta",
+      "event_id",
+      "type"
+    ],
+    "response.done": [
+      "event_id",
+      "response",
+      "type"
+    ],
+    "response_object": [
+      "usage"
+    ]
+  },
+  "tts_bytes_received_not_played": 413318,
+  "audio_closed": true,
+  "error": null,
+  "verified": {
+    "real_cloud_asr": true,
+    "real_cloud_function_call": true,
+    "tool_result_returned": true,
+    "microphone": false,
+    "speaker": false,
+    "drone": false,
+    "vision": false,
+    "docker": true
+  },
+  "cost_rmb": null,
+  "cost_note": "usage retained; exact bill requires provider billing records",
+  "evidence_note": "Direct WebSocket diagnostic only; not RTC mixed orchestration, headset, vision, or aircraft acceptance."
+}

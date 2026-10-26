@@ -1,3 +1,0 @@
-# Optional; core and offline tests need Python stdlib only.
-numpy>=1.26,<3
-sounddevice>=0.5,<0.6

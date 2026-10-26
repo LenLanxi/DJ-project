@@ -1,0 +1,57 @@
+{
+  "test": "real_visual_model_no_hidden_reasoning",
+  "recorded_utc": "2026-10-26T15:18:10Z",
+  "model": "doubao-seed-2-1-lite-260915",
+  "thinking": "disabled",
+  "synthetic_input": true,
+  "physical_camera": false,
+  "real_aircraft": false,
+  "field_accuracy_verified": false,
+  "billing_verified": false,
+  "retried": false,
+  "ok": false,
+  "error": "visual_result_expired",
+  "duration_seconds": 2.125,
+  "accounting": [
+    {
+      "request_id": "85056d1995db4f8fbfff12a760378ad5",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027890.7936628,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_start",
+      "status": "started"
+    },
+    {
+      "request_id": "85056d1995db4f8fbfff12a760378ad5",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027890.7936628,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_end",
+      "status": "completed",
+      "ended_at": 1793027892.8742409,
+      "duration_ms": 2078.0,
+      "usage": {
+        "completion_tokens": 53,
+        "prompt_tokens": 1437,
+        "total_tokens": 1490,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "usage_unknown": false
+    }
+  ],
+  "provider_observation": {
+    "visible": true,
+    "center_x": 0.704,
+    "width_fraction": 0.485,
+    "description": "画面右侧草地上有一个红色三角形帐篷，帐篷中间带有深色三角形开口，整体轮廓清晰可见"
+  }
+}
