@@ -502,13 +502,6 @@ class VolcDuplex:
             drone = getattr(getattr(self.runner, 'demo', None), 'drone', None)
             if drone is None:
                 raise RuntimeError('当前执行器不支持打断')
-            # 急停必须走 priority 通道：普通调用会因为"无控制权"直接失败，
-            # 那样用户喊急停反而什么都不发生。先抢占控制权，再执行停止/降落。
-            try:
-                from drone_sdk import controller as ctl
-                ctl.request_control('model', priority=True)
-            except Exception:
-                pass
             # 不同执行器的 drone 接口签名不一致（有的要 owner，有的不要），两种都兜住
             def _call(method):
                 try:
@@ -516,9 +509,18 @@ class VolcDuplex:
                 except TypeError:
                     return method() or {}
 
+            def _ok(value):
+                if isinstance(value, dict):
+                    return bool(value.get('ok', True))
+                return bool(getattr(value, 'ok', True))
+
             try:
                 result = _call(drone.land) if land else _call(drone.stop_motion)
             except Exception:
+                result = {}
+            if not _ok(result):
+                # 被 controller 的占用/代次挡住（obsolete_control / no_control）时，
+                # 必须走 priority 强制通道 —— 否则用户喊急停实际上什么都没发生
                 from drone_sdk import controller as ctl
                 result = (ctl.land('model', priority=True) if land
                           else ctl.stop_motion('model', priority=True)) or {}

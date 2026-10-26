@@ -12,16 +12,28 @@ COMMANDS = {'get_status': '查看状态', 'get_battery': '查看电量',
 # 允许带"厘米"参数的接口（20~100cm，与 move_forward 同一限制）
 DISTANCE_COMMANDS = ('move_forward', 'move_up', 'move_down')
 
+def _call_node(code):
+    """取出"唯一那个接口调用"节点。
+
+    模型常在前头写 import time 或注释；这些不会被本执行器执行（我们只读调用名和
+    字面量参数，不 exec 代码），所以直接跳过，不让它把合法调用判死。
+    """
+    tree = ast.parse(code)
+    body = [node for node in tree.body
+            if not isinstance(node, (ast.Import, ast.ImportFrom, ast.Pass))
+            and not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant))]
+    if len(body) != 1:
+        raise ValueError('当前每次只接受一个接口调用')
+    node = body[0]
+    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+        raise ValueError('只允许直接调用接口')
+    return node.value
+
+
 def validate(code):
     if not isinstance(code, str) or len(code) > 2000:
         raise ValueError('程序为空或过长')
-    tree = ast.parse(code)
-    if len(tree.body) != 1:
-        raise ValueError('当前每次只接受一个接口调用')
-    node = tree.body[0]
-    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
-        raise ValueError('只允许直接调用接口')
-    call = node.value
+    call = _call_node(code)
     if not (isinstance(call.func, ast.Attribute) and
             isinstance(call.func.value, ast.Name) and call.func.value.id == 'drone' and
             call.func.attr in COMMANDS and not call.keywords):
@@ -75,23 +87,16 @@ class Runner:
 
     def run(self, code):
         try:
-            tree=ast.parse(code) if isinstance(code,str) else None
-            legacy=(tree is not None and len(tree.body)==1 and isinstance(tree.body[0],ast.Expr)
-                    and isinstance(tree.body[0].value,ast.Call)
-                    and isinstance(tree.body[0].value.func,ast.Attribute)
-                    and tree.body[0].value.func.attr in COMMANDS)
-        except (SyntaxError,ValueError,TypeError): legacy=True
-        if not legacy:
-            if not self.allow_programs: return {'accepted':False,'result':'程序检查未通过，未执行动作'}
-            return self.run_sandbox(code)
-        try:
             name = validate(code)
-        except (SyntaxError, ValueError, RecursionError):
-            return {'accepted': False, 'simulated': True, 'result': '程序检查未通过，未执行动作'}
-        if name=='move_forward':
-            distance=ast.parse(code).body[0].value.args[0].value
-            command='前进%d厘米' % distance
-        else: command=COMMANDS[name]
+        except (SyntaxError, ValueError, TypeError, RecursionError):
+            if not self.allow_programs:
+                return {'accepted': False, 'result': '程序检查未通过，未执行动作'}
+            return self.run_sandbox(code)
+        if name == 'move_forward':
+            distance = _call_node(code).args[0].value
+            command = '前进%d厘米' % distance
+        else:
+            command = COMMANDS[name]
         return {'accepted': True, 'simulated': self.demo.drone.get_status().get('simulated', True),
                 'result': self.demo.handle(command),
                 'state': self.demo.drone.get_status()}
