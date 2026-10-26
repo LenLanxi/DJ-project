@@ -158,6 +158,19 @@ if ($Volc) {
     }
     if ($env:VOLC_MODEL) { Write-Host ("[模型] {0}" -f $env:VOLC_MODEL) -ForegroundColor DarkGray }
     if ($env:VOLC_VOICE) { Write-Host ("[音色] {0}" -f $env:VOLC_VOICE) -ForegroundColor DarkGray }
+    # 豆包要外网，Tello 的 Wi-Fi 没有外网 —— 提前探一下，别等握手超时才发现
+    Write-Host '[网络] 检查豆包端点连通性……' -ForegroundColor Cyan
+    $cloudOk = $false
+    try {
+        $cloudOk = Test-NetConnection -ComputerName 'openspeech.bytedance.com' -Port 443 -InformationLevel Quiet -WarningAction SilentlyContinue
+    } catch { $cloudOk = $false }
+    if ($cloudOk) {
+        Write-Host '[网络] openspeech.bytedance.com:443 可达' -ForegroundColor Green
+    } else {
+        Write-Host '[警告] 连不上豆包端点。豆包需要外网，而 Tello 的 Wi-Fi 没有外网：' -ForegroundColor Yellow
+        Write-Host '       请让电脑同时接外网（有线 / 手机热点），否则握手会超时。' -ForegroundColor Yellow
+        Write-Host '       只想验语音可改用离线模式：不加 -Volc（本地 whisper + SAPI）。' -ForegroundColor Yellow
+    }
 } elseif ($Realtime) {
     # 四组新的全双工链路：不走路 no-voice/offline-voice，走 --realtime
     $argv += '--realtime'

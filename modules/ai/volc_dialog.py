@@ -194,25 +194,38 @@ class VolcDuplex:
         from websockets.asyncio.client import connect
         from websockets.exceptions import ConnectionClosed, InvalidStatus
 
-        try:
-            await self._session(connect, ConnectionClosed)
-        except InvalidStatus as exc:
-            response = getattr(exc, 'response', None)
-            status = getattr(response, 'status_code', '?')
-            body = ''
+        last = None
+        for attempt in (1, 2):                 # 连 Tello 的 Wi-Fi 时 DNS 可能很慢，重试一次
             try:
-                body = (response.body or b'').decode('utf-8', 'replace')[:300]
-            except Exception:
-                pass
-            hint = ''
-            if str(status).startswith('401'):
-                hint = ('\n→ 鉴权失败：确认用的是「全双工」端点的 API Key（X-Api-Key），'
-                        '不是 App ID / Access Token 那一套。')
-            raise VolcDialogError(f'握手被拒绝 HTTP {status}: {body or exc}{hint}') from None
+                await self._session(connect, ConnectionClosed)
+                return
+            except InvalidStatus as exc:
+                response = getattr(exc, 'response', None)
+                status = getattr(response, 'status_code', '?')
+                body = ''
+                try:
+                    body = (response.body or b'').decode('utf-8', 'replace')[:300]
+                except Exception:
+                    pass
+                hint = ''
+                if str(status).startswith('401'):
+                    hint = ('\n→ 鉴权失败：确认用的是「全双工」端点的 API Key（X-Api-Key），'
+                            '不是 App ID / Access Token 那一套。')
+                raise VolcDialogError(f'握手被拒绝 HTTP {status}: {body or exc}{hint}') from None
+            except (asyncio.TimeoutError, TimeoutError, OSError) as exc:
+                last = exc
+                self.log({'event': 'handshake_retry', 'attempt': attempt, 'error': str(exc)[:200]})
+                if attempt == 1:
+                    print('[豆包] 握手超时，重试一次……', flush=True)
+                    continue
+        raise VolcDialogError(
+            '连接豆包超时：%s\n→ 最常见原因：电脑连着 Tello 的 Wi-Fi，而那个热点没有外网/'
+            'DNS 很慢。请同时接上外网（有线或手机热点），或改用离线模式'
+            '（不加 -Volc，本地 whisper + SAPI）。' % (last,)) from None
 
     async def _session(self, connect, ConnectionClosed):
         async with connect(self.url, additional_headers=self.headers(),
-                           max_size=16_000_000, open_timeout=20, ping_interval=20) as ws:
+                           max_size=16_000_000, open_timeout=45, ping_interval=20) as ws:
             self.ws = ws
             log_id = ws.response.headers.get('X-Tt-Logid') if ws.response else None
             self.log({'event': 'websocket_open', 'url': self.url, 'logid': log_id,

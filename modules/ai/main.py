@@ -401,6 +401,9 @@ async def run_modern(args):
                 dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=tools,on_log=_log,
                                   on_user_text=lambda t: print('[STT] 识别文本：'+t,flush=True),
                                   on_reply_text=lambda t: print('[豆包] 回复：'+t,flush=True))
+                if args.real_drone:
+                    print('[网络] 豆包需要外网，Tello 的 Wi-Fi 没有外网：'
+                          '请让电脑同时接上外网（有线/热点），否则握手会超时', flush=True)
                 await dialog.run()
             else:
                 from realtime import RealtimeSession
