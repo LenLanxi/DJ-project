@@ -52,5 +52,25 @@
         "output_audio": 215
       }
     }
-  ]
+  ],
+  "estimated_rmb_scope": "Direct WebSocket speech diagnostics only; excludes newly completed RTC control-plane and visual-model checks.",
+  "total_bill_verified": false,
+  "additional_calls": {
+    "rtc_start_stop_pairs": 2,
+    "rtc_media_sessions": 0,
+    "visual_model_requests": 3,
+    "visual_usage": {
+      "prompt_tokens": 4264,
+      "completion_tokens": 2255,
+      "total_tokens": 6519
+    },
+    "receipts": [
+      "RtcCloud.json",
+      "RtcCloudFast.json",
+      "VisionCloud.json",
+      "VisionFast.json"
+    ],
+    "actual_cost_rmb": null,
+    "reason": "Invoice not available; no further paid requests made."
+  }
 }

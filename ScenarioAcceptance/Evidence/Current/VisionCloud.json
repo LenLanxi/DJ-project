@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "test": "real_cloud_visual_model_synthetic_image",
+  "recorded_utc": "2026-10-26T15:14:28Z",
+  "model": "doubao-seed-2-1-lite-260915",
+  "synthetic_input": true,
+  "physical_camera": false,
+  "real_aircraft": false,
+  "retried": false,
+  "calls": [
+    {
+      "method": "describe",
+      "ok": true,
+      "answer": "这幅图由纯色几何块构成，无额外纹理装饰，可见内容如下：\n1.  画面上半部分是整片均匀的浅天蓝色纯色区域，没有其他额外元素；\n2.  画面下半部分是横向铺满视野的均匀草绿色纯色区域，它和上方浅天蓝色区域以一条平直的水平直线为分界；\n3.  在左侧的草绿色区域上，有一个实心深蓝色的竖直矩形，矩形的下边缘与草绿、浅蓝的分界直线齐平贴合；\n4.  在偏右侧的草绿色区域上，有一个尖顶朝上的大型实心红色正三角形，三角形的底边落在草绿区域内、与草绿浅蓝的分界直线齐平贴合；在这个大红色正三角形的中轴位置，嵌有一个尖顶朝上的实心深褐色小三角形，小三角形的底边同样落在草绿浅蓝的分界线上，整体处于大红色三角形的内部中心区域。\n除此之外没有其他可见的物体或细节。",
+      "read_only": true,
+      "duration_seconds": 21.375
+    },
+    {
+      "method": "observe",
+      "ok": false,
+      "error": "visual_result_expired",
+      "duration_seconds": 16.703,
+      "provider_observation": {
+        "visible": true,
+        "center_x": 0.7,
+        "width_fraction": 0.47,
+        "description": "画面右侧绿色草地上可见带有深褐色三角形门洞的红色三角形帐篷"
+      }
+    }
+  ],
+  "expected_box": {
+    "center_x": 0.703125,
+    "width_fraction": 0.46875
+  },
+  "field_accuracy_verified": false,
+  "billing_verified": false,
+  "accounting": [
+    {
+      "request_id": "16ab373db73e4d918d3ae23897a97183",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027668.3494716,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_start",
+      "status": "started"
+    },
+    {
+      "request_id": "16ab373db73e4d918d3ae23897a97183",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027668.3494716,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_end",
+      "status": "completed",
+      "ended_at": 1793027689.720919,
+      "duration_ms": 21375.0,
+      "usage": {
+        "completion_tokens": 1169,
+        "prompt_tokens": 1389,
+        "total_tokens": 2558,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 952
+        }
+      },
+      "usage_unknown": false
+    },
+    {
+      "request_id": "fa641220e618491e80fe4ba252224202",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027689.7725165,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_start",
+      "status": "started"
+    },
+    {
+      "request_id": "fa641220e618491e80fe4ba252224202",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793027689.7725165,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_end",
+      "status": "completed",
+      "ended_at": 1793027706.4155297,
+      "duration_ms": 16656.0,
+      "usage": {
+        "completion_tokens": 1033,
+        "prompt_tokens": 1438,
+        "total_tokens": 2471,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 994
+        }
+      },
+      "usage_unknown": false
+    }
+  ]
+}
