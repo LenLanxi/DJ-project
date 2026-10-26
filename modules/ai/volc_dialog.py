@@ -376,7 +376,13 @@ class VolcDuplex:
             if len(pcm) % 2:
                 pcm = pcm[:-1]
             item = event.get('response_id') or self.response_id or self.session_id
-            self.audio.speaker.append(item, 0, pcm)
+            try:
+                self.audio.speaker.append(item, 0, pcm)
+            except RuntimeError as exc:
+                # 服务端把长回答的音频一口气推下来，本地还在按实时播；队列满了绝不能
+                # 让异常掀掉整条会话（实测表现为"执行失败：音频输出队列超限"）
+                self.log({'event': 'audio_queue_full', 'error': str(exc)[:120],
+                          'dropped_bytes': len(pcm)})
             if not self.first_audio_logged and self.speech_started_at is not None:
                 self.log({'event': 'speech_end_to_first_audio_ms',
                           'value': round((time.monotonic() - self.speech_started_at) * 1000)})

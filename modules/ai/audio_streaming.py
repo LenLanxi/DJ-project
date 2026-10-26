@@ -82,6 +82,8 @@ class OutputAdapter:
             self.pending.clear(); self.resampler.clear(); self.generation=self.speaker.generation
             self.started=False
         needed=frames*2
+        if needed<=0:
+            return b''
         available=getattr(self.speaker,'size',0)
         if not self.started:
             if available<self.prebuffer_bytes:

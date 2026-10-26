@@ -37,7 +37,7 @@ def output_pcm(mono, channels):
     return bytes(stereo)
 
 class PlaybackBuffer:
-    def __init__(self,rate=24000,max_seconds=15):
+    def __init__(self,rate=24000,max_seconds=120):
         self.rate=rate; self.limit=rate*2*max_seconds
         self.parts=collections.deque(); self.size=0
         self.lock=threading.Lock(); self.current=None
