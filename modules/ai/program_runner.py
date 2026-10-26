@@ -13,30 +13,38 @@ COMMANDS = {'get_status': '查看状态', 'get_battery': '查看电量',
 DISTANCE_COMMANDS = ('move_forward', 'move_up', 'move_down')
 
 def _call_node(code):
-    """取出"唯一那个接口调用"节点。
+    """取出"唯一那个 drone.xxx() 调用"。
 
-    模型常在前头写 import time 或注释；这些不会被本执行器执行（我们只读调用名和
-    字面量参数，不 exec 代码），所以直接跳过，不让它把合法调用判死。
+    模型常会带 import / print / 赋值 / 注释，这些**不会被本执行器执行**（我们只读调用名
+    和字面量参数，从不 exec 代码），所以直接忽略；真正要守的边界是：
+      - 只能有**一个** drone.* 调用
+      - 名字必须在白名单里
+      - 参数只能是字面量（移动类 20~100 的整数），且不允许关键字参数
+    这样既不会因为 `import time` 把合法起飞判死，也不会让多步程序蒙混过关。
     """
     tree = ast.parse(code)
-    body = [node for node in tree.body
-            if not isinstance(node, (ast.Import, ast.ImportFrom, ast.Pass))
-            and not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant))]
-    if len(body) != 1:
+    calls = [node for node in ast.walk(tree)
+             if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Attribute)
+             and isinstance(node.func.value, ast.Name)
+             and node.func.value.id == 'drone']
+    if not calls:
         raise ValueError('当前每次只接受一个接口调用')
-    node = body[0]
-    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+    if len(calls) > 1:
+        raise ValueError('一次只允许调用一个接口')
+    call = calls[0]
+    # 必须是"裸调用"语句：x = drone.takeoff() 这种赋值形式一律拒绝（四组回归用例也这么要求）
+    if not any(isinstance(node, ast.Expr) and node.value is call
+               for node in ast.walk(tree)):
         raise ValueError('只允许直接调用接口')
-    return node.value
+    return call
 
 
 def validate(code):
     if not isinstance(code, str) or len(code) > 2000:
         raise ValueError('程序为空或过长')
     call = _call_node(code)
-    if not (isinstance(call.func, ast.Attribute) and
-            isinstance(call.func.value, ast.Name) and call.func.value.id == 'drone' and
-            call.func.attr in COMMANDS and not call.keywords):
+    if not (call.func.attr in COMMANDS and not call.keywords):
         raise ValueError('接口不在允许列表')
     name = call.func.attr
     if name in DISTANCE_COMMANDS:
@@ -88,9 +96,10 @@ class Runner:
     def run(self, code):
         try:
             name = validate(code)
-        except (SyntaxError, ValueError, TypeError, RecursionError):
+        except (SyntaxError, ValueError, TypeError, RecursionError) as exc:
             if not self.allow_programs:
-                return {'accepted': False, 'result': '程序检查未通过，未执行动作'}
+                return {'accepted': False, 'result': '程序检查未通过，未执行动作',
+                        'reason': str(exc), 'code': str(code)[:200]}
             return self.run_sandbox(code)
         if name == 'move_forward':
             distance = _call_node(code).args[0].value

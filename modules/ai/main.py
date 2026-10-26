@@ -405,12 +405,20 @@ async def run_modern(args):
                 from realtime import INSTRUCTIONS, TOOLS
                 # run_program 需要执行器；没有 docker 时已经退到本地白名单执行器，工具照给
                 tools = list(TOOLS) + [STATUS_TOOL]
+                instructions = INSTRUCTIONS
+                if not sandbox_ready:
+                    # 本地白名单执行器只认单条调用；不告诉模型它会一直写多步程序被拒
+                    instructions = (INSTRUCTIONS +
+                                    '\n【当前运行环境】没有沙箱，run_program 只接受**单条** '
+                                    'drone.xxx() 调用（例如 drone.takeoff()、drone.get_status()），'
+                                    '不要写循环、多步动作、赋值或 import；'
+                                    '需要多步请分多次调用。查询状态优先用 get_status 工具。')
                 def _log(event):
                     name=event.get('event') if isinstance(event,dict) else event
                     if name in ('asr_text','reply_text','tool_result','error','audio_first',
                                 'playback_stats','tts_done','handshake_retry'):
                         print('[豆包] '+json.dumps(event,ensure_ascii=False)[:300],flush=True)
-                dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=tools,on_log=_log,
+                dialog=VolcDuplex(runner,audio,instructions=instructions,tools=tools,on_log=_log,
                                   on_user_text=lambda t: print('[STT] 识别文本：'+t,flush=True),
                                   on_reply_text=lambda t: print('[豆包] 回复：'+t,flush=True))
                 if args.real_drone:
