@@ -375,13 +375,22 @@ async def run_modern(args):
             audio=DuplexAudio(config=config)
             if getattr(args,'volc_dialog',False):
                 # 豆包全双工：ASR/对话/TTS 都在服务端，鉴权用 X-Api-Key（与 OpenAI Realtime 不同）
-                from volc_dialog import VolcDuplex
+                from volc_dialog import VolcDuplex, STATUS_TOOL
                 from realtime import INSTRUCTIONS, TOOLS
+                import shutil
+                # run_program 要起 Docker 沙箱；没装 docker 就别把工具给模型，免得它一直失败
+                sandbox_ready = shutil.which('docker') is not None
+                tools = [item for item in TOOLS
+                         if sandbox_ready or item.get('name') != 'run_program']
+                tools = tools + [STATUS_TOOL]
+                if not sandbox_ready:
+                    print('[豆包] 未检测到 docker：run_program 不可用，'
+                          '状态类口令走 get_status 工具（动作类口令会被拒绝）', flush=True)
                 def _log(event):
                     name=event.get('event') if isinstance(event,dict) else event
                     if name in ('asr_text','reply_text','tool_result','error','audio_first'):
                         print('[豆包] '+json.dumps(event,ensure_ascii=False)[:300],flush=True)
-                dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=TOOLS,on_log=_log,
+                dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=tools,on_log=_log,
                                   on_user_text=lambda t: print('[STT] 识别文本：'+t,flush=True),
                                   on_reply_text=lambda t: print('[豆包] 回复：'+t,flush=True))
                 await dialog.run()

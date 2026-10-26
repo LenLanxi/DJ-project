@@ -17,6 +17,7 @@
 """
 import asyncio
 import base64
+import inspect
 import json
 import os
 import time
@@ -28,6 +29,15 @@ DEFAULT_VOICE = 'zh_female_vv_jupiter_bigtts'
 INPUT_RATE = 16000
 OUTPUT_RATE = 24000
 INPUT_PACKET_MS = 20
+
+# 只读状态工具：一条轻量调用就能回答"现在什么状态/多少电/多高"，
+# 不必为了一句问话去起 Docker 沙箱（本机没装 docker 时 run_program 根本不可用）。
+STATUS_TOOL = {
+    'type': 'function', 'name': 'get_status',
+    'description': '读取无人机真实状态：电量、高度、是否在飞、链路、跟随状态',
+    'parameters': {'type': 'object', 'properties': {}, 'required': [],
+                   'additionalProperties': False},
+}
 
 # 客户端事件
 EV_SESSION_CREATE = 'session.create'
@@ -151,6 +161,10 @@ class VolcDuplex:
         self.first_audio_logged = False
         self.tool_tasks = set()
         self.background_error = asyncio.Queue()
+        # 回音抑制：默认播报期间不上行麦克风；要支持"打断我"就设 VOLC_BARGE_IN=1
+        self.barge_in = os.getenv('VOLC_BARGE_IN', '0') not in ('0', '', 'false', 'False')
+        self.speaking = False
+        self.speaking_since = None
 
     # ---------- 生命周期 ----------
     def check_credentials(self):
@@ -239,10 +253,21 @@ class VolcDuplex:
         await asyncio.wait_for(self.ready.wait(), timeout=20)
         self.audio.start()
         async for chunk in self.audio.chunks():
+            if self._input_gated():
+                continue
             pcm = self.downsampler.process(chunk)
             if pcm:
                 await self.send({'type': EV_AUDIO_APPEND,
                                  'audio': base64.b64encode(pcm).decode()})
+
+    def _input_gated(self):
+        """播报期间不上行麦克风：用外放时扬声器的声音会被自己当指令（实测严重回音）。"""
+        if self.barge_in or not self.speaking:
+            return False
+        if self.speaking_since and time.monotonic() - self.speaking_since > 30:
+            self.speaking = False       # 兜底：没收到 audio_done 也不会永久闭嘴
+            return False
+        return True
 
     async def _receive_loop(self):
         async for message in self.ws:
@@ -320,6 +345,8 @@ class VolcDuplex:
 
         elif kind == EV_AUDIO_STARTED:
             self.response_id = event.get('response_id') or self.response_id
+            self.speaking = True
+            self.speaking_since = time.monotonic()
             self.log({'event': 'tts_started', 'tts_type': event.get('tts_type')})
 
         elif kind == EV_AUDIO_DELTA:
@@ -340,6 +367,9 @@ class VolcDuplex:
                 self.first_audio_logged = True
 
         elif kind == EV_AUDIO_DONE:
+            # 服务端音频发完；本地缓冲还有几十毫秒，留一点尾巴再恢复上行
+            self.speaking = False
+            self.speaking_since = None
             self.log({'event': 'tts_done', 'status_code': event.get('status_code')})
 
         elif kind == EV_TOOL_CALL:
@@ -381,12 +411,26 @@ class VolcDuplex:
         except Exception as exc:
             self.log({'event': 'tool_result_send_failed', 'error': str(exc)})
 
+    def _backend(self):
+        return getattr(getattr(self.runner, 'gateway', None), 'backend', None)
+
     async def _dispatch(self, name, arguments):
         if name == 'run_program':
             code = arguments.get('code')
             if not isinstance(code, str) or not code.strip():
                 raise ValueError('code 不能为空')
-            return await asyncio.to_thread(self.runner.run, code)
+            result = self.runner.run(code)
+            # SandboxRunner.run 是 async：直接 await to_thread 只会拿到未 await 的协程，
+            # 工具结果永远是空的（实测报 RuntimeWarning: coroutine was never awaited）
+            if inspect.isawaitable(result):
+                result = await result
+            return result
+        if name == 'get_status':
+            backend = self._backend()
+            if backend is None:
+                raise RuntimeError('当前执行器不支持读取状态')
+            state = await asyncio.to_thread(backend.get_status)
+            return {'ok': True, 'status': 'ok', 'state': state}
         if name == 'interrupt':
             land = arguments.get('land')
             if type(land) is not bool:
