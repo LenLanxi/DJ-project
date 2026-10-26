@@ -13,7 +13,7 @@
 - `drone_sdk`：真实 Tello 驱动、遥测、最终发送检查、停止、降落及图传。
 - `modules/follow`：第三组标记识别及可配置 PID。本轮保持算法不变；只迁移外层联调代码及更新 SDK 源码绑定。
 - `tests`：替身、行为回归、真实容器检查和显式启用的云接口诊断。替身不进入正式执行路径。
-- `ScenarioAcceptance/Evidence`、`Results`：历史版本证据，不代表当前版本已通过。
+- `ScenarioAcceptance/Evidence/Current`：本轮软件检查、云语音诊断和费用估算；`History` 与 `Results` 保留历史证据。均不能代替真机验收。
 
 控制关系：RTC 模型 → 完整 Python → 隔离容器 → 网关 → SDK → Tello。跟随在电脑本地持续运行，云端只负责意图、观察和程序；两个模块共用同一连接。
 
@@ -43,6 +43,8 @@ docker build -t companion-sandbox:0.4 modules/ai/sandbox
 这些凭据用途不同。此前直连语音服务的 `X-Api-Key` 不能据此认定可替代 RTC AppKey、AK/SK 或视觉密钥。
 
 正式云配置：OpenAPI `2025-06-01`；`S2SConfig.Provider="volcano_duplex"`、`OutputMode=1`；外挂 `LLMConfig` 开启 `VisionConfig.Enable=true`。长期凭据留在服务端，不发送给网页。
+
+此版本的 `LLMConfig.ModelName` 支持模型 ID 或 `ep-` 开头的接入点 ID；自定义方舟资源还需 `APIKey`。不要改用旧版接口的 `EndPointId`。[官方配置](https://docs.volcengine.com/docs/real_time_communication/ConfigureLargeModelLLM?lang=zh)
 
 官方依据：[RTC 混合编排](https://docs.volcengine.com/docs/real_time_communication/Accessend-to-endreal-timespeechlargemodel?lang=zh)、[视频理解](https://docs.volcengine.com/docs/real_time_communication/Videoandimageunderstanding?lang=zh)、[工具调用](https://docs.volcengine.com/docs/real_time_communication/FunctionCalling-1?lang=zh)、[官方示例](https://github.com/volcengine/rtc-aigc-demo)。
 

@@ -3,7 +3,6 @@ import asyncio
 import base64
 import json
 import struct
-import time
 import unittest
 from unittest.mock import patch
 
@@ -131,6 +130,44 @@ class Resampling(unittest.TestCase):
     def test_odd_pcm_fails(self):
         with self.assertRaises(ValueError):
             vd.Downsampler().process(b'1')
+
+
+class Pacing(unittest.IsolatedAsyncioTestCase):
+    async def test_burst_producer_is_paced_at_actual_sender_boundary(self):
+        class Clock:
+            now = 10.
+            def __init__(self): self.sleeps = []
+            def read(self): return self.now
+            async def sleep(self, seconds):
+                self.sleeps.append(seconds)
+                self.now += seconds
+        class BurstAudio(FakeAudio):
+            async def chunks(self):
+                # Three complete packets are available immediately. Pacing
+                # must come from the sender, independently of producer waits.
+                yield self.block * 3
+        clock = Clock()
+        sent_at = []
+        class TimedSocket(MemorySocket):
+            async def send(self, message):
+                sent_at.append(clock.now)
+                await super().send(message)
+        audio = BurstAudio()
+        dialog = vd.VolcDuplex(FakeRunner(), audio, instructions='', api_key='fake')
+        dialog.ws = TimedSocket()
+        try:
+            with patch.object(vd.time, 'perf_counter', new=clock.read), \
+                    patch.object(vd.asyncio, 'sleep', new=clock.sleep):
+                await dialog._send_audio()
+            self.assertEqual(len(sent_at), 3)
+            self.assertEqual(len(clock.sleeps), 3)
+            for index, timestamp in enumerate(sent_at):
+                self.assertAlmostEqual(timestamp - 10., index * .02, places=9)
+            self.assertTrue(all(event['type'] == vd.EV_AUDIO_APPEND for event in dialog.ws.sent))
+            self.assertEqual([len(base64.b64decode(event['audio'])) for event in dialog.ws.sent],
+                             [vd.INPUT_PACKET_BYTES] * 3)
+        finally:
+            await dialog.close()
 
 
 class Ordering(unittest.IsolatedAsyncioTestCase):
@@ -333,7 +370,7 @@ class Ordering(unittest.IsolatedAsyncioTestCase):
 
 class Loopback(unittest.IsolatedAsyncioTestCase):
     async def test_session_audio_tool_response_and_cleanup(self):
-        seen = {'packets': [], 'times': [], 'tool': None}
+        seen = {'packets': [], 'tool': None}
         async def handler(ws):
             seen['headers'] = dict(ws.request.headers)
             async for message in ws:
@@ -342,8 +379,7 @@ class Loopback(unittest.IsolatedAsyncioTestCase):
                     seen['session'] = event
                     await ws.send(json.dumps({'type': vd.EV_SESSION_CREATED, 'session': {'id': 's1'}}))
                 elif event['type'] == vd.EV_AUDIO_APPEND:
-                    seen['packets'].append(len(base64.b64decode(event['audio'])))
-                    seen['times'].append(time.perf_counter())
+                    seen['packets'].append(base64.b64decode(event['audio'], validate=True))
                     if len(seen['packets']) == 3:
                         for payload in ({'type': vd.EV_ASR_STARTED},
                                         {'type': vd.EV_ASR_COMPLETED, 'transcript': '起飞'},
@@ -361,8 +397,12 @@ class Loopback(unittest.IsolatedAsyncioTestCase):
             dialog = vd.VolcDuplex(runner, audio, instructions='助手', api_key='fake',
                                     url=f'ws://127.0.0.1:{port}', on_reply_text=replies.append)
             await asyncio.wait_for(dialog.run(), 5)
-        self.assertEqual(set(seen['packets']), {640})
-        self.assertGreaterEqual(seen['times'][2] - seen['times'][0], .035)
+        # Receiver scheduling can coalesce independently paced sends. Check
+        # framing/content here; Pacing tests the sender with a virtual clock.
+        self.assertGreaterEqual(len(seen['packets']), 3)
+        self.assertEqual({len(packet) for packet in seen['packets']}, {640})
+        self.assertTrue(all(packet == struct.pack('<320h', *([300] * 320))
+                            for packet in seen['packets']))
         self.assertEqual(runner.calls, ['drone.takeoff()'])
         self.assertEqual(runner.interrupts, [False])
         self.assertEqual(replies, ['结果已收到'])
