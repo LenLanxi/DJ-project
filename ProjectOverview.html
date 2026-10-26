@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="DJ-project 的执行过程、系统结构、场景流程与验证边界。离线可读，不含密钥。">
+<title>AI 随行小伙伴｜执行过程与项目全貌</title>
+<style>
+:root{--paper:#f6f4ee;--white:#fffefa;--ink:#182c36;--muted:#5b6d73;--line:#d9dfda;--green:#146a61;--greenlight:#e7f1ec;--amber:#956018;--amberlight:#faf0d8;--red:#a24236;--redlight:#faebe5;--mono:Consolas,"Cascadia Code",monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}a{color:var(--green);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,a,summary{touch-action:manipulation}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--amber);outline-offset:4px}button{font:inherit;cursor:pointer}.skip{position:fixed;left:16px;top:-70px;background:var(--ink);color:white;padding:10px 18px;z-index:9}.skip:focus{top:12px}.progress{position:fixed;inset:0 auto auto 0;height:4px;background:var(--green);width:0;z-index:8}.layout{display:grid;grid-template-columns:224px minmax(0,900px);gap:56px;max-width:1260px;margin:auto;padding:44px 32px 80px}.sidebar{position:sticky;top:34px;align-self:start}.brand{font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--green)}.edition{font:12px/1.7 var(--mono);color:var(--muted);margin:10px 0 30px}.sidebar nav{display:grid;gap:5px}.sidebar nav a{display:block;padding:7px 12px;border-left:2px solid transparent;color:var(--muted);font-size:14px;text-decoration:none}.sidebar nav a[aria-current="location"]{color:var(--green);border-color:var(--green);background:var(--greenlight);font-weight:700}.sidebar button{background:none;border:1px solid var(--line);border-radius:7px;padding:7px 15px;margin-top:30px;color:var(--muted)}.eyebrow{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--green);font-weight:700}.eyebrow:before{content:"";width:26px;height:2px;background:currentColor}h1{font-size:clamp(32px,4vw,48px);line-height:1.35;letter-spacing:-.035em;margin:18px 0}h1 span{font-weight:400;color:var(--muted);font-size:.61em;display:block;margin-top:10px;letter-spacing:0}.intro{font-size:17px;color:var(--muted);max-width:750px}.meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 22px;margin:20px 0 30px}.verdict{border:1px solid #e6c6ba;border-left:5px solid var(--red);background:var(--redlight);padding:22px 26px;border-radius:0 10px 10px 0}.verdict strong{display:block;font-size:20px;color:var(--red);margin-bottom:6px}.verdict p{margin:0}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 14px}.metric{border-top:2px solid var(--ink);padding:12px 4px}.metric b{font:700 30px/1.3 var(--mono);display:block}.metric span{font-size:13px;color:var(--muted)}section{padding-top:46px;margin-top:20px;border-top:1px solid var(--line)}section h2{font-size:25px;line-height:1.5;letter-spacing:-.02em;margin:0 0 18px}.index{font:13px var(--mono);color:var(--green);display:block;margin-bottom:8px}h3{font-size:17px;margin:0 0 7px}p{margin:10px 0 16px}code{font: .88em/1.6 var(--mono);background:#eaece6;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre{background:var(--ink);color:#eaf4ef;border-radius:9px;padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.8 var(--mono)}pre code{padding:0;background:none;color:inherit}.muted,.caption{color:var(--muted);font-size:13px}.note{border-left:3px solid var(--green);padding:9px 16px;background:var(--greenlight);margin:18px 0}.note.warn{border-color:var(--amber);background:var(--amberlight)}.steps{counter-reset:work;display:grid;gap:18px}.work{position:relative;padding-left:46px}.work:before{counter-increment:work;content:counter(work,decimal-leading-zero);position:absolute;left:0;top:1px;font:13px/30px var(--mono);color:var(--green);border:1px solid var(--line);width:31px;height:31px;text-align:center;border-radius:50%}.work p{margin:0;color:var(--muted)}.diagram{border:1px solid var(--line);background:var(--white);border-radius:12px;padding:22px;margin:24px 0}.diagram svg{width:100%;height:auto;display:block}.diagram figcaption{font-size:13px;color:var(--muted);margin-top:10px}.diagram text{font-family:"Microsoft YaHei",system-ui,sans-serif;fill:var(--ink)}.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--white)}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.75}th,td{text-align:left;vertical-align:top;padding:13px 16px;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:none}th{background:#eaf0eb;color:var(--green);font-weight:700}td:first-child{min-width:130px}.routes{display:grid;gap:14px}.route{border:1px solid var(--line);border-radius:10px;background:var(--white);overflow:hidden}.routehead{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#edf1eb}.routehead b{font:700 13px var(--mono);color:var(--green)}.routehead h3{margin:0;flex:1}.tag{font-size:11px;border:1px solid currentColor;border-radius:20px;padding:1px 9px;color:var(--muted);white-space:nowrap}.route.blocked{border-color:#deb6a8}.route.blocked .routehead{background:var(--redlight)}.route.blocked .tag{color:var(--red)}.routedetail{padding:12px 20px 16px}.routedetail p{display:grid;grid-template-columns:44px 1fr;gap:10px;font-size:14px;margin:8px 0}.routedetail p>span:first-child{color:var(--muted);font-size:12px;padding-top:2px}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{padding:20px;border:1px solid var(--line);background:var(--white);border-radius:9px}.card p{font-size:14px;color:var(--muted);margin:0}.card h3{color:var(--green)}.card.problem h3{color:var(--red)}.latency{display:grid;gap:15px;margin:20px 0}.barrow{display:grid;grid-template-columns:122px 1fr 65px;gap:12px;align-items:center;font-size:13px}.track{height:14px;background:#e7e9e2;border-radius:3px;position:relative}.track span{display:block;height:100%;border-radius:3px;background:var(--red)}.barrow:last-child .track span{background:var(--green)}.barrow b{font-family:var(--mono);text-align:right}.order{padding-left:24px}.order li{padding-left:5px;margin:10px 0}.order b{color:var(--green)}details{margin-top:18px;border:1px solid var(--line);border-radius:9px;background:var(--white)}summary{cursor:pointer;padding:14px 18px;font-size:14px;font-weight:700}details>div{padding:0 18px 16px;font-size:13px}.filelinks{display:grid;gap:9px}.filelinks a{overflow-wrap:anywhere}.footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.footer a{margin-right:15px}@media(max-width:1050px){.layout{gap:30px;grid-template-columns:180px minmax(0,1fr);padding:30px 22px}.sidebar nav a{padding-left:8px}}@media(max-width:760px){html{scroll-padding-top:15px}.layout{display:block;padding:25px 19px 50px}.sidebar{position:static;margin-bottom:30px}.sidebar nav{display:flex;overflow-x:auto;gap:5px;padding:10px 0}.sidebar nav a{white-space:nowrap;border-left:0;border-bottom:2px solid transparent;padding:5px 9px}.sidebar nav a[aria-current="location"]{border-bottom-color:var(--green)}.edition{margin:7px 0}.sidebar button{display:none}.metrics{gap:8px}.metric b{font-size:25px}.metric span{font-size:11px}.twocol{grid-template-columns:1fr}.routehead{flex-wrap:wrap;padding:12px 15px}.routedetail{padding:10px 15px}.diagram{padding:10px}section{padding-top:30px;margin-top:28px}.barrow{grid-template-columns:100px 1fr 58px;gap:8px}.verdict{padding:18px}.intro{font-size:16px}th,td{padding:10px 12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{@page{size:A4;margin:17mm}.layout{display:block;max-width:none;padding:0}.sidebar,.progress,.skip{display:none}body{font:10.5pt/1.7 "Microsoft YaHei",sans-serif;background:white;color:#111}h1{font-size:28pt}h2{font-size:18pt}section{padding-top:20px;margin-top:20px}.card,.route,.diagram,.verdict,.tablewrap,.work{break-inside:avoid}.metrics{margin:15px 0}a{color:#16483f}pre{background:#edf1ed;color:#111}details>div{display:block!important}summary{list-style:none}.footer{font-size:9pt}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a><div class="progress" id="progress" aria-hidden="true"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="文档导航">
+<div class="brand">COMPANION / 项目导览</div>
+<div class="edition">2026.10.26<br>审查基线 7da7706<br>离线单页 · 不含凭据</div>
+<nav>
+<a href="#status">现在到了哪里</a><a href="#process">这轮怎样执行</a><a href="#architecture">结构与工作原理</a><a href="#scenario">完整场景推演</a><a href="#safety">关键保护机制</a><a href="#tests">测试证明了什么</a><a href="#blockers">当前主要阻碍</a><a href="#requirements">与原方案的关系</a><a href="#next">下一步与阅读入口</a>
+</nav>
+<button type="button" id="print">打印 / 保存为 PDF</button>
+</aside>
+<main id="main">
+<header>
+<div class="eyebrow">执行过程与代码全局情况</div>
+<h1>从一句话，到一条真实指令<span>AI 随行小伙伴，当前版本说明</span></h1>
+<p class="intro">准备并起飞 → 跟随前行的用户 → 接收自然语言 → 朝红色帐篷移动并原地旋转一周 → 恢复跟随。这份文档围绕这条链路，解释代码如何连接，以及证据在哪一步结束。</p>
+<div class="meta"><span>软件基线：7da7706</span><span>代码与证据：PR #6 已合并</span><span>记录截至：2026-10-26 23:51（北京时间）</span></div>
+</header>
+<section id="status" style="padding-top:0;margin-top:0;border-top:0">
+<div class="verdict"><strong>软件结构已统一，完整现场任务仍未通过。</strong><p>当前版本具备真实设备入口、模型程序执行链和多项失败保护。云服务启停与视觉调用已有真实结果，但没有真机、蓝牙耳机、RTC 音视频联合验收；实测视觉延迟还会阻断导航。</p></div>
+<div class="metrics"><div class="metric"><b>863</b><span>本地 Python 测试条目通过</span></div><div class="metric"><b>49</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>关闭思考后的单次视觉观察</span></div></div>
+<p class="caption">数字分别描述软件回归与一次合成图云调用，不代表飞行成功率。</p>
+</section>
+<section id="process"><span class="index">01 / EXECUTION</span><h2>这轮工作怎样推进</h2>
+<div class="steps">
+<div class="work"><h3>先固定目标与版本</h3><p>以 Companion HTML 为需求依据，核对本地状态、远程主分支及源码基线。先区分必须实现的现场行为与可更换的技术手段，避免把“接口存在”算成任务完成。</p></div>
+<div class="work"><h3>清除重复生产路线</h3><p>删除旧 Agent、Demo、Session、ProgramRunner、固定口令、分段 STT/TTS、本地语音降级、重复 docs 实现和旧启动器。有价值的断言迁入 tests；历史证据保留版本归属。</p></div>
+<div class="work"><h3>收紧执行与取消边界</h3><p>将模型完整 Python 放入 Docker，动作统一经过网关与 SDK。重点复现旧授权复活、迟到线程、命令回复错配及清理失败，再修改真正产生副作用的边界。</p></div>
+<div class="work"><h3>分层验证，再调用真实云服务</h3><p>先用替身、实际 SDK 方法、本机网络和真实容器检查机制，再用短录音、RTC 启停与合成图验证云端。收费调用保留脱敏收据，失败样例也保留。</p></div>
+<div class="work"><h3>发布候选并保留未决项</h3><p>PR #6 合并后，本地与远程 main 同步到 7da7706。push CI 双平台通过；同内容的重复 PR 作业最终取消，阻塞原因未定位，不能计作通过。</p></div>
+</div></section>
+<section id="architecture"><span class="index">02 / SYSTEM MAP</span><h2>一个系统，两种节奏</h2>
+<p>电脑同时承担本地跟随和云端交互。持续跟随需要及时更新；自然语言与复杂视觉允许更长处理时间。它们共享画面和 SDK，但必须交接控制权，不能同时持续发出冲突动作。</p>
+<figure class="diagram">
+<svg viewBox="0 0 800 380" role="img" aria-labelledby="maptitle mapdesc">
+<title id="maptitle">本地跟随与云端指令两条路径</title><desc id="mapdesc">无人机画面进入本地标记识别与PID，再经过SDK控制无人机；同时画面和耳机音频进入RTC及模型，模型程序经过Docker和网关进入同一SDK。控制结果返回模型。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#627a77"/></marker></defs>
+<rect x="8" y="10" width="784" height="135" rx="12" fill="#e7f1ec"/><rect x="8" y="165" width="784" height="205" rx="12" fill="#eef0e9"/>
+<text x="25" y="35" font-size="13" font-weight="bold">本地持续控制</text><text x="25" y="191" font-size="13" font-weight="bold">云端理解与程序执行</text>
+<g stroke="#627a77" stroke-width="1.5" fill="none" marker-end="url(#arrow)"><path d="M164 82H220"/><path d="M400 82H459"/><path d="M609 82H665"/><path d="M95 110V225"/><path d="M165 253H220"/><path d="M400 253H459"/><path d="M609 253H665"/><path d="M725 225V155H534V110"/><path d="M725 282V330H310V282" stroke-dasharray="5 4"/></g>
+<g fill="#fffefa" stroke="#c9d6cd"><rect x="25" y="54" width="140" height="56" rx="8"/><rect x="220" y="54" width="180" height="56" rx="8"/><rect x="459" y="54" width="150" height="56" rx="8"/><rect x="665" y="54" width="120" height="56" rx="8"/><rect x="25" y="225" width="140" height="56" rx="8"/><rect x="220" y="225" width="180" height="56" rx="8"/><rect x="459" y="225" width="150" height="56" rx="8"/><rect x="665" y="225" width="120" height="56" rx="8"/></g>
+<g text-anchor="middle" font-size="15"><text x="95" y="88">无人机画面</text><text x="310" y="88">标记识别 → PID</text><text x="534" y="88">统一 SDK</text><text x="725" y="88">Tello</text><text x="95" y="249">画面＋耳机</text><text x="95" y="269" font-size="11" fill="#5b6d73">电脑接收与上传</text><text x="310" y="249">RTC＋语音／视觉</text><text x="310" y="269" font-size="11">自然语言 → 完整 Python</text><text x="534" y="249">Docker</text><text x="534" y="269" font-size="11">隔离执行与受限接口</text><text x="725" y="249">网关</text><text x="725" y="269" font-size="11">校验、授权、交接</text><text x="518" y="352" font-size="12">实际工具结果与失败原因返回模型</text></g>
+</svg><figcaption>示意图表示职责与数据关系，不表示这些外设已全部接通。</figcaption></figure>
+<div class="tablewrap"><table><thead><tr><th>位置</th><th>承担什么</th></tr></thead><tbody>
+<tr><td><code>start_flight.ps1</code><br><code>modules/ai/main.py</code></td><td>唯一正式启动链；预检、起飞授权、会话时限、热键及退出处理。</td></tr>
+<tr><td><code>modules/rtc</code><br><code>RTCBridge.py</code></td><td>网页耳机与无人机视频、云服务配置、本机授权和工具消息；长期凭据留在服务端。</td></tr>
+<tr><td><code>modules/ai</code></td><td>容器执行、网关、SDK 适配，以及本机按需视觉调用与用量记录。</td></tr>
+<tr><td><code>drone_sdk</code></td><td>控制权、遥测、实际发送、看门狗、图传与跟随生命周期交接。</td></tr>
+<tr><td><code>modules/follow</code></td><td>ArUco 标记识别及可配置 PID；本轮保持算法，调整外层联调和源码绑定。</td></tr>
+<tr><td><code>tests</code><br><code>ScenarioAcceptance</code></td><td>行为回归、替身和验收证据；测试替身不作为正式飞机入口。</td></tr>
+</tbody></table></div>
+<p>跟随比较标记的水平偏差和大小变化，用 PID 调节请求。默认配置以转向对准目标。“OpenPose”来自复用控制方法的来源，当前没有启用人体骨架识别；标记大小也不是精确米数。</p>
+</section>
+<section id="scenario"><span class="index">03 / WALK THROUGH</span><h2>你的完整场景，逐步会发生什么</h2>
+<div class="routes">
+<article class="route"><div class="routehead"><b>01</b><h3>准备系统</h3><span class="tag">地面检查</span></div><div class="routedetail"><p><span>用户</span><span>只连接一架飞机，确认双网络、Docker、凭据和人体标记；打开打印的本机网址，选择耳机。</span></p><p><span>代码</span><span>启动器指定 PID 配置，检查连接、遥测、电量、温度和视频；网页发布 SDK 画面，不开启电脑摄像头。</span></p><p><span>飞机</span><span>启动程序并不等于起飞。三架普通 Tello 也不会因三份配置自动组成协同系统。</span></p></div></article>
+<article class="route"><div class="routehead"><b>02</b><h3>请求起飞</h3><span class="tag">需要显式授权</span></div><div class="routedetail"><p><span>用户</span><span>现场确认条件后，以起飞授权启动，再用自然语言提出起飞要求。</span></p><p><span>代码</span><span>模型生成程序，经容器、网关及 SDK 检查后发出请求；结果回传供模型回答。</span></p><p><span>飞机</span><span>可能拒绝、起飞或状态未确认。必须结合新鲜遥测与现场观察判断，不能只听语音说“完成”。</span></p></div></article>
+<article class="route"><div class="routehead"><b>03</b><h3>跟随向前行走的用户</h3><span class="tag">本地持续运行</span></div><div class="routedetail"><p><span>用户</span><span>说“开始跟随”，在标记可见条件下向前走。</span></p><p><span>代码</span><span>本地服务建立参考大小，持续识别并更新控制；转身、遮挡或旧帧会触发等待／停止保护。</span></p><p><span>飞机</span><span>预期对准并保持相对距离。真实转向方向、响应和刹停尚未标定，离线仿真不能保证轨迹。</span></p></div></article>
+<article class="route"><div class="routehead"><b>04</b><h3>说出红帐篷指令</h3><span class="tag">意图 → 程序</span></div><div class="routedetail"><p><span>用户</span><span>说“飞向前面的红色帐篷，原地旋转一周，然后继续跟随”。</span></p><p><span>代码</span><span>RTC 上传音频与画面，Seeduplex 配合视觉模型理解需求。模型生成 Python；动作取得控制权时暂停跟随并保留票据，只读观察本身不会自动暂停。</span></p><p><span>飞机</span><span>听到指令不代表立即移动。语音、模型、控制交接任一步失败，都可能使任务中止。</span></p></div></article>
+<article class="route blocked"><div class="routehead"><b>05</b><h3>观察帐篷并尝试靠近</h3><span class="tag">当前实际阻碍</span></div><div class="routedetail"><p><span>用户</span><span>帐篷不需要附加标记，依靠画面语义识别。</span></p><p><span>代码</span><span><code>observe</code> 返回可见性、中心与宽度占比。实测约 2.1 秒的结果超过 0.5 秒门槛，被拒绝作为导航依据。</span></p><p><span>飞机</span><span>不能假定已到达或继续旋转。若此前仅观察，原跟随可能仍继续；若已接管，失败进入清理。归零请求不证明物理刹停，实际状态须现场核对。</span></p></div></article>
+<article class="route"><div class="routehead"><b>06</b><h3>旋转一周，再恢复跟随</h3><span class="tag">条件式后续</span></div><div class="routedetail"><p><span>用户</span><span>这里的一周是原地偏航 360°，不是绕帐篷飞一圈。</span></p><p><span>代码</span><span>仅在前序允许继续、动作成功且恢复条件满足时，释放模型控制权并使用原票据恢复跟随。</span></p><p><span>飞机</span><span>用户标记可能已离开视野。现有系统没有经过验证的主动搜索或返回用户能力，不能保证这一段成立。</span></p></div></article>
+</div></section>
+<section id="safety"><span class="index">04 / CONTROL BOUNDARIES</span><h2>为什么需要这些保护</h2>
+<div class="twocol">
+<div class="card"><h3>授权编号，防止旧任务借用新身份</h3><p><code>control_epoch</code> 识别控制权，<code>command_epoch</code> 识别动作中断。只看名字 model 不够：新旧任务同名，授权次数却不同。</p></div>
+<div class="card"><h3>取消一直检查到副作用发生处</h3><p>每个程序持有不可复活的取消标记。旧线程即使迟到，也要在 SDK 改变状态前检查；失败后只清理本任务创建的跟随，避免误停新任务。</p></div>
+<div class="card"><h3>未知回复，不能冒充新动作成功</h3><p>Tello 回复没有可靠命令编号。已发送命令超时或取消后，通道进入不确定状态，限制普通运动；仅清空队列不能证明迟到回复消失。</p></div>
+<div class="card"><h3>容器隔离，不把生成代码直接交给电脑</h3><p>程序在无网络、只读、无宿主挂载的 Docker 中执行，通过受限接口请求动作。代码与输出有预算；隔离不能替代对错误飞行决策的约束。</p></div>
+</div><p class="caption">可核对：gateway.py、backends.py、controller.py、follow_integration.py，以及 OperationTests.py、SafetyTests.py。</p>
+</section>
+<section id="tests"><span class="index">05 / EVIDENCE</span><h2>“测试通过”分别证明什么</h2>
+<div class="tablewrap"><table><thead><tr><th>验证层</th><th>实际做过什么</th><th>边界</th></tr></thead><tbody>
+<tr><td>行为回归</td><td>863 条目、458 子测试通过；独立函数来源 836 个。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
+<tr><td>执行与协议</td><td>真实 Docker、本机 HTTP／WebSocket／UDP、实际 SDK 方法配合假传输。</td><td>未连接飞机，不能测物理响应。</td></tr>
+<tr><td>直连语音诊断</td><td>预录音进真实云服务；生成程序经容器、假设备并回传结果。</td><td>不同于正式 RTC，未使用实体耳机。</td></tr>
+<tr><td>RTC 控制面</td><td>两组真实 StartVoiceChat → StopVoiceChat，均确认清理。</td><td>没有客户端入房或上传媒体。</td></tr>
+<tr><td>真实视觉模型</td><td>三次请求，输入合成图；观察得到结构化目标结果。</td><td>未测真实帐篷、图传或现场准确率。</td></tr>
+</tbody></table></div>
+<p>测试设计是先制造失败条件，再检查外部可见行为。例如延迟旧线程，验证停止后不会重新跟随；让生成程序超时，检查跟随是否遗留。接收端包间隔容易受调度影响，因此发送节奏改用虚拟时钟单独验证，真实网络测试保留数据完整性检查。</p>
+<p class="note warn">费用估算约 0.37 元仅对应直连语音诊断。新增 RTC／视觉调用已记录次数与用量，总账单未核验；15 元测试预算也不同于原 HTML 的 1000 元项目预算。</p>
+</section>
+<section id="blockers"><span class="index">06 / OPEN PROBLEMS</span><h2>当前最影响现场成功的缺口</h2>
+<div class="latency" aria-label="同一合成图结构化观察的耗时比较，单位秒"><div class="barrow"><span>默认深度思考</span><div class="track"><span style="width:100%"></span></div><b>16.703</b></div><div class="barrow"><span>关闭深度思考</span><div class="track"><span style="width:12.72%"></span></div><b>2.125</b></div><div class="barrow"><span>当前导航门槛</span><div class="track"><span style="width:2.99%"></span></div><b>0.500</b></div></div>
+<p>关闭思考显著减少这次调用的耗时，但仍不能通过时效门槛。简单放宽门槛，会让移动依赖更旧的画面；必须结合运动状态和端到端延迟重新设计、验证观察控制方式。</p>
+<div class="twocol"><div class="card problem"><h3>画面“刚解码”可能已经旧了</h3><p>本地 H.264／UDP 实验复现：实际画面旧约 1.67 秒，解码年龄仍接近零。已调整缓冲与溢出策略，但还没有可靠的相机曝光时刻。</p></div><div class="card problem"><h3>看见目标，不等于能完成导航</h3><p>普通 Tello 没有这里所需的完整障碍与绝对位置能力；框的大小不能证明距离或到达。转向后的用户重获、真机参数和耳机噪声适应仍需验证。</p></div></div>
+<p class="note">当前代码仍允许明确的底层位移指令。导航观察保护并不等于所有运动都具备视觉避障；这也是为什么不能把接口开放误解为自主导航已经完成。</p>
+</section>
+<section id="requirements"><span class="index">07 / REQUIREMENTS</span><h2>与 Companion HTML 怎样对应</h2>
+<p>原方案保留的选择，如今已有具体实现：普通 Tello、人体 ArUco 标记、本地 PID、Seeduplex＋RTC 混合编排与视觉模型。完整 Python 经容器调用接口，对应“意图→编程→执行→反馈”；控制票据对应跟随与动作协调。</p>
+<p>这些落实了软件结构，还没有满足 HTML 所需的实际跟随视频、耳机响应时间、真实画面问答和完整组合演示。租赁验机、场地、设备归还及项目总预算也不属于本轮已经证明的内容。</p>
+</section>
+<section id="next"><span class="index">08 / NEXT STEPS</span><h2>接下来按什么顺序推进</h2>
+<ol class="order"><li><b>先解决视觉时效与导航策略。</b>测真实图传，验证云端语义识别与本机连续跟踪的分工；明确停止距离和用户重获方式。</li><li><b>再做地面媒体联调。</b>用真实耳机、无人机图传和 RTC 入房，测问答、打断、断连和退出，核对云任务清理。</li><li><b>分段真机验证，最后串场景。</b>依次测起降、方向、刹停、标记丢失与短距跟随，再判断是否具备帐篷任务条件。</li></ol>
+<pre><code>.\start_flight.ps1 -DryRun</code></pre><p class="caption">此命令仅查看配置。现场操作按 FLIGHT_SOP.md 分阶段执行；停止为 F12／Ctrl+Shift+Alt+A，降落为 F11／Ctrl+Shift+Alt+L，仍须核对飞机真实状态。</p>
+<details><summary>打开源码、测试与证据入口</summary><div class="filelinks"><a href="README.md">README：安装与正式入口</a><a href="API.md">API：模型接口及结果含义</a><a href="FLIGHT_SOP.md">FLIGHT_SOP：现场验证顺序</a><a href="tests/OperationTests.py">OperationTests：迟到线程与任务清理</a><a href="ScenarioAcceptance/Evidence/Current/Build.json">Build.json：验证数量及未完成范围</a><a href="ScenarioAcceptance/Evidence/Current/VisionFast.json">VisionFast.json：2.125 秒及过期拒绝</a><a href="ScenarioAcceptance/Evidence/Current/RtcCloudFast.json">RtcCloudFast.json：正式配置真实启停</a><a href="ScenarioAcceptance/Evidence/Current/Budget.json">Budget.json：费用估算范围与用量</a><a href="REQUIREMENTS.html/Companion(1).html">原始 Companion 需求</a></div></details>
+</section>
+<footer class="footer"><a href="https://github.com/LenLanxi/DJ-project/pull/6">GitHub PR #6</a><a href="https://github.com/LenLanxi/DJ-project/actions/runs/40348744355">已通过的 push CI</a><a href="https://github.com/LenLanxi/DJ-project/actions/runs/40348752290">已取消的重复 PR 检查</a><p>本文依据审查基线的源码及 Current 证据编写。离线可读；本页不加载外部脚本、不开启设备、不调用云服务。之后的代码更新可能改变这里的结论。</p></footer>
+</main></div>
+<script>
+'use strict';
+const links=Array.from(document.querySelectorAll('nav a'));
+const sections=links.map(a=>document.querySelector(a.getAttribute('href')));
+const progress=document.getElementById('progress');
+let scheduled=false;
+function update(){
+ const max=document.documentElement.scrollHeight-innerHeight;
+ progress.style.width=(max>0?Math.min(100,100*scrollY/max):0)+'%';
+ let active=sections[0];
+ for(const section of sections)if(section.getBoundingClientRect().top<innerHeight*.32)active=section;
+ for(const link of links){if(link.hash==='#'+active.id)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');}
+ scheduled=false;
+}
+addEventListener('scroll',()=>{if(!scheduled){scheduled=true;requestAnimationFrame(update);}},{passive:true});
+addEventListener('resize',update);
+document.getElementById('print').addEventListener('click',()=>window.print());
+let detailsState=[];
+addEventListener('beforeprint',()=>{detailsState=Array.from(document.querySelectorAll('details')).map(el=>[el,el.open]);for(const [el] of detailsState)el.open=true;});
+addEventListener('afterprint',()=>{for(const [el,open] of detailsState)el.open=open;});
+update();
+</script>
+</body></html>
