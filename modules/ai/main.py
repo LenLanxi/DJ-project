@@ -372,11 +372,13 @@ async def run_modern(args):
         if getattr(args,'volc_dialog',False) and not sandbox_ready:
             if real_runner is not None:
                 runner = real_runner
+                # 没有沙箱就别走 run_sandbox（它内部调 asyncio.run，会撞上"running event loop"）
+                runner.allow_programs = False
             else:
                 from program_runner import Runner as LocalRunner
                 from demo_text import Demo
                 from drone_adapter import MockDrone
-                runner = LocalRunner(Demo(MockDrone()))
+                runner = LocalRunner(Demo(MockDrone()), allow_programs=False)
             print('[豆包] 未检测到 docker：改用本地白名单执行器'
                   '（只允许单条 drone.xxx() 调用，动作仍走 controller 安全锁）', flush=True)
         if args.program:

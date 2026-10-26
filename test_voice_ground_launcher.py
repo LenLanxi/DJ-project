@@ -90,6 +90,13 @@ class LauncherSelfTestWiringTests(unittest.TestCase):
         self.assertIn('VOLC_API_KEY', self.text)
         self.assertIn('--pick', self.text)
 
+    def test_takeoff_authorization_requires_explicit_switch(self):
+        # -AllowTakeoff 才放行起飞，而且必须加在"强制剥离"之后，否则会被自己删掉
+        self.assertIn('[switch]$AllowTakeoff', self.text)
+        guard = self.text.index("Where-Object { $_ -ne '--allow-real-takeoff' }")
+        grant = self.text.index("$argv += '--allow-real-takeoff'")
+        self.assertGreater(grant, guard, '起飞授权必须写在强制剥离之后')
+
 
 class CheckerMatchesEntryTests(unittest.TestCase):
     def test_required_flags_still_exist_in_entry(self):

@@ -29,6 +29,7 @@ param(
     [switch]$Video,
     [switch]$Realtime,
     [switch]$Volc,
+    [switch]$AllowTakeoff,
     [double]$SilenceS = 1.5,
     [switch]$Force
 )
@@ -218,6 +219,20 @@ if (($Volc -or $Realtime) -and $InputDevice -lt 0 -and $OutputDevice -lt 0) {
 if ($argv -contains '--allow-real-takeoff') {
     Write-Host '[严重] 参数里出现了 --allow-real-takeoff，已强制移除（地面测试不允许起飞）' -ForegroundColor Red
     $argv = $argv | Where-Object { $_ -ne '--allow-real-takeoff' }
+}
+
+# 只有显式加 -AllowTakeoff 才放行起飞；放在上面那道强制剥离之后，避免被误删
+if ($AllowTakeoff) {
+    $argv += '--allow-real-takeoff'
+    Write-Host ''
+    Write-Host '#################################################################' -ForegroundColor Red
+    Write-Host '#  已授权真机起飞（-AllowTakeoff）                              #' -ForegroundColor Red
+    Write-Host '#  1) 桨叶必须已正确安装（正/反桨对角对应）                     #' -ForegroundColor Red
+    Write-Host '#  2) 场地清空、飞机水平静置、电量 >= 10%                       #' -ForegroundColor Red
+    Write-Host '#  3) 语音说"起飞"才会起飞；说"降落"走 priority 通道            #' -ForegroundColor Red
+    Write-Host '#  4) 物理急停随时可用：Ctrl+Shift+Alt+A 悬停 / +L 降落          #' -ForegroundColor Red
+    Write-Host '#################################################################' -ForegroundColor Red
+    Write-Host ''
 }
 
 # ---------- 5. 开测说明 ----------

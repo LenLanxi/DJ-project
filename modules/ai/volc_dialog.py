@@ -71,6 +71,21 @@ VOICES = ('zh_female_vv_jupiter_bigtts', 'zh_female_xiaohe_jupiter_bigtts',
           'zh_male_yunzhou_jupiter_bigtts', 'zh_male_xiaotian_jupiter_bigtts')
 
 
+def _coerce_bool(value):
+    """模型偶尔把布尔写成字符串/数字。急停绝不能因为格式不对就不停：认不出就按悬停。"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ('true', '1', 'yes', 'y', '是', '降落', 'land'):
+            return True
+        if text in ('false', '0', 'no', 'n', '否', '悬停', '急停', 'stop'):
+            return False
+    return False
+
+
 class VolcDialogError(RuntimeError):
     pass
 
@@ -474,9 +489,7 @@ class VolcDuplex:
                 state = await asyncio.to_thread(drone.get_status)
             return {'ok': True, 'status': 'ok', 'state': state}
         if name == 'interrupt':
-            land = arguments.get('land')
-            if type(land) is not bool:
-                raise ValueError('land 必须是布尔值')
+            land = _coerce_bool(arguments.get('land'))
             if hasattr(self.runner, 'cancel'):
                 self.runner.cancel()
             # 实飞入口的 runner 是 SandboxRunner（没有 .demo），急停必须走 backend 的
@@ -489,7 +502,31 @@ class VolcDuplex:
             drone = getattr(getattr(self.runner, 'demo', None), 'drone', None)
             if drone is None:
                 raise RuntimeError('当前执行器不支持打断')
-            result = (drone.land() if land else drone.stop_motion()) or {}
-            return {'ok': bool(result.get('ok')), 'land': land,
-                    'message': result.get('message', '')}
+            # 急停必须走 priority 通道：普通调用会因为"无控制权"直接失败，
+            # 那样用户喊急停反而什么都不发生。先抢占控制权，再执行停止/降落。
+            try:
+                from drone_sdk import controller as ctl
+                ctl.request_control('model', priority=True)
+            except Exception:
+                pass
+            # 不同执行器的 drone 接口签名不一致（有的要 owner，有的不要），两种都兜住
+            def _call(method):
+                try:
+                    return method('model') or {}
+                except TypeError:
+                    return method() or {}
+
+            try:
+                result = _call(drone.land) if land else _call(drone.stop_motion)
+            except Exception:
+                from drone_sdk import controller as ctl
+                result = (ctl.land('model', priority=True) if land
+                          else ctl.stop_motion('model', priority=True)) or {}
+            if isinstance(result, dict):
+                ok = bool(result.get('ok', True))
+                message = result.get('message') or '已急停'
+            else:                      # controller 返回 CommandResult
+                ok = bool(getattr(result, 'ok', True))
+                message = str(getattr(result, 'reason', '') or '已急停')
+            return {'ok': ok, 'land': land, 'message': message}
         raise ValueError('未知工具：' + str(name))
