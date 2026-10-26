@@ -391,11 +391,18 @@ class VolcDuplex:
             land = arguments.get('land')
             if type(land) is not bool:
                 raise ValueError('land 必须是布尔值')
+            if hasattr(self.runner, 'cancel'):
+                self.runner.cancel()
+            # 实飞入口的 runner 是 SandboxRunner（没有 .demo），急停必须走 backend 的
+            # priority 通道，否则"语音急停"在豆包模式下会直接报不支持打断
+            backend = getattr(getattr(self.runner, 'gateway', None), 'backend', None)
+            if backend is not None and hasattr(backend, 'emergency'):
+                result = await asyncio.to_thread(backend.emergency, land)
+                return {'ok': bool(result.get('ok')), 'land': land,
+                        'message': result.get('message', '')}
             drone = getattr(getattr(self.runner, 'demo', None), 'drone', None)
             if drone is None:
                 raise RuntimeError('当前执行器不支持打断')
-            if hasattr(self.runner, 'cancel'):
-                self.runner.cancel()
             result = (drone.land() if land else drone.stop_motion()) or {}
             return {'ok': bool(result.get('ok')), 'land': land,
                     'message': result.get('message', '')}

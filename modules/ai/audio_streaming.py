@@ -77,7 +77,10 @@ class OutputAdapter:
             if len(self.pending)>=needed: break
             count=max(1,math.ceil((needed-len(self.pending))/2*24000/self.rate))
             self.pending.extend(self.resampler.process(self.speaker.consume(count)))
-        if len(self.pending)<needed: raise RuntimeError('output_resampler_stalled')
+        if len(self.pending)<needed:
+            # 输出回调绝不能抛异常：刚开流还没收到服务器音频、或被打断清空时，
+            # 正确行为是输出静音而不是让整条会话挂掉（曾表现为 output_resampler_stalled）。
+            self.pending.extend(b'\x00'*(needed-len(self.pending)))
         output=bytes(self.pending[:needed]); del self.pending[:needed]
         self.speaker.latency_ms=max(0,dac_latency_ms)+self.resampler.delay_ms()+len(self.pending)/2/self.rate*1000
         return output

@@ -136,6 +136,14 @@ def _looks_bluetooth(name):
     return any(hint in lowered for hint in BLUETOOTH_HINTS)
 
 
+def sd_name(index):
+    import sounddevice as sd
+    try:
+        return sd.query_devices(index)['name']
+    except Exception:                              # noqa: BLE001
+        return '?'
+
+
 def check_log_dir():
     logs = ROOT / 'logs'
     try:
@@ -146,6 +154,30 @@ def check_log_dir():
         report(True, '日志目录', str(logs))
     except OSError as exc:
         report(False, '日志目录', '%s: %s' % (type(exc).__name__, exc))
+
+
+def pick_bluetooth_devices():
+    """挑一对蓝牙耳机的输入/输出索引（全双工链路必须显式给设备，不能用系统默认）。"""
+    import sounddevice as sd
+    devices = sd.query_devices()
+    hostapis = sd.query_hostapis()
+    # WASAPI 在共享模式下最稳；MME 次之；WDM-KS 常要独占，放最后
+    preference = {'Windows WASAPI': 0, 'MME': 1, 'Windows DirectSound': 2}
+
+    def rank(index, info):
+        return (0 if _looks_bluetooth(info['name']) else 1,
+                preference.get(hostapis[info['hostapi']]['name'], 3), index)
+
+    inputs = sorted((i for i, info in enumerate(devices) if info['max_input_channels'] >= 1),
+                    key=lambda i: rank(i, devices[i]))
+    outputs = sorted((i for i, info in enumerate(devices) if info['max_output_channels'] >= 2),
+                     key=lambda i: rank(i, devices[i]))
+    if not inputs or not outputs:
+        return None, None
+    best_in, best_out = inputs[0], outputs[0]
+    if not _looks_bluetooth(devices[best_in]['name']) and not _looks_bluetooth(devices[best_out]['name']):
+        return None, None
+    return best_in, best_out
 
 
 def mic_test(seconds=3.0, device=None):
@@ -222,7 +254,24 @@ def main():
     parser.add_argument('--loopback', action='store_true',
                         help='语音自环：合成语音→本地识别→口令映射，验证理解链路（不用说话）')
     parser.add_argument('--input-device', type=int, default=None, help='配合 --record-test 指定设备号')
+    parser.add_argument('--pick', action='store_true',
+                        help='打印一对蓝牙耳机的设备索引（INPUT=n / OUTPUT=m），供全双工链路使用')
     args = parser.parse_args()
+
+    if args.pick:
+        try:
+            picked_in, picked_out = pick_bluetooth_devices()
+        except Exception as exc:                   # noqa: BLE001
+            print('PICK_ERROR=%s: %s' % (type(exc).__name__, exc))
+            return 3
+        if picked_in is None:
+            print('PICK_ERROR=没有找到蓝牙耳机设备（先连上耳机再试）')
+            return 3
+        print('INPUT=%d' % picked_in)
+        print('OUTPUT=%d' % picked_out)
+        print('PICK_NAME_IN=%s' % sd_name(picked_in))
+        print('PICK_NAME_OUT=%s' % sd_name(picked_out))
+        return 0
 
     print('=== AI 语音地面测试 · 前置自检（不连飞机）===\n')
     check_python()

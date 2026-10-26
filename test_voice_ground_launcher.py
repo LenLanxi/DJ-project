@@ -83,6 +83,13 @@ class LauncherSelfTestWiringTests(unittest.TestCase):
         self.assertIn("if (-not $NoDrone) { $argv += '--real-drone' }", self.text)
         self.assertIn('[跳过] -NoDrone', self.text)
 
+    def test_volc_mode_wired_to_entry_and_devices(self):
+        # 豆包全双工：入口要 --volc-dialog，且必须显式给设备（DuplexAudio 拒绝系统默认）
+        self.assertIn('[switch]$Volc', self.text)
+        self.assertIn("'--volc-dialog'", self.text)
+        self.assertIn('VOLC_API_KEY', self.text)
+        self.assertIn('--pick', self.text)
+
 
 class CheckerMatchesEntryTests(unittest.TestCase):
     def test_required_flags_still_exist_in_entry(self):

@@ -159,6 +159,7 @@ https://python-sounddevice.readthedocs.io/en/latest/api/convenience-functions.ht
 | `--offline-voice` | 本地 faster-whisper 识别 + Windows SAPI 播报，免 API Key |
 | `--log-file <path>` | 控制台输出与报错同时落盘 |
 | `--show-video` | 图传窗口：绿框标 ArUco、红点标中心，叠加偏差/速度/跟随状态（守护线程，异常自愈成仅终端输出） |
+| `--volc-dialog` | 豆包全双工实时语音（火山 Seeduplex）：ASR/对话/TTS 都在服务端，鉴权 `X-Api-Key`，需 `VOLC_API_KEY`；必须显式 `--input-device/--output-device`（`DuplexAudio` 拒绝系统默认） |
 | `--climb-target-cm 120` / `--no-auto-climb` | 起飞后自动补高度（Tello 自身只到约 1m，人站着举码够不着） |
 
 急停（任何窗口聚焦都有效）：`Ctrl+Shift+Alt+A` = 零速度悬停，`Ctrl+Shift+Alt+L` = 立即降落。
@@ -184,6 +185,7 @@ python -m unittest discover -s modules/ai -p "test_*.py"
 .\start_voice_ground_test.cmd -MicTest -InputDevice 5      :: 先真录 3 秒确认麦克风能收到声音
 .\start_voice_ground_test.cmd -Loopback                    :: 语音自环：合成→识别→口令映射（不用说话）
 .\start_voice_ground_test.cmd -NoDrone                     :: 只验语音：模拟飞机，不连真机
+.\start_voice_ground_test.cmd -Volc                        :: 豆包全双工语音（需 VOLC_API_KEY，自动挑蓝牙耳机）
 .\start_voice_ground_test.cmd -InputDevice 5 -OutputDevice 7
 .\start_voice_ground_test.cmd -Video                       :: 顺带弹出图传 HUD
 .\start_voice_ground_test.cmd -Realtime                    :: 走四组全双工链路（需 AI_REALTIME_* 环境变量）

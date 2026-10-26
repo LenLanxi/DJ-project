@@ -369,11 +369,25 @@ async def run_modern(args):
             print(json.dumps(result,ensure_ascii=False,indent=2))
             if not result['ok']: raise RuntimeError('沙箱任务未完成')
         else:
-            from realtime import RealtimeSession
             from duplex_audio import DuplexAudio
             from audio_config import load_audio_config
             config=load_audio_config(args.audio_config,args.input_device,args.output_device)
-            await RealtimeSession(runner,DuplexAudio(config=config),audio_config=config).run()
+            audio=DuplexAudio(config=config)
+            if getattr(args,'volc_dialog',False):
+                # 豆包全双工：ASR/对话/TTS 都在服务端，鉴权用 X-Api-Key（与 OpenAI Realtime 不同）
+                from volc_dialog import VolcDuplex
+                from realtime import INSTRUCTIONS, TOOLS
+                def _log(event):
+                    name=event.get('event') if isinstance(event,dict) else event
+                    if name in ('asr_text','reply_text','tool_result','error','audio_first'):
+                        print('[豆包] '+json.dumps(event,ensure_ascii=False)[:300],flush=True)
+                dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=TOOLS,on_log=_log,
+                                  on_user_text=lambda t: print('[STT] 识别文本：'+t,flush=True),
+                                  on_reply_text=lambda t: print('[豆包] 回复：'+t,flush=True))
+                await dialog.run()
+            else:
+                from realtime import RealtimeSession
+                await RealtimeSession(runner,audio,audio_config=config).run()
     finally:
         # 失败/中断也要清理真机（与 main() 的兜底一致），绝不把半连接状态留下
         if args.real_drone:
@@ -415,6 +429,8 @@ def main():
     parser.add_argument('--max-utterance', type=float, default=10.0,
                         help='单句最长录音时长（默认 10 秒，防止一直录）')
     parser.add_argument('--realtime',action='store_true',help='使用独立配置的兼容Realtime API，全双工；不回退分段语音')
+    parser.add_argument('--volc-dialog',action='store_true',
+                        help='豆包全双工实时语音（Seeduplex，X-Api-Key 鉴权，需 VOLC_API_KEY）')
     parser.add_argument('--program',help='在Docker沙箱执行完整Python文件')
     parser.add_argument('--fixture-vision',action='store_true')
     parser.add_argument('--audio-config')
@@ -438,7 +454,7 @@ def main():
 
 
 def _dispatch(args):
-    if args.realtime or args.program:
+    if args.realtime or args.program or getattr(args, 'volc_dialog', False):
         import asyncio
         try: asyncio.run(run_modern(args))
         except (ValueError,RuntimeError,OSError) as exc: print('执行失败：',exc); raise SystemExit(1)

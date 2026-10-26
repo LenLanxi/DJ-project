@@ -28,6 +28,7 @@ param(
     [int]$OutputDevice = -1,
     [switch]$Video,
     [switch]$Realtime,
+    [switch]$Volc,
     [double]$SilenceS = 1.5,
     [switch]$Force
 )
@@ -141,7 +142,23 @@ $argv += @(
     '--log-file', $logFile,
     '--silence-s', "$SilenceS"
 )
-if ($Realtime) {
+if ($Volc) {
+    # 豆包全双工：ASR + 对话 + TTS 都在火山服务端，鉴权是 X-Api-Key
+    $argv += '--volc-dialog'
+    if (-not $env:VOLC_API_KEY) {
+        Write-Host ''
+        Write-Host '[停止] -Volc 需要 VOLC_API_KEY（火山控制台「API Key 管理」里的密钥值）：' -ForegroundColor Red
+        Write-Host '       $env:VOLC_API_KEY = "<密钥值>"' -ForegroundColor Yellow
+        Write-Host '       注意是密钥值本身，不是 api-key-20261024xxxx 这种名称。' -ForegroundColor Yellow
+        Write-Host '       只想听本地语音就改用：start_voice_ground_test.cmd（离线 whisper + SAPI）' -ForegroundColor Yellow
+        if (-not $Force) { exit 1 }
+        Write-Host '[继续] 已加 -Force，仍按 -Volc 启动（预计握手会鉴权失败）。' -ForegroundColor Yellow
+    } else {
+        Write-Host ('[密钥] VOLC_API_KEY 已设置（长度 {0}）' -f $env:VOLC_API_KEY.Length) -ForegroundColor Green
+    }
+    if ($env:VOLC_MODEL) { Write-Host ("[模型] {0}" -f $env:VOLC_MODEL) -ForegroundColor DarkGray }
+    if ($env:VOLC_VOICE) { Write-Host ("[音色] {0}" -f $env:VOLC_VOICE) -ForegroundColor DarkGray }
+} elseif ($Realtime) {
     # 四组新的全双工链路：不走路 no-voice/offline-voice，走 --realtime
     $argv += '--realtime'
     $key = $env:AI_REALTIME_API_KEY
@@ -161,6 +178,29 @@ if ($Realtime) {
 if ($Video) { $argv += '--show-video' }
 if ($InputDevice -ge 0) { $argv += @('--input-device', "$InputDevice") }
 if ($OutputDevice -ge 0) { $argv += @('--output-device', "$OutputDevice") }
+
+# 全双工链路（豆包 / Realtime）拒绝系统默认设备，必须显式给索引；
+# 蓝牙耳机在设备列表里的编号会随连接状态漂移，这里按名字自动挑一对。
+if (($Volc -or $Realtime) -and $InputDevice -lt 0 -and $OutputDevice -lt 0) {
+    Write-Host '[设备] 全双工链路需要显式设备，正在自动挑选蓝牙耳机……' -ForegroundColor Cyan
+    $pickOut = @(& $py -X utf8 -B 'tools\voice_ground_check.py' --pick 2>&1)
+    $pickedIn = -1
+    $pickedOutIdx = -1
+    foreach ($line in $pickOut) {
+        if ($line -match '^INPUT=(\d+)$') { $pickedIn = [int]$Matches[1] }
+        elseif ($line -match '^OUTPUT=(\d+)$') { $pickedOutIdx = [int]$Matches[1] }
+        elseif ($line -match '^PICK_ERROR=(.*)$') { Write-Host ("[设备] " + $Matches[1]) -ForegroundColor Yellow }
+    }
+    if ($pickedIn -ge 0 -and $pickedOutIdx -ge 0) {
+        $argv += @('--input-device', "$pickedIn", '--output-device', "$pickedOutIdx")
+        Write-Host ("[设备] 自动选择 输入 #{0} / 输出 #{1}" -f $pickedIn, $pickedOutIdx) -ForegroundColor Green
+    } else {
+        Write-Host '[停止] 没找到蓝牙耳机：先连上耳机，或用 -InputDevice / -OutputDevice 手工指定。' -ForegroundColor Red
+        Write-Host '       离线模式（不加 -Volc）可以用笔记本麦克风，不用指定设备。' -ForegroundColor Yellow
+        if (-not $Force) { exit 1 }
+        Write-Host '[继续] 已加 -Force，仍继续启动（预计会因缺少设备失败）。' -ForegroundColor Yellow
+    }
+}
 
 if ($argv -contains '--allow-real-takeoff') {
     Write-Host '[严重] 参数里出现了 --allow-real-takeoff，已强制移除（地面测试不允许起飞）' -ForegroundColor Red
@@ -190,7 +230,9 @@ Write-Host '  6) 急停              → 走优先通道，立即零速度'
 Write-Host '  7) 结束              → 关闭免按键监听'
 Write-Host ''
 Write-Host '语音模式：' -NoNewline -ForegroundColor Cyan
-if ($Realtime) { Write-Host '四组全双工实时链路（豆包）' } else { Write-Host '离线：本地 whisper 识别 + Windows SAPI 播报（不需 API Key）' }
+if ($Volc) { Write-Host '豆包全双工实时语音（火山 Seeduplex，ASR+对话+TTS 均在服务端）' }
+elseif ($Realtime) { Write-Host '四组全双工实时链路（兼容 Realtime API）' }
+else { Write-Host '离线：本地 whisper 识别 + Windows SAPI 播报（不需 API Key）' }
 Write-Host '麦克风/播放：' -NoNewline -ForegroundColor Cyan
 if ($InputDevice -ge 0 -or $OutputDevice -ge 0) {
     Write-Host ("输入 #{0}  输出 #{1}" -f $InputDevice, $OutputDevice)
