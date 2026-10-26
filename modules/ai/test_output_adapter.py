@@ -28,7 +28,7 @@ class EmptySpeakerTests(unittest.TestCase):
 
     def test_audio_is_still_played_when_available(self):
         speaker = PlaybackBuffer(rate=24000)
-        adapter = OutputAdapter(speaker, 24000)
+        adapter = OutputAdapter(speaker, 24000, prebuffer_ms=0)
         # 塞入 100ms 的 440Hz 24kHz 单声道音频
         import math
         import struct
@@ -37,6 +37,30 @@ class EmptySpeakerTests(unittest.TestCase):
         out = adapter.render(1024, 10.0)
         self.assertEqual(len(out), 1024 * 2)
         self.assertNotEqual(out, b'\x00' * (1024 * 2))
+
+    def test_jitter_buffer_holds_silence_until_enough_is_queued(self):
+        # 服务器是 20ms 一块推的：不预缓冲就会"推一块播一块"，听感一卡一卡
+        speaker = PlaybackBuffer(rate=24000)
+        adapter = OutputAdapter(speaker, 48000, prebuffer_ms=150)
+        speaker.append('item', 0, b'\x01\x00' * 480)     # 只有 20ms
+        self.assertEqual(adapter.render(480, 10.0), b'\x00' * 960)
+
+    def test_jitter_buffer_starts_once_prefill_reached(self):
+        import struct
+
+        speaker = PlaybackBuffer(rate=24000)
+        adapter = OutputAdapter(speaker, 48000, prebuffer_ms=100)
+        speaker.append('item', 0, struct.pack('<4800h', *([2000] * 4800)))   # 200ms
+        out = adapter.render(480, 10.0)
+        self.assertNotEqual(out, b'\x00' * 960)
+
+    def test_zero_prebuffer_keeps_old_behaviour(self):
+        import struct
+
+        speaker = PlaybackBuffer(rate=24000)
+        adapter = OutputAdapter(speaker, 24000, prebuffer_ms=0)
+        speaker.append('item', 0, struct.pack('<480h', *([2000] * 480)))
+        self.assertNotEqual(adapter.render(240, 10.0), b'\x00' * 480)
 
 
 if __name__ == '__main__':

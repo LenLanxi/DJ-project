@@ -1,6 +1,7 @@
 """Bounded capture backlog and stateful PCM16 sample-rate conversion."""
 import collections
 import math
+import os
 import queue
 import threading
 import time
@@ -65,22 +66,37 @@ class PCMResampler:
         return self.engine.delay()/self.target*1000 if self.engine is not None else 0.
 
 class OutputAdapter:
-    def __init__(self,speaker,rate):
+    # 抖动缓冲：开头先攒够这么多毫秒再放，否则服务器每推一小块就播一块，一卡一卡
+    PREBUFFER_MS = int(os.getenv('AUDIO_PREBUFFER_MS', '150'))
+    def __init__(self,speaker,rate,prebuffer_ms=None):
         self.speaker=speaker; self.rate=rate; self.pending=bytearray()
         self.resampler=PCMResampler(24000,rate); self.generation=speaker.generation
+        ms = self.PREBUFFER_MS if prebuffer_ms is None else prebuffer_ms
+        self.prebuffer_bytes=max(0,int(24000*2*ms/1000))   # 24k 单声道字节数
+        self.started=False
     def render(self,frames,dac_latency_ms):
         # Called by one output callback; only it owns conversion state.
         if self.generation!=self.speaker.generation:
             self.pending.clear(); self.resampler.clear(); self.generation=self.speaker.generation
+            self.started=False
         needed=frames*2
+        available=getattr(self.speaker,'size',0)
+        if not self.started:
+            if available<self.prebuffer_bytes:
+                return b'\x00'*needed          # 还在攒，先出静音
+            self.started=True
+        elif available==0 and len(self.pending)<needed:
+            # 真正播空了（服务端推送比播放慢）：本段结束，下一波重新预缓冲
+            self.pending.clear(); self.started=False
+            return b'\x00'*needed
         for _ in range(64):
             if len(self.pending)>=needed: break
             count=max(1,math.ceil((needed-len(self.pending))/2*24000/self.rate))
             self.pending.extend(self.resampler.process(self.speaker.consume(count)))
         if len(self.pending)<needed:
-            # 输出回调绝不能抛异常：刚开流还没收到服务器音频、或被打断清空时，
-            # 正确行为是输出静音而不是让整条会话挂掉（曾表现为 output_resampler_stalled）。
-            self.pending.extend(b'\x00'*(needed-len(self.pending)))
+            # 输出回调绝不能抛异常：补静音，让下一波重新预缓冲
+            self.pending.clear(); self.started=False
+            return b'\x00'*needed
         output=bytes(self.pending[:needed]); del self.pending[:needed]
         self.speaker.latency_ms=max(0,dac_latency_ms)+self.resampler.delay_ms()+len(self.pending)/2/self.rate*1000
         return output

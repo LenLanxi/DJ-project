@@ -111,6 +111,7 @@ class DuplexAudio:
         self.converter=PCMResampler(self.endpoints[0].rate,RATE)
         self.output_adapter=OutputAdapter(self.speaker,self.endpoints[1].rate)
         self._diagnostic_at=time.monotonic(); self._converted_generation=0
+        self._last_diag_print=time.monotonic()
         self.closing=False; self.fault=None
         self.last_capture=self.last_render=time.monotonic()
         def finished():
@@ -150,8 +151,14 @@ class DuplexAudio:
             if time.monotonic()-min(self.last_capture,self.last_render)>2:
                 raise RuntimeError('音频设备超过2秒无回调；请检查连接，不自动切换设备')
             if time.monotonic()-self._diagnostic_at>=self.config.diagnostics_interval_s:
-                print('audio_diagnostics '+json.dumps(self.diagnostics(),ensure_ascii=False),flush=True)
                 self._diagnostic_at=time.monotonic()
+                diag=self.diagnostics()
+                abnormal=(diag.get('output_underflows') or diag.get('dropped_samples')
+                          or diag.get('loss_generation') or diag.get('input_overflows'))
+                # 正常时 60 秒才打一次：原来每 5 秒一行会把豆包的回复挤到看不见
+                if abnormal or time.monotonic()-self._last_diag_print>=60:
+                    print('audio_diagnostics '+json.dumps(diag,ensure_ascii=False),flush=True)
+                    self._last_diag_print=time.monotonic()
             try:
                 raw,generation=self.input.get_nowait()
                 if generation!=self._converted_generation:
