@@ -33,6 +33,11 @@ def start_view_monitor(printer=None):
     try:
         import cv2
         import follow_hud
+        # 入口可能还没把仓库根加进 sys.path（build_real_runner 才加），这里补上，
+        # 否则豆包路径会在真机连接之前就报 No module named 'drone_sdk'
+        _root = str(Path(__file__).resolve().parents[2])
+        if _root not in sys.path:
+            sys.path.insert(0, _root)
         from drone_sdk import controller as view_ctl
     except Exception as exc:
         (printer or print)('[画面] 监控无法启动：%s' % exc)
@@ -355,6 +360,10 @@ async def run_modern(args):
     import asyncio
     backend=MockBackend()
     real_runner=None
+    if getattr(args,'show_video',False):
+        # 豆包/Realtime 走的是 run_modern，没有经典入口的轮播循环；
+        # 这里复用同一个守护线程查看器，保证"终端 + 图传"两个窗口都在
+        start_view_monitor(printer=print)
     try:
         if args.real_drone:
             real_runner,_real_drone=build_real_runner(args)
@@ -413,6 +422,7 @@ async def run_modern(args):
                 await RealtimeSession(runner,audio,audio_config=config).run()
     finally:
         # 失败/中断也要清理真机（与 main() 的兜底一致），绝不把半连接状态留下
+        stop_view_monitor()
         if args.real_drone:
             shutdown_real()
 
