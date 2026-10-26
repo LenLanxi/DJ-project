@@ -70,6 +70,10 @@ test('mixed orchestration uses external vision model and real stream snapshots',
   assert.equal(request.Config.S2SConfig.Provider, 'volcano_duplex');
   assert.equal(request.Config.S2SConfig.OutputMode, 1);
   assert.equal(request.Config.LLMConfig.Mode, 'ArkV3');
+  // A vision result can be rejected as stale while the model is thinking;
+  // request the documented real-time mode rather than its model default.
+  assert.equal(request.Config.LLMConfig.ThinkingType, 'disabled');
+  assert.equal(request.Config.LLMConfig.ReasoningEffort, undefined);
   assert.equal(request.Config.LLMConfig.VisionConfig.Enable, true);
   assert.equal(request.Config.LLMConfig.VisionConfig.SnapshotConfig.StreamType, 0);
   assert.equal(request.Config.LLMConfig.Tools[0].function.name, 'run_program');

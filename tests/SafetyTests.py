@@ -363,6 +363,28 @@ class ControllerSafety(DeviceCase):
         self.assertTrue(status['cleanup_pending'])
         self.assertFalse(status['cleanup_confirmed'])
 
+    def test40_land_on_confirmed_ground_is_idempotent(self):
+        self.real(flying=False)
+        self.fake.fail_land = True  # a grounded firmware rejection must not lock flight state
+        result = ctl.land('model', priority=True)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.status, 'completed')
+        self.assertNotIn(('land',), self.fake.calls)
+        self.assertEqual(ctl.get_status().flight_state, 'landed')
+        self.assertTrue(ctl.request_control('model').ok)
+
+    def test41_ground_land_shortcut_never_skips_pending_takeoff(self):
+        self.real(flying=False)
+        pending = threading.Event()
+        drv._pending_commands.add(pending)
+        try:
+            result = ctl.land('model', priority=True)
+            self.assertTrue(result.ok)
+            self.assertNotEqual(result.reason, 'already_landed')
+            self.assertTrue(wait_for(lambda: ('land',) in self.fake.calls))
+        finally:
+            drv._pending_commands.discard(pending)
+
 
 class GatewaySafety(NoNetwork):
     def run_async(self, body):

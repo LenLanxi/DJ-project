@@ -27,6 +27,17 @@ class FollowIntegration:
         self._closing = False
         self._retired_workers = []
         self._pending_cleanup = []
+        self._operation_source = None
+
+    @staticmethod
+    def _cancelled():
+        from .controller import operation_cancelled
+        return operation_cancelled()
+
+    @staticmethod
+    def _operation():
+        from .controller import operation_event
+        return operation_event()
 
     def set_frame_provider(self, provider):
         with self._lock:
@@ -59,12 +70,16 @@ class FollowIntegration:
             if not self._current(bridge, generation):
                 return self._fail('follow_start_cancelled')
         # stop checks the expected generation again; cannot close a newer start.
-        self._stop(expected=(bridge, generation))
+        from .controller import operation_guard
+        with operation_guard(None):
+            self._stop(expected=(bridge, generation))
         return self._fail(reason)
 
     def start(self, timeout=FIRST_FRAME_TIMEOUT):
+        operation = self._operation()
         deadline = time.monotonic() + max(0., float(timeout))
         with self._lock:
+            if self._cancelled(): return self._fail('program_cancelled')
             pending=list(self._pending_cleanup)
         for service in pending:
             with service.lock: result=service._cleanup()
@@ -86,6 +101,7 @@ class FollowIntegration:
             for worker in retired:
                 worker.join(min(budget, .05))
         with self._lock:
+            if self._cancelled(): return self._fail('program_cancelled')
             if self._starting or self._closing:
                 return self._fail('follow_start_or_close_busy')
             if self._bridge is not None and self._bridge.is_following():
@@ -118,6 +134,8 @@ class FollowIntegration:
                     return self._failed_start(bridge, generation, 'follow_no_fresh_frame')
                 time.sleep(.01)
             with self._lock:
+                if self._cancelled():
+                    return self._failed_start(bridge, generation, 'program_cancelled')
                 if not self._current(bridge, generation):
                     return self._fail('follow_start_cancelled')
                 if bridge.service.controller.reference_size is None:
@@ -131,6 +149,9 @@ class FollowIntegration:
                 if reason is None:
                     result = bridge.start_follow()
                     if result.ok:
+                        if self._cancelled():
+                            return self._failed_start(bridge, generation, 'program_cancelled')
+                        self._operation_source = operation
                         return result
                     reason = result.reason
             return self._failed_start(bridge, generation, reason)
@@ -143,12 +164,15 @@ class FollowIntegration:
 
     def _stop(self, expected=None):
         with self._lock:
+            if expected is None and self._cancelled():
+                return self._fail('program_cancelled')
             if expected is not None and not self._current(*expected):
                 return self._fail('follow_start_cancelled')
             self._generation += 1
             self._starting = False
             bridge, port = self._bridge, self._port
             self._bridge = self._port = None
+            self._operation_source = None
             if bridge is None:
                 return ControlResult(ok=True, current_owner=self._owner_getter())
             self._closing = True
@@ -168,6 +192,16 @@ class FollowIntegration:
 
     def stop(self):
         return self._stop()
+
+    def stop_cancelled_operation(self, operation):
+        """Close only follow started/resumed by this failed host program."""
+        with self._lock:
+            if (operation is None or not operation.is_set()
+                    or self._operation_source is not operation or self._bridge is None):
+                return ControlResult(ok=True, current_owner=self._owner_getter(), reason='not_this_operation')
+            from .controller import operation_guard
+            with operation_guard(None):
+                return self._stop(expected=(self._bridge, self._generation))
 
     def is_following(self):
         with self._lock:
@@ -197,6 +231,7 @@ class FollowIntegration:
     def pause_for_action(self):
         """Internal Python ticket; do not expose it to model-generated programs."""
         with self._lock:
+            if self._cancelled(): return self._fail('program_cancelled'), None
             if self._starting or self._closing:
                 return self._fail('follow_start_or_close_busy'), None
             if self._bridge is None:
@@ -206,10 +241,13 @@ class FollowIntegration:
 
     def finish_action(self, ticket, status):
         with self._lock:
+            if self._cancelled(): return self._fail('program_cancelled')
             if ticket is None:
                 return self._fail('not_previously_following')
             bridge, generation, inner = ticket
             if not self._current(bridge, generation):
                 return self._fail('obsolete_ticket')
             result = bridge.finish_action(inner, status)
+            if result.ok:
+                self._operation_source = self._operation()
             return bridge._control_result(result)

@@ -97,6 +97,21 @@ class TransportTests(unittest.TestCase):
 
 
 class ModelTests(unittest.TestCase):
+    def test_seed_visual_requests_disable_default_hidden_reasoning(self):
+        with patch.dict('os.environ', {'AI_CHAT_URL':'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+                'AI_API_KEY':'fixture','AI_MODEL':'doubao-seed-2-1-lite-260915','AI_THINKING':''}):
+            client=ModelClient()
+        with patch('model_client.post_json',return_value={'choices':[{'message':{'content':'{}'}}]}) as sent:
+            client.complete([])
+        self.assertEqual(sent.call_args.args[2]['thinking'],{'type':'disabled'})
+
+    def test_reasoning_override_is_validated_before_sending(self):
+        with patch.dict('os.environ', {'AI_CHAT_URL':'https://example.com/chat',
+                'AI_API_KEY':'fixture','AI_MODEL':'m','AI_THINKING':'invalid'}), \
+                patch('model_client.post_json') as sent:
+            with self.assertRaises(ValueError): ModelClient()
+            sent.assert_not_called()
+
     def client(self, on_usage=None):
         with patch.dict('os.environ', {'AI_CHAT_URL': 'https://example.com/chat',
                                        'AI_API_KEY': 'fake', 'AI_MODEL': 'configured-model'}):

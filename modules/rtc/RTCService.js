@@ -57,7 +57,7 @@ function loadConfig(env = process.env) {
 }
 
 function startBody(session, config) {
-  const llm = { Mode: 'ArkV3', ModelName: config.model,
+  const llm = { Mode: 'ArkV3', ModelName: config.model, ThinkingType: 'disabled',
     SystemMessages: [config.instructions,
       '混合编排回答选择规则：不需要当前画面且不调用工具时，只输出完整的<NOVISION>；需要视觉、图片、工具调用或无法确认画面时，不得输出<NOVISION>，应调用工具、据实回答或说明具体限制。'], Tools: config.tools,
     EnableParallelToolCalls: false, EnableToolCallHistory: true,

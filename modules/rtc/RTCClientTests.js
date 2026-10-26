@@ -200,3 +200,117 @@ test('joining publishes only the external drone canvas and explicit headset devi
     assert.equal(calls.some(item => Array.isArray(item) && item[0] === 'startVideoCapture'), false);
   } finally { await value.stop(); globalThis.Image = previous; }
 });
+
+test('late canceled session request cannot create a socket or stop a newer connection', async () => {
+  const requests = [], sockets = [], stopped = [];
+  class Socket {
+    constructor(url) { this.url = url; this.readyState = 0; this.closed = false; sockets.push(this); }
+    close() { this.closed = true; }
+  }
+  const value = new Client({ sdk: {}, WebSocket: Socket,
+    canvas: { width: 16, height: 16, getContext() { return { fillRect() {} }; } },
+    fetch: (path, options) => {
+      if (path === '/api/session') return new Promise(resolve => requests.push(resolve));
+      if (path === '/api/stop') stopped.push(JSON.parse(options.body).sessionId);
+      return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+    } });
+  const response = suffix => ({ ok: true, json: async () => ({ ok: true, ...identity,
+    sessionId: 'session' + suffix, appId: 'app', token: 'fixture',
+    bridgeUrl: 'ws://127.0.0.1:1234/?token=' + suffix, expiresAt: Date.now()+180000 }) });
+  const oldConnect = value.connect('mic', 'speaker');
+  const oldRejected = assert.rejects(oldConnect, /连接已取消/);
+  await value.stop('cancel initial HTTP');
+  const newConnect = value.connect('mic', 'speaker');
+  const newRejected = assert.rejects(newConnect, /连接已结束/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 2);
+  requests[0](response('Old'));
+  await oldRejected;
+  assert.equal(value.active, true, 'the old catch must not stop the new connection');
+  assert.equal(value.session, null);
+  assert.equal(sockets.length, 0, 'late canceled HTTP must not create a bridge connection');
+  requests[1](response('New'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(value.session.sessionId, 'sessionNew');
+  assert.equal(sockets.length, 1);
+  await value.stop('finish regression');
+  await newRejected;
+  assert.deepEqual(stopped, ['sessionNew'], 'old cleanup must not target a later session');
+  assert.equal(sockets[0].closed, true);
+  assert.equal(value.session, null);
+});
+
+test('canceling an awaited SDK setup cannot resume microphone capture or publication', async () => {
+  let releasePlayback, enteredPlayback;
+  const playback = new Promise(resolve => { releasePlayback = resolve; });
+  const entered = new Promise(resolve => { enteredPlayback = resolve; });
+  const steps = [];
+  const engine = { on() {},
+    async setAudioPlaybackDevice() { enteredPlayback(); await playback; },
+    async startAudioCapture() { steps.push('capture'); },
+    async publishStream() { steps.push('publish'); },
+    async leaveRoom() { steps.push('leave'); } };
+  class Socket {
+    constructor() { this.readyState = 0; queueMicrotask(() => { this.readyState = 1; this.onopen(); }); }
+    send(raw) { if (JSON.parse(raw).type === 'bind') queueMicrotask(() => {
+      this.onmessage({ data: JSON.stringify({ type: 'bound', epoch: 1 }) });
+      this.onmessage({ data: JSON.stringify({ type: 'frame', id: 1, timestamp: Date.now()/1000, jpeg: 'fixture' }) });
+    }); }
+    close() { this.readyState = 3; }
+  }
+  const previous = globalThis.Image;
+  globalThis.Image = class { constructor() { this.naturalWidth = 16; this.naturalHeight = 16; }
+    set src(_) { queueMicrotask(() => this.onload()); } };
+  const value = new Client({ sdk: { createEngine() { return engine; }, destroyEngine() { steps.push('destroy'); } },
+    WebSocket: Socket, canvas: { width: 16, height: 16,
+      getContext() { return { fillRect() {}, drawImage() {} }; } },
+    fetch: async path => ({ ok: true, json: async () => path === '/api/session' ?
+      { ok: true, ...identity, appId: 'app', token: 'fixture',
+        bridgeUrl: 'ws://127.0.0.1:1234/?token=fixture', expiresAt: Date.now()+180000 } : { ok: true } }) });
+  try {
+    const connecting = value.connect('mic', 'speaker');
+    const rejected = assert.rejects(connecting, /连接已取消/);
+    await entered;
+    await value.stop('cancel SDK setup');
+    releasePlayback();
+    await rejected;
+    assert.deepEqual(steps, ['leave', 'destroy']);
+    assert.equal(value.engine, null);
+    assert.equal(value.session, null);
+  } finally { releasePlayback(); await value.stop(); globalThis.Image = previous; }
+});
+
+test('late callbacks from a closed bridge or destroyed RTC engine cannot end a newer connection', async () => {
+  const sockets = [];
+  class Socket {
+    constructor() { this.readyState = 0; sockets.push(this); }
+    close() { this.readyState = 3; }
+  }
+  let count = 0;
+  const value = new Client({ sdk: { createEngine() {}, destroyEngine() {} }, WebSocket: Socket,
+    canvas: { width: 16, height: 16, getContext() { return { fillRect() {} }; } },
+    fetch: async path => ({ ok: true, json: async () => path === '/api/session' ?
+      { ok: true, ...identity, sessionId: 'session' + ++count, appId: 'app', token: 'fixture',
+        bridgeUrl: 'ws://127.0.0.1:1234/?token=fixture', expiresAt: Date.now()+180000 } : { ok: true } }) });
+  const first = value.connect('mic', 'speaker');
+  const firstRejected = assert.rejects(first, /连接已结束/);
+  await new Promise(resolve => setImmediate(resolve));
+  const oldHandlers = {};
+  value.engine = { on(name, handler) { oldHandlers[name] = handler; }, leaveRoom() {} };
+  value.api.destroyEngine = () => {};
+  value.installEvents();
+  await value.stop('first stopped');
+  await firstRejected;
+  const second = value.connect('mic', 'speaker');
+  const secondRejected = assert.rejects(second, /连接已结束/);
+  await new Promise(resolve => setImmediate(resolve));
+  sockets[0].onclose();
+  sockets[0].onerror();
+  sockets[0].onmessage({ data: JSON.stringify({ type: 'invalid_frame' }) });
+  oldHandlers.onError({ errorCode: 'old engine' });
+  assert.equal(value.active, true);
+  assert.equal(value.session.sessionId, 'session2');
+  assert.equal(sockets[1].readyState, 0);
+  await value.stop('finish regression');
+  await secondRejected;
+});

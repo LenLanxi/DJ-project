@@ -28,6 +28,13 @@ class ModelClient:
         self.key = os.environ.get('AI_API_KEY') or os.environ.get('RTC_VLM_API_KEY', '')
         self.model = os.environ.get('AI_MODEL') or os.environ.get('RTC_VLM_MODEL', '')
         self.url = os.environ.get('AI_CHAT_URL') or ('https://ark.cn-beijing.volces.com/api/v3/chat/completions' if os.environ.get('RTC_VLM_API_KEY') else '')
+        # Seed 2.1 Lite defaults to long hidden reasoning. This project's
+        # real-time visual task needs direct answers instead. Other providers
+        # retain their existing request schema unless explicitly configured.
+        self.thinking = os.environ.get('AI_THINKING') or (
+            'disabled' if self.model == 'doubao-seed-2-1-lite-260915' else None)
+        if self.thinking is not None and self.thinking not in ('enabled', 'disabled', 'auto'):
+            raise ValueError('AI_THINKING须为enabled、disabled或auto')
         self.last_usage = {}
         self.on_usage = on_usage
         if on_usage is not None and not callable(on_usage):
@@ -55,7 +62,10 @@ class ModelClient:
         usage = {}
         provider_usage = {}
         try:
-            result = post_json(self.url, self.key, {'model': self.model, 'messages': messages})
+            body = {'model': self.model, 'messages': messages}
+            if self.thinking is not None:
+                body['thinking'] = {'type': self.thinking}
+            result = post_json(self.url, self.key, body)
             if isinstance(result, dict) and isinstance(result.get('usage'), dict):
                 provider_usage = result['usage']
                 usage = accounting_usage(provider_usage)

@@ -3,7 +3,7 @@ import asyncio
 import math
 import threading
 import time
-from backends import GRANT
+from backends import GRANT, OPERATION
 
 DISTANCE = {'move_forward', 'move_back', 'move_left', 'move_right', 'move_up', 'move_down'}
 MOTION = DISTANCE | {'takeoff', 'land', 'stop_motion', 'rotate', 'update_velocity'}
@@ -30,7 +30,8 @@ class Gateway:
         if self.acquired:
             raise RuntimeError('previous_control_cleanup_unconfirmed')
         self.generation += 1
-        self.cancelled.clear()
+        self.cancelled.set()
+        self.cancelled = threading.Event()  # old worker references never revive
         self.grant = self.ticket = self.observation = None
         self.was_following = False
         self.resume = True
@@ -41,15 +42,17 @@ class Gateway:
         if self.cancelled.is_set() or generation != self.generation:
             raise RuntimeError('program_cancelled')
 
-    async def _bound(self, fn, *args, grant=None):
+    async def _bound(self, fn, *args, grant=None, cleanup=False):
         # asyncio.to_thread propagates this context. A new priority controller
         # may mutate backend.grant while an old program is awaiting a result;
         # that old program and its cleanup must retain their original lease.
         token = GRANT.set(dict(self.grant if grant is None else grant) if (self.grant if grant is None else grant) is not None else {})
+        operation = OPERATION.set(None if cleanup else self.cancelled)
         try:
             return await asyncio.to_thread(fn, *args)
         finally:
             GRANT.reset(token)
+            OPERATION.reset(operation)
 
     async def acquire(self):
         generation = self.generation
@@ -62,13 +65,13 @@ class Gateway:
             if following:
                 if not hasattr(self.backend, 'pause_follow_for_action'):
                     raise RuntimeError('follow_handoff_not_supported')
-                paused = await asyncio.to_thread(self.backend.pause_follow_for_action)
+                paused = await self._bound(self.backend.pause_follow_for_action)
                 self._current(generation)
                 if not paused.get('ok'):
                     raise RuntimeError('cannot_pause_follow: ' + str(paused))
                 self.ticket = paused.get('ticket')
                 self.was_following = True
-            result = await asyncio.to_thread(self.backend.request_control, 'model')
+            result = await self._bound(self.backend.request_control, 'model')
             self._current(generation)
             if not result.get('ok'):
                 # No forced stop or recovery is safe if somebody else acquired
@@ -160,7 +163,7 @@ class Gateway:
                 raise ValueError('follow takes no arguments')
             self.resume = False
             if method == 'stop_follow':
-                result = await asyncio.to_thread(self.backend.stop_follow)
+                result = await self._bound(self.backend.stop_follow)
                 self._current(generation)
                 if not result.get('ok'):
                     raise RuntimeError('follow_stop_unconfirmed: ' + str(result))
@@ -177,7 +180,7 @@ class Gateway:
                 raise RuntimeError('follow_handoff_release_failed: ' + str(released))
             self.acquired = False
             self._current(generation)
-            result = await asyncio.to_thread(self.backend.start_follow)
+            result = await self._bound(self.backend.start_follow)
             self._current(generation)
             if not result.get('ok'):
                 raise RuntimeError('follow_start_failed: ' + str(result))
@@ -245,6 +248,13 @@ class Gateway:
                 or state.get('control_owner') not in ('model',))
 
     async def finish(self, success):
+        if not success or self.cancelled.is_set():
+            self.cancelled.set()
+            cleanup_follow = getattr(self.backend, 'stop_cancelled_follow', None)
+            if cleanup_follow is not None:
+                cleaned = await asyncio.to_thread(cleanup_follow, self.cancelled)
+                if not cleaned.get('ok'):
+                    raise RuntimeError('cancelled_follow_cleanup_failed: ' + str(cleaned))
         if not self.acquired:
             self.cleanup = {'status': 'no_control'}
             return
@@ -256,7 +266,7 @@ class Gateway:
             self.cleanup = {'status': 'superseded'}
             return
         if not success or self.cancelled.is_set():
-            stopped = await self._bound(self.backend.action, 'stop_motion', grant=grant)
+            stopped = await self._bound(self.backend.action, 'stop_motion', grant=grant, cleanup=True)
             if not stopped.get('ok'):
                 if await self._superseded(grant):
                     self.acquired = False
@@ -266,7 +276,7 @@ class Gateway:
                 raise RuntimeError('cleanup_stop_failed: ' + str(stopped))
             if isinstance(stopped.get('grant'), dict):
                 grant = self.grant = dict(stopped['grant'])
-        released = await self._bound(self.backend.release_control, 'model', grant=grant)
+        released = await self._bound(self.backend.release_control, 'model', grant=grant, cleanup=True)
         if not released.get('ok'):
             if await self._superseded(grant):
                 self.acquired = False
@@ -280,7 +290,7 @@ class Gateway:
                 and self.was_following and not self.cancelled.is_set()):
             if ticket is None:
                 raise RuntimeError('follow_recovery_ticket_missing')
-            recovered = await asyncio.to_thread(self.backend.finish_follow_action, ticket, True)
+            recovered = await self._bound(self.backend.finish_follow_action, ticket, True)
             self._current(generation)
             if not recovered.get('ok'):
                 self.cleanup = {'status': 'follow_resume_failed', 'result': recovered}

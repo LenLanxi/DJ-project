@@ -44,6 +44,8 @@ docker build -t companion-sandbox:0.4 modules/ai/sandbox
 
 正式云配置：OpenAPI `2025-06-01`；`S2SConfig.Provider="volcano_duplex"`、`OutputMode=1`；外挂 `LLMConfig` 开启 `VisionConfig.Enable=true`。长期凭据留在服务端，不发送给网页。
 
+RTC 的 `LLMConfig.ThinkingType="disabled"` 显式关闭深度思考，避免沿用模型默认思考模式而增加实时视觉结果过期的概率。它不能保证图像到动作的延迟达标，仍需实测。[官方实时 LLM 配置建议](https://docs.volcengine.com/docs/real_time_communication/ConfigureLargeModelLLM?lang=zh)
+
 此版本的 `LLMConfig.ModelName` 支持模型 ID 或 `ep-` 开头的接入点 ID；自定义方舟资源还需 `APIKey`。不要改用旧版接口的 `EndPointId`。[官方配置](https://docs.volcengine.com/docs/real_time_communication/ConfigureLargeModelLLM?lang=zh)
 
 官方依据：[RTC 混合编排](https://docs.volcengine.com/docs/real_time_communication/Accessend-to-endreal-timespeechlargemodel?lang=zh)、[视频理解](https://docs.volcengine.com/docs/real_time_communication/Videoandimageunderstanding?lang=zh)、[工具调用](https://docs.volcengine.com/docs/real_time_communication/FunctionCalling-1?lang=zh)、[官方示例](https://github.com/volcengine/rtc-aigc-demo)。
@@ -94,9 +96,9 @@ npm --prefix modules/rtc test
 
 ## 当前必须知道的限制
 
-1. 尚未完成真机、蓝牙耳机、RTC 云端混合编排及现场网络的联合验收。
+1. 正式配置的真实 StartVoiceChat / StopVoiceChat 已成功；尚未完成客户端入房、RTC 音视频、蓝牙耳机、真机及现场网络的联合验收。
 2. 红色帐篷没有附加标记；当前没有经过验证的通用目标导航、避障或精确距离测量。图像占比不能证明实际到达。
-3. `observe` 要求解码后年龄不超过0.5秒，云推理过慢会拒绝移动；这个时间戳不是相机曝光时间。本地 H.264/UDP 实验已复现实际画面旧约1.67秒、解码年龄仍为零。已修复超大 FIFO／溢出策略，但端到端图传延迟尚未解决；RTC 问答也不能自动证明导航证据时效。
+3. `observe` 要求解码后年龄不超过0.5秒。真实 Seed 2.1 Lite 在同一合成图上，默认思考约16.7秒；关闭思考后约2.1秒，均被拒绝移动。这是当前红帐篷导航的实际阻碍，不能靠接口开通或离线测试通过掩盖。这个时间戳也不是相机曝光时间：本地 H.264/UDP 实验已复现实际画面旧约1.67秒、解码年龄仍为零。已修复超大 FIFO／溢出策略，但端到端图传延迟尚未解决；RTC 问答不能自动证明导航证据时效。
 4. 旋转一周后，原用户可能已不在视野。现有跟随依赖原标记重新可见，不承诺主动搜索或身份重识别。
 5. 第三组默认配置的 RC 上限是接口请求值，尚未实机标定，不是米/秒或角速度保证。
 6. 云端任务、RTC 时长、语音和视觉可能分别计费。短会话与用量记录用于限制测试开销，不能代替账户账单或服务端费用上限。

@@ -114,6 +114,7 @@
       this.ending = null;
       this.readyWaiters = [];
       this.requestTimeoutMs = options.requestTimeoutMs || 10000;
+      this.connectionGeneration = 0;
     }
 
     async request(path, body) {
@@ -168,14 +169,22 @@
     }
 
     async connect(inputId, outputId) {
+      // A canceled attempt can still be awaiting an HTTP/SDK promise. It must
+      // never create media, reuse a later session, or stop that later session.
+      if (this.ending) await this.ending;
       if (this.active || this.session) throw new Error('请先结束当前连接');
       if (!inputId || !outputId || ['default', 'communications'].includes(inputId)
         || ['default', 'communications'].includes(outputId)) throw new Error('请明确选择麦克风和耳机输出');
       this.ending = null;
       this.active = true;
+      const generation = ++this.connectionGeneration;
+      const current = () => {
+        if (!this.active || generation !== this.connectionGeneration) throw new Error('连接已取消');
+      };
       this.onState('正在连接本机控制与RTC配置…');
       try {
         const session = await this.request('/api/session');
+        current();
         for (const name of ['sessionId', 'appId', 'token', 'roomId', 'userId', 'botId', 'taskId', 'bridgeUrl']) {
           if (typeof session[name] !== 'string' || !session[name]) throw new Error('缺少会话字段：' + name);
         }
@@ -188,58 +197,76 @@
         this.callIds.clear(); this.callSignatures.clear(); this.pendingTools.clear(); this.paragraphs.clear(); this.pendingCalls = [];
         this.pendingTurn = null; this.turnOpen = false;
         this.lastFrame = 0; this.lastFrameId = null;
-        this.socket = new this.Socket(session.bridgeUrl);
-        this.socket.onopen = () => {
+        const socket = new this.Socket(session.bridgeUrl);
+        this.socket = socket;
+        const live = () => this.active && generation === this.connectionGeneration;
+        socket.onopen = () => {
+          if (!live()) { socket.close(); return; }
           this.send({ type: 'bind', sessionId: session.sessionId, roomId: session.roomId,
             taskId: session.taskId, botId: session.botId, userId: session.userId });
         };
-        this.socket.onmessage = event => {
+        socket.onmessage = event => {
+          if (!live()) return;
           try {
             const message = JSON.parse(event.data);
-            Promise.resolve(this.bridgeMessage(message)).catch(error => this.fail(error));
-          } catch (error) { this.fail(error); }
+            Promise.resolve(this.bridgeMessage(message)).catch(error => { if (live()) this.fail(error); });
+          } catch (error) { if (live()) this.fail(error); }
         };
-        this.socket.onerror = () => this.fail(new Error('本机控制连接失败'));
-        this.socket.onclose = () => { if (this.active) this.fail(new Error('本机控制连接已断开，任务已停止')); };
-        this.timers.push(setInterval(() => this.heartbeat().catch(error => this.fail(error)), 2000));
-        this.timers.push(setTimeout(() => this.fail(new Error('达到会话时限，已结束连接')), session.expiresAt-Date.now()));
+        socket.onerror = () => { if (live()) this.fail(new Error('本机控制连接失败')); };
+        socket.onclose = () => { if (live()) this.fail(new Error('本机控制连接已断开，任务已停止')); };
+        this.timers.push(setInterval(() => {
+          if (live()) this.heartbeat().catch(error => { if (live()) this.fail(error); });
+        }, 2000));
+        this.timers.push(setTimeout(() => { if (live()) this.fail(new Error('达到会话时限，已结束连接')); }, session.expiresAt-Date.now()));
         await this.waitFor(() => this.bound, 8000, '本机控制授权超时');
+        current();
         await this.waitFor(() => this.lastFrame && Date.now()-this.lastFrame <= FRAME_AGE_MS, 10000, '没有新鲜无人机图像');
+        current();
         this.onState('正在接入语音房间…');
         this.engine = this.api.createEngine(session.appId);
-        this.installEvents();
+        this.installEvents(generation);
         await this.engine.setAudioPlaybackDevice(outputId);
+        current();
         await this.engine.startAudioCapture(inputId);
+        current();
         const mainStream = this.sdk.StreamIndex ? this.sdk.StreamIndex.STREAM_INDEX_MAIN : 0;
         const external = this.sdk.VideoSourceType ? this.sdk.VideoSourceType.VIDEO_SOURCE_TYPE_EXTERNAL : 0;
         await this.engine.setVideoSourceType(mainStream, external);
+        current();
         this.stream = this.canvas.captureStream(0);
         this.track = this.stream.getVideoTracks()[0];
         if (!this.track || typeof this.track.requestFrame !== 'function') throw new Error('浏览器不支持按新帧发布画面，请使用当前Edge/Chrome');
         await this.engine.setExternalVideoTrack(mainStream, this.track);
+        current();
         await this.engine.joinRoom(session.token, session.roomId, { userId: session.userId }, {
           isAutoPublish: false, isAutoSubscribeAudio: true, isAutoSubscribeVideo: false,
           roomProfileType: this.sdk.RoomProfileType ? this.sdk.RoomProfileType.chat : 5
         });
+        current();
         await this.engine.publishStream(this.sdk.MediaType ? this.sdk.MediaType.AUDIO_AND_VIDEO : 3);
+        current();
         this.track.requestFrame();
         await this.post('/api/start', { sessionId: session.sessionId });
+        current();
         this.onState('已提交连接，等待模型就绪。可以查看图传状态。');
         this.timers.push(setInterval(() => {
-          if (this.active && this.lastFrame && Date.now()-this.lastFrame > FRAME_AGE_MS) {
+          if (live() && this.lastFrame && Date.now()-this.lastFrame > FRAME_AGE_MS) {
             this.clearFrame();
             this.fail(new Error('图传超过0.5秒未更新，当前会话已停止'));
           }
         }, 100));
       } catch (error) {
-        await this.stop(String(error.message || error));
+        if (generation === this.connectionGeneration) await this.stop(String(error.message || error));
         throw error;
       }
     }
 
-    installEvents() {
+    installEvents(generation = this.connectionGeneration) {
       const events = this.api.events || this.sdk.events || {};
-      const on = (name, handler) => this.engine.on(events[name] || name, handler);
+      const engine = this.engine;
+      const on = (name, handler) => engine.on(events[name] || name, event => {
+        if (this.active && generation === this.connectionGeneration && this.engine === engine) handler(event);
+      });
       const receive = event => {
         if (!this.active || !this.session || event.userId !== this.session.botId) return;
         try { this.rtcMessage(decodeTLV(event.message)); }
@@ -423,6 +450,7 @@
 
     async stop(reason = '语音连接已结束，已请求停止；如需降落请使用物理降落键或在终端结束程序') {
       if (this.ending) return this.ending;
+      this.connectionGeneration += 1;
       this.active = false;
       this.epoch = null;
       this.pendingCalls = [];

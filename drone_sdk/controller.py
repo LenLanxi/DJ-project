@@ -5,6 +5,8 @@ control_epoch/command_epoch to reject stale same-owner tasks. Legacy callers
 without these fields do NOT gain ABA protection merely by upgrading the SDK.
 """
 import math
+import contextvars
+from contextlib import contextmanager
 import threading
 import time
 from .contract import CommandResult, ControlResult, StatusResult, FrameResult
@@ -24,6 +26,23 @@ _last_velocity_time = 0.
 VELOCITY_WATCHDOG_S = 0.3
 _frame_lock = threading.RLock()
 _frame = FrameResult(None, 0, 0., True)
+_operation = contextvars.ContextVar('sdk_operation_cancellation', default=None)
+
+@contextmanager
+def operation_guard(cancelled):
+    """Host-only per-program cancellation; never exposed through sandbox RPC."""
+    token = _operation.set(cancelled)
+    try:
+        yield
+    finally:
+        _operation.reset(token)
+
+def operation_event():
+    return _operation.get()
+
+def operation_cancelled():
+    event = operation_event()
+    return bool(event is not None and event.is_set())
 
 def _advance():
     global _flight_state, _landing_deadline
@@ -56,6 +75,7 @@ def _zero(reason):
     return ok
 
 def _check(owner, control_epoch=None, command_epoch=None, *, allow_landing=False):
+    if operation_cancelled(): return 'program_cancelled'
     _advance()
     if _current_owner != owner or owner not in ('follow', 'model'): return 'no_control'
     if control_epoch is not None and control_epoch != _control_epoch: return 'obsolete_control'
@@ -116,6 +136,7 @@ def request_control(owner, *, priority=False):
         _advance()
         reason = ('invalid_owner' if owner not in ('follow', 'model') else
                   '' if priority else
+                  'program_cancelled' if operation_cancelled() else
                   'landing_in_progress' if _flight_state == 'landing' else
                   'command_channel_ambiguous' if not _driver.command_channel_clear() else
                   'action_result_pending' if _driver.action_pending() else
@@ -250,6 +271,19 @@ def land(owner, *, control_epoch=None, command_epoch=None, priority=False):
             _driver.record_priority_override('land', current_owner=_current_owner)
             _control_epoch += 1
             _current_owner = owner
+        known_ground = (_flight_state == 'landed' and _active_action is None
+                        and not _driver.action_pending() and not _driver.action_unknown())
+        if known_ground and not _driver.SIMULATED:
+            health = _driver.health()
+            known_ground = (health.get('telemetry_fresh') is True
+                            and health.get('height_cm') == 0 and health.get('flying') is False)
+        if known_ground:
+            _driver.cancel_pending('land_already_grounded')
+            _command_epoch += 1
+            _active_action = None
+            if _zero('land_already_grounded') is False:
+                return CommandResult(False, 'failed', 'stop_send_failed', False)
+            return CommandResult(True, 'completed', 'already_landed', False)
         if _flight_state != 'landing':
             _command_epoch += 1
             _active_action = None
