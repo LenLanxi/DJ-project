@@ -424,12 +424,23 @@ async def run_modern(args):
                 if args.real_drone:
                     print('[网络] 豆包需要外网，Tello 的 Wi-Fi 没有外网：'
                           '请让电脑同时接上外网（有线/热点），否则握手会超时', flush=True)
+                # 物理急停：豆包链路是异步的，热键回调在 pynput 线程里，
+                # 必须把协程投回事件循环，否则按了没有任何反应（曾经就是这个坑）
+                loop = asyncio.get_running_loop()
+
+                def _hotkey(land):
+                    def fire():
+                        asyncio.run_coroutine_threadsafe(dialog.emergency(land), loop)
+                    return fire
+
+                start_emergency_hotkeys(_hotkey(False), _hotkey(True), printer=print)
                 await dialog.run()
             else:
                 from realtime import RealtimeSession
                 await RealtimeSession(runner,audio,audio_config=config).run()
     finally:
         # 失败/中断也要清理真机（与 main() 的兜底一致），绝不把半连接状态留下
+        stop_emergency_hotkeys()
         stop_view_monitor()
         if args.real_drone:
             shutdown_real()
