@@ -266,12 +266,15 @@ class VolcDuplex:
         await asyncio.wait_for(self.ready.wait(), timeout=20)
         self.audio.start()
         async for chunk in self.audio.chunks():
-            if self._input_gated():
-                continue
             pcm = self.downsampler.process(chunk)
-            if pcm:
-                await self.send({'type': EV_AUDIO_APPEND,
-                                 'audio': base64.b64encode(pcm).decode()})
+            if not pcm:
+                continue
+            if self._input_gated():
+                # 只发等长静音，不能停发：服务端会以 AudioServerNoAudioInputTooLongError
+                # 直接掐断会话（实测长回复时必现）。静音既防回音又不让流中断。
+                pcm = b'\x00' * len(pcm)
+            await self.send({'type': EV_AUDIO_APPEND,
+                             'audio': base64.b64encode(pcm).decode()})
 
     def _input_gated(self):
         """播报期间不上行麦克风：用外放时扬声器的声音会被自己当指令（实测严重回音）。"""
@@ -383,6 +386,9 @@ class VolcDuplex:
             # 服务端音频发完；本地缓冲还有几十毫秒，留一点尾巴再恢复上行
             self.speaking = False
             self.speaking_since = None
+            stats = self._playback_stats()
+            if stats:
+                self.log({'event': 'playback_stats', **stats})
             self.log({'event': 'tts_done', 'status_code': event.get('status_code')})
 
         elif kind == EV_TOOL_CALL:
@@ -426,6 +432,18 @@ class VolcDuplex:
 
     def _backend(self):
         return getattr(getattr(self.runner, 'gateway', None), 'backend', None)
+
+    def _playback_stats(self):
+        """本段播报的缓冲水位与播空次数：卡不卡就看这两个数。"""
+        adapter = getattr(self.audio, 'output_adapter', None) if self.audio is not None else None
+        if adapter is None:
+            return None
+        low = getattr(adapter, 'min_queued_ms', None)
+        stats = {'min_queued_ms': None if low is None else round(low, 1),
+                 'starves': getattr(adapter, 'starves', 0)}
+        adapter.min_queued_ms = None
+        adapter.starves = 0
+        return stats
 
     async def _dispatch(self, name, arguments):
         if name == 'run_program':

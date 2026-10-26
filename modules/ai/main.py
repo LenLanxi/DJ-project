@@ -396,7 +396,8 @@ async def run_modern(args):
                 tools = list(TOOLS) + [STATUS_TOOL]
                 def _log(event):
                     name=event.get('event') if isinstance(event,dict) else event
-                    if name in ('asr_text','reply_text','tool_result','error','audio_first'):
+                    if name in ('asr_text','reply_text','tool_result','error','audio_first',
+                                'playback_stats','tts_done','handshake_retry'):
                         print('[豆包] '+json.dumps(event,ensure_ascii=False)[:300],flush=True)
                 dialog=VolcDuplex(runner,audio,instructions=INSTRUCTIONS,tools=tools,on_log=_log,
                                   on_user_text=lambda t: print('[STT] 识别文本：'+t,flush=True),

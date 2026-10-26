@@ -74,6 +74,8 @@ class OutputAdapter:
         ms = self.PREBUFFER_MS if prebuffer_ms is None else prebuffer_ms
         self.prebuffer_bytes=max(0,int(24000*2*ms/1000))   # 24k 单声道字节数
         self.started=False
+        self.min_queued_ms=None      # 播放期间经历过的最低缓冲水位
+        self.starves=0               # 播空次数（>0 就是听感上的"卡一下"）
     def render(self,frames,dac_latency_ms):
         # Called by one output callback; only it owns conversion state.
         if self.generation!=self.speaker.generation:
@@ -87,15 +89,19 @@ class OutputAdapter:
             self.started=True
         elif available==0 and len(self.pending)<needed:
             # 真正播空了（服务端推送比播放慢）：本段结束，下一波重新预缓冲
-            self.pending.clear(); self.started=False
+            self.pending.clear(); self.started=False; self.starves+=1
             return b'\x00'*needed
+        if self.started:
+            queued_ms=available/2/24000*1000
+            if self.min_queued_ms is None or queued_ms<self.min_queued_ms:
+                self.min_queued_ms=queued_ms
         for _ in range(64):
             if len(self.pending)>=needed: break
             count=max(1,math.ceil((needed-len(self.pending))/2*24000/self.rate))
             self.pending.extend(self.resampler.process(self.speaker.consume(count)))
         if len(self.pending)<needed:
             # 输出回调绝不能抛异常：补静音，让下一波重新预缓冲
-            self.pending.clear(); self.started=False
+            self.pending.clear(); self.started=False; self.starves+=1
             return b'\x00'*needed
         output=bytes(self.pending[:needed]); del self.pending[:needed]
         self.speaker.latency_ms=max(0,dac_latency_ms)+self.resampler.delay_ms()+len(self.pending)/2/self.rate*1000
