@@ -74,21 +74,25 @@ class OutputAdapter:
         ms = self.PREBUFFER_MS if prebuffer_ms is None else prebuffer_ms
         self.prebuffer_bytes=max(0,int(24000*2*ms/1000))   # 24k 单声道字节数
         self.started=False
+        self.primed=False            # 本段回答是否已经攒过一次预缓冲
         self.min_queued_ms=None      # 播放期间经历过的最低缓冲水位
         self.starves=0               # 播空次数（>0 就是听感上的"卡一下"）
     def render(self,frames,dac_latency_ms):
         # Called by one output callback; only it owns conversion state.
         if self.generation!=self.speaker.generation:
             self.pending.clear(); self.resampler.clear(); self.generation=self.speaker.generation
-            self.started=False
+            self.started=False; self.primed=False
         needed=frames*2
         if needed<=0:
             return b''
         available=getattr(self.speaker,'size',0)
         if not self.started:
-            if available<self.prebuffer_bytes:
+            # 只有一段回答的"开头"才攒满预缓冲；中途断一下不该再等 150ms，
+            # 否则一次小抖动会被放大成好几段可听见的顿音（实测 starves 9 次）
+            threshold=self.prebuffer_bytes if not self.primed else 1
+            if available<threshold:
                 return b'\x00'*needed          # 还在攒，先出静音
-            self.started=True
+            self.started=True; self.primed=True
         elif available==0 and len(self.pending)<needed:
             # 真正播空了（服务端推送比播放慢）：本段结束，下一波重新预缓冲
             self.pending.clear(); self.started=False; self.starves+=1

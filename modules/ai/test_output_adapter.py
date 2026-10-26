@@ -54,6 +54,22 @@ class EmptySpeakerTests(unittest.TestCase):
         out = adapter.render(480, 10.0)
         self.assertNotEqual(out, b'\x00' * 960)
 
+    def test_after_first_gap_resume_needs_no_fresh_prebuffer(self):
+        import struct
+
+        speaker = PlaybackBuffer(rate=24000)
+        adapter = OutputAdapter(speaker, 48000, prebuffer_ms=150)
+        speaker.append('item', 0, struct.pack('<4800h', *([2000] * 4800)))     # 200ms
+        self.assertNotEqual(adapter.render(480, 10.0), b'\x00' * 960)
+        self.assertTrue(adapter.primed)
+        for _ in range(300):                                    # 放空队列
+            adapter.render(480, 10.0)
+        self.assertEqual(speaker.size, 0)
+        self.assertFalse(adapter.started)
+        # 只来 20ms 数据：应当立刻出声，而不是再等 150ms
+        speaker.append('item', 1, struct.pack('<480h', *([2000] * 480)))
+        self.assertNotEqual(adapter.render(480, 10.0), b'\x00' * 960)
+
     def test_zero_prebuffer_keeps_old_behaviour(self):
         import struct
 
