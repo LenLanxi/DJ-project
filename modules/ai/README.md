@@ -198,6 +198,18 @@ python -m unittest discover -s modules/ai -p "test_*.py"
 .\start_voice_ground_test.cmd -Realtime                    :: 走四组全双工链路（需 AI_REALTIME_* 环境变量）
 ```
 
+> 注意：Tello 的 8889 是单会话（先发 command 的端口会锁住回包），所以"终端 + 图传"必须是**同一个进程**的两个窗口，不能开两个程序。
+
+豆包模式加 `-Video` 同样会弹图传窗口（`run_modern` 里挂了同一个守护线程查看器）：
+
+```bat
+.\start_voice_ground_test.cmd -Volc -Video          :: 终端 + 图传双窗口，语音走豆包
+.\start_voice_ground_test.cmd -Video                :: 双窗口，语音走离线 whisper + SAPI
+```
+
+窗口里画的是：绿框标 ArUco、红点标中心、X 轴偏差/尺寸比、L/F/U/Y 四通道速度、跟随状态；
+画面线程只读不控，异常自愈成"仅终端输出"。
+
 语音口令（离线模式，归一化后匹配，带标点也能命中）：还有多少电 / 现在什么状态 / 现在多高 /
 起飞 / 跟着我 / 停止跟随 / 停在这里 / 升高 / 降低 / 向前的距离 / 降落 / 结束。
 
