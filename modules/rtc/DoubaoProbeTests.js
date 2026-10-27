@@ -30,3 +30,25 @@ test('cleanup failure remains retryable and never claims media completion',async
   assert.equal((await probe.stop()).ok,true);
   assert.equal(probe.needsStop,false);
 });
+
+test('probe endpoint override is explicit and isolated from default starts',async()=>{
+  const bodies=[];
+  const invoke=async(action,body)=>{bodies.push(body);return {ResponseMetadata:{Action:action}};};
+  const tuned=new Probe(credentials,invoke);
+  await tuned.start('test',[],1200);
+  assert.deepEqual(bodies[0].Config.S2SConfig.ProviderParams.asr,
+    {extra:{end_smooth_window_ms:1200}});
+  await tuned.stop();
+  const defaults=new Probe(credentials,invoke);
+  await defaults.start('test',[]);
+  assert.equal(bodies[2].Config.S2SConfig.ProviderParams.asr,undefined);
+  await defaults.stop();
+});
+
+test('invalid endpoint cannot open a paid task',async()=>{
+  const probe=new Probe(credentials,async()=>assert.fail('must not invoke'));
+  for (const value of [true,0,2001,NaN,'1200']) {
+    await assert.rejects(probe.start('test',[],value),/invalid_probe_endpoint/);
+    assert.equal(probe.needsStop,false);
+  }
+});

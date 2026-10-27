@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-10-27T07:36:12.339326+00:00",
+  "new_cloud_media_attempts": 46,
+  "confirmed_cleanup": 46,
+  "old_html_and_receipts_unchanged": true,
+  "credential_scan_files": 349,
+  "credential_value_hits": [],
+  "physical_devices": false,
+  "billing_verified": false,
+  "node_tests": 62,
+  "host_load_note": "Confirm discovery overlapped local pytest. Speech, Vad, Doubao and Postfix ran without concurrent regression workloads. Do not infer intrinsic model compute from client latency.",
+  "sources": [
+    "https://help.aliyun.com/zh/model-studio/client-events",
+    "https://cloud.tencent.com/document/api/647/108514",
+    "https://docs.volcengine.com/docs/real-time-communication/integrate-end-to-end-real-time-speech-llm?lang=en"
+  ],
+  "recommendation": "prioritize_Alibaba_production_integration_not_yet_a_flight_ready_switch",
+  "remaining_acceptance": [
+    "persistent_multiturn_audio_video",
+    "real_headset_capture_playout",
+    "interruption_to_final_device_zero",
+    "fresh_scene_red_tent_navigation",
+    "full_mission_on_real_aircraft"
+  ],
+  "python_tests": 1077,
+  "python_subtests": 504,
+  "python_regression_seconds": 237.61,
+  "real_docker_checks_enabled": true,
+  "base_commit": "c9736e112b7d588cbf83d1d35d44ea16fc8b7901",
+  "source_hashes": {
+    "modules\\ai\\AlibabaRealtime.py": "4fb41595e518afda78fbef2d76085ecc6f3988e56038094f6047f6c153b6ffb2",
+    "modules\\rtc\\DoubaoProbe.js": "ab577e2413712698abebcef52d84e7a3208f761d998384314260c055708a8b8c",
+    "tests\\RouteSelection.py": "ee65cf48f41a94427f55f8119e4b4477a48ff5b3c5b38f82efd0180630c062d1",
+    "tests\\RouteAnalysis.py": "1ed13e01437f7b6f1640d0c327124fba1f89f5a54071fe710624c0f2d5884957",
+    "tests\\RouteSelectionTests.py": "5995b5c85b7e10893b0bce1f689b088f6cbde1cc068edc08b927b8cf2ab2df5f",
+    "tests\\AlibabaTests.py": "0f40c4aa9fba9dfa4e33dbd23cef8e56f30d1028749187c9f36cf43ec0f20c64"
+  }
+}

@@ -2,7 +2,9 @@
 
 当前测试入口：仓库根目录执行 `uv run --frozen pytest -q`。真实容器项需显式设置 `RUN_DOCKER_TESTS=1`；RTC 服务端另运行 `npm --prefix modules/rtc test`。
 
-`Evidence/RealtimeComparison` 是本轮豆包 RTC、阿里实时多模态和腾讯 TRTC 的独立比较。Fixtures.json 固定同一批合成音频/红蓝帐篷图；*Media.json 保留开发与正式尝试、语义校验、真实媒体计时及清理结果；Summary.json 由 `tests/CompareRealtime.py` 离线生成。缺失、失败、仅控制面成功的路线不能被算成完整成功；未做真实耳机、图传或飞行验收。SDK/短期Token/原始输出PCM不入库，相关Setup.json记录来源与复现要求。
+`Evidence/RealtimeComparison` 是首轮豆包 RTC、阿里实时多模态和腾讯 TRTC 的独立比较。Fixtures.json 固定同一批合成音频/红蓝帐篷图；*Media.json 保留开发与正式尝试、语义校验、真实媒体计时及清理结果；Summary.json 由 `tests/CompareRealtime.py` 离线生成。缺失、失败、仅控制面成功的路线不能被算成完整成功；未做真实耳机、图传或飞行验收。SDK/短期Token/原始输出PCM不入库，相关Setup.json记录来源与复现要求。
+
+`Evidence/RouteSelection20261027` 单独保存后续归因实验：Screen（VAD×发图方式）、Endpoint（完整断句）、Confirm（视觉与容器工具重复，含故障）、Doubao（官方防抢话参数试验）、Speech（三路新语音样本）、Vad（腾讯断句取舍）、Postfix（取消保护后工具验证）。Analysis.json 通过 `uv run --frozen python tests/RouteAnalysis.py` 离线生成，严格区分完整输入、正确内容和媒体送达。保留超时与失败，不把调试样本并入同一速度排名，不把云端配置接收成功当作参数实际生效。原有 HTML 报告和首轮原始记录不覆盖。
 
 `ScenarioTests.py` 仅转发当前 pytest，不再加载已删除的 Agent/Demo/Session/docs 生产路线，也不会把已知失败转换为通过。
 

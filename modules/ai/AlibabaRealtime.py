@@ -177,15 +177,17 @@ def validate_arguments(arguments: Any, schema: dict) -> None:
         raise AlibabaError('tool_argument_range')
 
 
-def session_update(config: AlibabaConfig, instructions: str, tools: list[dict], *, mode='manual') -> dict:
+def session_update(config: AlibabaConfig, instructions: str, tools: list[dict], *, mode='manual', silence_ms=800) -> dict:
     if mode not in ('manual', 'server_vad', 'semantic_vad', 'semantic_vad_ec'):
         raise AlibabaError('invalid_turn_mode')
+    if type(silence_ms) is not int or not 200 <= silence_ms <= 6000:
+        raise AlibabaError('invalid_vad_silence')
     return {'type': 'session.update', 'session': {
         'modalities': ['text', 'audio'], 'instructions': instructions,
         'audio': {'input': {'format': {'type': 'pcm', 'sample_rate': 16000,
                   'sample_format': 's16le', 'channels': 1, 'packing': 'interleaved', 'channel_layout': 'mono'}},
                   'output': {'voice': config.voice, 'format': {'type': 'pcm', 'sample_rate': 24000}}},
-        'turn_detection': None if mode == 'manual' else {'type': mode, 'silence_duration_ms': 800},
+        'turn_detection': None if mode == 'manual' else {'type': mode, 'silence_duration_ms': silence_ms},
         'input_audio_transcription': {'model': 'qwen3-asr-flash-realtime'},
         'tools': tools, 'enable_search': False, 'max_tokens': 512}}
 
@@ -272,7 +274,8 @@ class AlibabaRealtime:
 
     async def run_turn(self, pcm16: bytes, image_jpeg: bytes | None = None, *, sample_rate=16000,
                        timeout_seconds=30, max_audio_seconds=15, realtime_pacing=True,
-                       speech_end_seconds=None, mode='manual', vad_padding_seconds=1.) -> dict:
+                       speech_end_seconds=None, mode='manual', vad_padding_seconds=1.,
+                       silence_ms=800, image_interval_seconds=None) -> dict:
         if self._active_task is not None:
             raise AlibabaError('turn_already_running')
         url = self.config.validate()
@@ -283,6 +286,9 @@ class AlibabaRealtime:
         duration = len(pcm16) / 32000
         if type(vad_padding_seconds) not in (int, float) or not 0 <= vad_padding_seconds <= 2:
             raise AlibabaError('invalid_vad_padding')
+        if image_interval_seconds is not None and (type(image_interval_seconds) not in (int, float)
+                or not math.isfinite(image_interval_seconds) or image_interval_seconds < 1):
+            raise AlibabaError('invalid_image_interval')
         padding = 0. if mode == 'manual' else float(vad_padding_seconds)
         if duration + padding > max_audio_seconds:
             raise AlibabaError('uploaded_audio_limit_including_padding')
@@ -300,7 +306,7 @@ class AlibabaRealtime:
             image = cv2.imdecode(np.frombuffer(image_jpeg, np.uint8), cv2.IMREAD_COLOR)
             if image is None or max(image.shape[:2]) > 1920 or min(image.shape[:2]) > 1080:
                 raise AlibabaError('invalid_jpeg_dimensions')
-        update = session_update(self.config, self.instructions, self.tools, mode=mode)
+        update = session_update(self.config, self.instructions, self.tools, mode=mode, silence_ms=silence_ms)
         self._epoch += 1
         epoch = self._epoch
         self._active_task = asyncio.current_task()
@@ -316,14 +322,17 @@ class AlibabaRealtime:
                   'realtime_pacing': realtime_pacing, 'image_sent': False,
                   'free_only_assurance': 'credential_declaration_not_independent_billing_verification',
                   'events': [], 'metrics': {}, 'usage': [], 'asr_text': '', 'reply_text': '',
+                  'transcriptions': [], 'vad_silence_ms': silence_ms,
+                  'image_interval_seconds': image_interval_seconds,
                   'tool_calls': [], 'tool_results': [], 'output_audio_bytes': 0,
                   'limitations': ['single_input_fixture_not_continuous_multiturn_acceptance',
-                      'new_speech_is_not_processed_while_awaiting_tool_handler'],
+                      'new_speech_during_tool_aborts_fixture_not_continuous_conversation'],
                   'hardware_verified': False, 'audio_played': False}
         metrics = result['metrics']
         send_lock = asyncio.Lock()
         sender = None
         receiver = None
+        tool_work = None
         ws = None
 
         def emit(event, **fields):
@@ -348,7 +357,13 @@ class AlibabaRealtime:
             if not isinstance(event, dict) or not isinstance(event.get('type'), str):
                 raise AlibabaError('invalid_server_event')
             kind = event['type']
-            emit('server_event', type=kind)
+            evidence = {key: event[key] for key in ('item_id', 'response_id', 'audio_start_ms', 'audio_end_ms')
+                        if key in event}
+            emit('server_event', type=kind, **evidence)
+            if kind == 'session.updated':
+                session = event.get('session', {})
+                result['effective_session'] = self._safe({key: session[key] for key in
+                    ('turn_detection', 'audio', 'modalities', 'video') if key in session})
             if kind in ('error', 'conversation.item.input_audio_transcription.failed'):
                 # Preserve only bounded diagnostic fields, never the complete
                 # event, request body or credentials echoed by a provider.
@@ -369,6 +384,7 @@ class AlibabaRealtime:
                 raise AlibabaError(self._safe(safe_code) or 'provider_error')
             if kind == 'conversation.item.input_audio_transcription.completed':
                 result['asr_text'] = self._safe(str(event.get('transcript', ''))[:4000])
+                result['transcriptions'].append({'item_id': event.get('item_id'), 'text': result['asr_text']})
                 metrics['asr_final_ms'] = emit('asr_final')
             return event
 
@@ -376,6 +392,7 @@ class AlibabaRealtime:
             start = self.clock()
             metrics['input_start_ms'] = emit('input_start')
             upload = pcm16 + b'\0\0' * int(padding * 16000)
+            next_image_seconds = 0.
             for offset in range(0, len(upload), 640):
                 end = min(offset+640, len(upload))
                 if realtime_pacing:
@@ -387,11 +404,13 @@ class AlibabaRealtime:
                     metrics['input_end_packet_overshoot_ms'] = round((end/32000-speech_end_seconds)*1000, 6)
                     metrics['speech_end_anchor_ms'] = round(metrics['input_end_send_ms']
                         - metrics['input_end_packet_overshoot_ms'], 6)
-                if offset == 0 and image_jpeg is not None:
+                if image_jpeg is not None and (offset == 0 or image_interval_seconds is not None
+                        and end/32000 >= next_image_seconds):
                     await send({'type': 'input_image_buffer.append',
                                 'image': base64.b64encode(image_jpeg).decode('ascii')})
                     result['image_sent'] = True
                     metrics['image_sent_ms'] = emit('image_sent', bytes=len(image_jpeg))
+                    next_image_seconds = end/32000 + (image_interval_seconds or math.inf)
             metrics['all_audio_sent_ms'] = emit('all_audio_sent')
             if mode == 'manual':
                 await send({'type': 'input_audio_buffer.commit'})
@@ -405,6 +424,8 @@ class AlibabaRealtime:
         def remember_call(event):
             if not input_committed:
                 raise AlibabaError('tool_without_committed_audio')
+            if 'input_end_send_ms' not in metrics:
+                raise AlibabaError('tool_before_input_finished')
             call_id, name, arguments = event.get('call_id'), event.get('name'), event.get('arguments')
             if (not isinstance(call_id, str) or not call_id or len(call_id) > 256
                     or name not in schemas or not isinstance(arguments, str)
@@ -525,16 +546,26 @@ class AlibabaRealtime:
                                     raise AlibabaError('tool_dispatcher_missing')
                                 for call_id, (name, arguments) in list(pending.items()):
                                     emit('tool_execution_started', call_id=call_id)
-                                    # This bounded fixture adapter awaits tools
-                                    # inline. Automatic VAD can split a recording
-                                    # and queue another speech_started meanwhile;
-                                    # it is not yet a continuous, interrupt-safe
-                                    # conversation controller. Keep that scope
-                                    # explicit instead of reporting a manual
-                                    # capability probe as automatic-turn success.
                                     value = self.tool_handler(name, arguments, call_id)
                                     if inspect.isawaitable(value):
-                                        value = await value
+                                        tool_work = asyncio.ensure_future(value)
+                                        while not tool_work.done():
+                                            # Continue draining input events while the tool
+                                            # runs. A new utterance invalidates this bounded
+                                            # fixture; never attach its old result to a new
+                                            # cloud turn. Full conversation resumption is a
+                                            # separate integration requirement.
+                                            receiver = asyncio.create_task(receive())
+                                            finished, _ = await asyncio.wait(
+                                                {receiver, tool_work}, return_when=asyncio.FIRST_COMPLETED)
+                                            if receiver in finished or receiver.done():
+                                                interruption = await receiver
+                                                if interruption['type'] == 'input_audio_buffer.speech_started':
+                                                    raise AlibabaError('input_interrupted_during_tool')
+                                            else:
+                                                receiver.cancel()
+                                                await asyncio.gather(receiver, return_exceptions=True)
+                                        value = await tool_work
                                     if self._epoch != epoch:
                                         raise AlibabaError('obsolete_tool_result')
                                     value = self._safe(value)
@@ -571,6 +602,9 @@ class AlibabaRealtime:
             result['error_code'] = self._safe(code)
             emit('failed', error_code=result['error_code'])
         finally:
+            if tool_work is not None and not tool_work.done():
+                tool_work.cancel()
+                await asyncio.gather(tool_work, return_exceptions=True)
             if receiver is not None:
                 receiver.cancel()
                 await asyncio.gather(receiver, return_exceptions=True)

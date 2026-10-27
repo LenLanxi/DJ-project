@@ -234,9 +234,9 @@ def append_sample(path, value, development):
     return result
 
 
-def sample(config, llm, *, development=False):
+def sample(config, llm, *, development=False, vad_silence_ms=1000):
     fixture = json.loads((EVIDENCE/'Fixtures.json').read_text(encoding='utf-8'))['audio']['Speech']
-    route = TencentConversation(config, llm, seconds=60)
+    route = TencentConversation(config, llm, seconds=60, vad_silence_ms=vad_silence_ms)
     run_id = 'Run' + uuid.uuid4().hex[:12]
     config_path, output_pcm = BUILD/(run_id+'.json'), BUILD/(run_id+'.pcm')
     executable = BUILD/'TencentProbe.exe'
@@ -383,7 +383,7 @@ def sample(config, llm, *, development=False):
         result['asr_text'] = combine_text(result['transcripts'])
         result['asr_verified'] = bool(target_round and '测试收到' in recompact(result['asr_text']))
         result['vad_silence_ms'] = route.vad_silence_ms
-        result['vad_note'] = '1000ms endpoint wait avoids observed 430ms internal pause splitting; latency includes this wait'
+        result['vad_note'] = 'configured endpoint wait is included in latency; shorter waits can split internal pauses'
         result['asr_rounds'] = len({t['round_id'] for t in result['transcripts'] if t.get('round_id')})
         result['automatic_interruption_events'] = sum(1 for e in native_events
             if e.get('event') == 'custom_message' and isinstance(e.get('payload'), dict)

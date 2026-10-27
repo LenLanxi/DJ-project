@@ -115,7 +115,8 @@ def recompute_delivery_evidence(sample):
                 'original_metrics_preserved': True, 'acoustic_proof': bool(acoustic_proof)}}
 
 
-async def sample(config, task, *, mode, image_name=None, phase='development', timeout=30):
+async def sample(config, task, *, mode, image_name=None, phase='development', timeout=30,
+                 vad_type='server_vad', silence_ms=1200, image_interval_seconds=1):
     name = {'speech': 'Speech', 'status': 'Status', 'vision': 'Vision'}[task]
     pcm, meta = fixture(name)
     picture = (FOLDER / (image_name + '.jpg')).read_bytes() if image_name else None
@@ -144,9 +145,11 @@ async def sample(config, task, *, mode, image_name=None, phase='development', ti
     cleanup = {}
     started = datetime.now(timezone.utc).isoformat()
     try:
-        raw = await adapter.run_turn(pcm, picture, mode='semantic_vad' if mode == 'automatic' else 'manual',
+        raw = await adapter.run_turn(pcm, picture, mode=vad_type if mode == 'automatic' else 'manual',
                                      speech_end_seconds=meta['speech_end_seconds'],
-                                     timeout_seconds=timeout, max_audio_seconds=15)
+                                     timeout_seconds=timeout, max_audio_seconds=15,
+                                     silence_ms=silence_ms, image_interval_seconds=image_interval_seconds,
+                                     vad_padding_seconds=max(1., silence_ms / 1000 + .1))
     finally:
         await adapter.close()
         if runner:
@@ -165,7 +168,7 @@ async def sample(config, task, *, mode, image_name=None, phase='development', ti
             'transcripts': [raw['asr_text']] if raw['asr_text'] else [],
             'replies': [raw['reply_text']] if raw['reply_text'] else [],
             'cleanup': cleanup, 'semantic_evidence': evidence,
-            'vad_config': {'type': 'semantic_vad', 'silence_duration_ms': 800,
+            'vad_config': {'type': vad_type, 'silence_duration_ms': silence_ms,
                            'extra_silence_seconds': raw['vad_padding_seconds']} if mode == 'automatic' else None,
             'timing': {'origin': 'actual_last_voiced_packet_send_minus_packet_overshoot',
                        'input_end_send_ms': raw['metrics'].get('input_end_send_ms'),
@@ -177,6 +180,10 @@ async def sample(config, task, *, mode, image_name=None, phase='development', ti
                         'image_sha256': hashlib.sha256(picture).hexdigest() if picture else None,
                         'synthetic': True, 'physical_devices': False},
             'tool_calls': raw['tool_calls'], 'tool_results': raw['tool_results'],
+            'transcription_items': raw.get('transcriptions', []),
+            'effective_session': raw.get('effective_session'),
+            'experimental_config': {'vad_type': vad_type, 'silence_ms': silence_ms,
+                'image_interval_seconds': image_interval_seconds},
             'usage': raw['usage'], 'output_audio_bytes': raw['output_audio_bytes'],
             'audio_activity': raw.get('audio_activity'),
             'first_audio_definition': 'first_received_window_RMS64_two_consecutive_10ms_not_playback',
@@ -213,7 +220,8 @@ async def main(args):
     for _ in range(args.trials):
         for image in image_names:
             item = await sample(config, args.task, mode=args.mode, image_name=image,
-                                phase=args.phase, timeout=args.timeout)
+                                phase=args.phase, timeout=args.timeout, vad_type=args.vad,
+                                silence_ms=args.silence, image_interval_seconds=args.image_interval)
             append(args.output, item)
             print(json.dumps({key: item[key] for key in ('provider', 'task', 'turn_mode', 'phase', 'ok',
                 'media_verified', 'latency', 'replies', 'error_code', 'cleanup')}, ensure_ascii=False), flush=True)
@@ -235,6 +243,9 @@ if __name__ == '__main__':
     parser.add_argument('--image', choices=['red', 'blue', 'both'], default='both')
     parser.add_argument('--trials', type=int, choices=[1, 2, 3], default=1)
     parser.add_argument('--timeout', type=float, default=30)
+    parser.add_argument('--vad', choices=['semantic_vad', 'server_vad', 'semantic_vad_ec'], default='server_vad')
+    parser.add_argument('--silence', type=int, default=1200)
+    parser.add_argument('--image-interval', type=float, default=1)
     parser.add_argument('--output', type=Path, default=FOLDER / 'AlibabaMedia.json')
     arguments = parser.parse_args()
     try:

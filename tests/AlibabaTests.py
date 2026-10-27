@@ -157,7 +157,7 @@ class WireTests(unittest.IsolatedAsyncioTestCase):
                 return connect(f'ws://127.0.0.1:{port}', **kwargs)
             adapter = AlibabaRealtime(CONFIG, instructions='Use the real tool result', tools=TOOLS,
                                        tool_handler=tool_handler, connect=local_connector)
-            return await adapter.run_turn(audio, image, realtime_pacing=False,
+            return await adapter.run_turn(audio, image, realtime_pacing=options.pop('realtime_pacing', False),
                                           timeout_seconds=timeout, **options)
 
     async def test08_pcm_image_tool_result_continuation_and_usage_roundtrip(self):
@@ -335,6 +335,95 @@ class WireTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(AlibabaError): await adapter.run_turn(audio, image)
         adapter = AlibabaRealtime(replace(CONFIG, free_tier_only=False), instructions='', tools=[], connect=fail)
         with self.assertRaises(AlibabaError): await adapter.run_turn(PCM)
+
+    async def test16_automatic_probe_preserves_distinct_items_and_effective_vad(self):
+        async def handler(ws):
+            await ws.send(json.dumps({'type': 'session.created'}))
+            update = json.loads(await ws.recv())
+            self.assertEqual(update['session']['turn_detection'],
+                             {'type': 'server_vad', 'silence_duration_ms': 1200})
+            await ws.send(json.dumps({'type': 'session.updated', 'session': {
+                'turn_detection': update['session']['turn_detection']}}))
+            for item_id, text in [('first', '查询电量'), ('second', '不要操作飞机')]:
+                await ws.send(json.dumps({'type': 'conversation.item.input_audio_transcription.completed',
+                                          'item_id': item_id, 'transcript': text}))
+            await ws.send(json.dumps({'type': 'response.done', 'response': {'status': 'completed'}}))
+            async for _ in ws: pass
+        result = await self.run_server(handler, mode='server_vad', silence_ms=1200, vad_padding_seconds=0)
+        self.assertEqual(result['transcriptions'], [dict(item_id='first', text='查询电量'),
+                                                  dict(item_id='second', text='不要操作飞机')])
+        self.assertEqual(result['effective_session']['turn_detection']['silence_duration_ms'], 1200)
+
+    async def test17_frame_stream_refreshes_context_without_exceeding_one_hertz(self):
+        seen = []
+        picture = cv2.imencode('.jpg', np.zeros((16,16,3), np.uint8))[1].tobytes()
+        async def handler(ws):
+            await ws.send(json.dumps({'type':'session.created'})); await ws.recv()
+            await ws.send(json.dumps({'type':'session.updated'}))
+            async for raw in ws:
+                event = json.loads(raw); seen.append(event)
+                if event['type'] == 'input_audio_buffer.commit':
+                    await ws.send(json.dumps({'type':'input_audio_buffer.committed'}))
+                if event['type'] == 'response.create':
+                    await ws.send(json.dumps({'type':'response.done','response':{'status':'completed'}}))
+        result = await self.run_server(handler, audio=PCM*12, image=picture, image_interval_seconds=1)
+        self.assertTrue(result['ok'])
+        samples = 0
+        positions = []
+        for e in seen:
+            if e['type'] == 'input_audio_buffer.append': samples += len(base64.b64decode(e['audio']))//2
+            if e['type'] == 'input_image_buffer.append': positions.append(samples)
+        self.assertEqual(len(positions),3)
+        self.assertGreater(positions[0],0)
+        self.assertTrue(all(b-a >= 16000 for a,b in zip(positions,positions[1:])))
+
+    async def test18_invalid_image_rate_and_vad_wait_never_connect(self):
+        def fail(*args, **kwargs): self.fail('must not connect')
+        adapter = AlibabaRealtime(CONFIG, instructions='', tools=[], connect=fail)
+        for options in ({'image_interval_seconds':.5}, {'image_interval_seconds':float('nan')},
+                        {'silence_ms':True}, {'silence_ms':199}, {'silence_ms':6001}):
+            with self.assertRaises(AlibabaError): await adapter.run_turn(PCM, **options)
+
+    async def test19_early_cloud_commit_cannot_execute_tool_before_full_input_sent(self):
+        calls = []
+        async def tool(*args): calls.append(args)
+        async def handler(ws):
+            await ws.send(json.dumps({'type':'session.created'})); await ws.recv()
+            await ws.send(json.dumps({'type':'session.updated'}))
+            await ws.recv()  # Only the first 20ms of a 200ms utterance.
+            await ws.send(json.dumps({'type':'input_audio_buffer.committed'}))
+            await ws.send(json.dumps({'type':'response.function_call_arguments.done',
+                'name':'get_status','arguments':'{}','call_id':'early'}))
+            async for _ in ws: pass
+        result = await self.run_server(handler, tool_handler=tool, realtime_pacing=True,
+                                       mode='server_vad', vad_padding_seconds=0)
+        self.assertEqual(result['error_code'],'tool_before_input_finished')
+        self.assertEqual(calls,[])
+
+    async def test20_new_speech_cancels_slow_tool_without_stale_output_or_continuation(self):
+        entered, cancelled, sent = asyncio.Event(), asyncio.Event(), []
+        async def tool(*args):
+            entered.set()
+            try: await asyncio.Event().wait()
+            finally: cancelled.set()
+        async def handler(ws):
+            await ws.send(json.dumps({'type':'session.created'})); await ws.recv()
+            await ws.send(json.dumps({'type':'session.updated'}))
+            async for raw in ws:
+                e = json.loads(raw); sent.append(e)
+                if e['type'] == 'input_audio_buffer.commit':
+                    await ws.send(json.dumps({'type':'input_audio_buffer.committed'}))
+                elif e['type'] == 'response.create':
+                    await ws.send(json.dumps({'type':'response.function_call_arguments.done',
+                        'name':'get_status','arguments':'{}','call_id':'old'}))
+                    await ws.send(json.dumps({'type':'response.done','response':{'status':'completed'}}))
+                    await entered.wait()
+                    await ws.send(json.dumps({'type':'input_audio_buffer.speech_started','item_id':'new'}))
+        result = await self.run_server(handler, tool_handler=tool, timeout=5)
+        self.assertEqual(result['error_code'],'input_interrupted_during_tool')
+        self.assertTrue(cancelled.is_set())
+        self.assertFalse(any(e['type']=='conversation.item.create' for e in sent))
+        self.assertEqual(sum(e['type']=='response.create' for e in sent),1)
 
 
 if __name__ == '__main__':

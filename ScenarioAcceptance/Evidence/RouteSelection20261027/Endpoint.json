@@ -1,0 +1,2026 @@
+{
+  "schema_version": 1,
+  "stage": "endpoint",
+  "created_at": "2026-10-27T07:20:46.267548+00:00",
+  "design": [
+    {
+      "id": "AliEndpointvisionNone",
+      "provider": "Alibaba",
+      "task": "vision",
+      "image": "RedTent",
+      "vad": "server_vad",
+      "interval": null,
+      "silence": 1200
+    },
+    {
+      "id": "AliEndpointvision1",
+      "provider": "Alibaba",
+      "task": "vision",
+      "image": "RedTent",
+      "vad": "server_vad",
+      "interval": 1,
+      "silence": 1200
+    },
+    {
+      "id": "AliEndpointstatusNone",
+      "provider": "Alibaba",
+      "task": "status",
+      "image": null,
+      "vad": "server_vad",
+      "interval": null,
+      "silence": 1200
+    }
+  ],
+  "historical_hashes": {
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\AlibabaMedia.json": "6730e1ab530a6bbfbc50439a5c4081e1a4d237f52fe7cac24cbec89dc385cea3",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\BlueTent.i420": "e10073299054abde1f33dc344f6dc48a503c6a002705e726dc48da4fc08e3a8e",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\BlueTent.jpg": "fbff70c0723ea7f2046da26bdb267642188e3a5fbee50abb4c1b6392e7f43360",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\CIFollowup.json": "33bb2e38e7cad97c14b5202b1071c389a6e87e26f369b1134f1aea7f7d17001e",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Coordinator.xml": "d9b7730b4b1fe5b5e21cad54463d4792b66e65ada96156051e9c8b108db41833",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\DoubaoMedia.json": "5a1cd8b1f2ffe867daf20f26a58ceed99299a4ff05a79e487f3e914e19f795c0",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\DoubaoSetup.json": "91a87d30fd7e3c0bcac8f13c3f1c192601ae025658530b6c470462654c8a3557",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Fixtures.json": "18a56007ca10fd54c9b258d19d00eee26c873a9df80f04010677e661a9a6e3a4",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Followup.xml": "30e8dccf718c48c9569a3f2231f00de6e9809344a2936abf2b4d54d917f06ea0",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Node.xml": "78a95fb69e4962f68871cb262113095efd418286096db44b4e09976fd6c9a608",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Python.xml": "db0ed6b6fccc22fa72001f717c8be7c7f3b85510ef29244e4fbd36218d86777c",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\RedTent.i420": "75babe8adc3854026f73c24ebfb422063ced6198312c5b5f244a259d05623771",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\RedTent.jpg": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Schedule.json": "5ddc5fd72d7088229b5aa5ecb182481e446a20e0418e5acd51b21f78cd17dd14",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Speech.pcm": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Speech.wav": "87d3955383a241f2eed9330b95361df97e2ed563c91f9cec0f7cedf65b5e663c",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Status.pcm": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Status.wav": "fd97b42369e9ba6ccbd76b2c93cece6f785ac31749a9f88deadd1e461a4319c3",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Summary.json": "e133d86842202eaa1797bfb961e2339860a171b536dd3ae0db237c44cd3d31a5",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\TencentDevelopment.json": "9ba37d4223a785a5a5e89ba182bf281bb193e8d8a5c81af3641fb718b3f11ccf",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\TencentMedia.json": "ace2d57bba410c8c7edc83315d9ce90f7b4157fa46f8b572aeafc4e2e76d0621",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\TencentProbe.json": "ae277312d7bf0dbea2fedb5bb41b666d5b4cdbcd90ebeaca9b27fd413e89d0ff",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\TencentSetup.json": "fa93eda8ae6f54ceb8d5933c6f45ff4c733cafe2e6c87a2db15b84cc64360829",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Verification.json": "1f203a46bc258ef85ecd8edaba459b645577e4b423e399ccec8f313cf919d2a0",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Vision.pcm": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\RealtimeComparison\\Vision.wav": "937598059f43d535385097d2f9020a295a6fb86dc9af1ce91ba71ce212bea0ce",
+    "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ProjectOverview.html": "077286582a9c4738e32990dabe59e2b6d36d86a5a49037f65da6c91c7a41c6c9",
+    "C:\\Users\\bente\\Desktop\\DroneArchitectureBefore.html": "5db5fd65dfb34f9c2a44d026167c3b3f9b4744503066006b7772083b14eac9ee"
+  },
+  "attempts": [
+    {
+      "spec": {
+        "id": "AliEndpointvisionNone",
+        "provider": "Alibaba",
+        "task": "vision",
+        "image": "RedTent",
+        "vad": "server_vad",
+        "interval": null,
+        "silence": 1200
+      },
+      "state": "finished",
+      "started_at": "2026-10-27T07:20:46.286589+00:00",
+      "source_hashes": {
+        "tests\\RouteSelection.py": "0e2884a5fe315d69e4017987eca6dfdf7ce894402d2baa873b1af76e169a7c0b",
+        "modules\\ai\\AlibabaRealtime.py": "53afdc500f568098e8b464e87d1c7485d3a1eef20b30d370a5f6b5ea7b930b46",
+        "tests\\AlibabaBenchmark.py": "ba90066bcdfae51559d7f57c3c5d9d875c90a49bc7bd6026632e8e1c313b629e",
+        "tests\\TencentBenchmark.py": "7c339b1c2a5152d7e79000c31763a14aa8f3df73b9cbb1ff03c7f0a92aab60e6",
+        "tests\\DoubaoBenchmark.py": "85f73c551b27a75575c69d6c9fec3e5aa23a4be23919a4786c60bbc99e9dcb27"
+      },
+      "sample": {
+        "provider": "AlibabaRealtime",
+        "task": "vision",
+        "turn_mode": "automatic",
+        "phase": "causal_probe",
+        "started_at": "2026-10-27T07:20:46.341101+00:00",
+        "finished_at": "2026-10-27T07:20:55.944819+00:00",
+        "model": "qwen3.8-omni-flash-realtime",
+        "ok": false,
+        "answer_verified": false,
+        "delivery_verified": true,
+        "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+        "media_verified": false,
+        "latency": {
+          "first_text_ms": 1538.125,
+          "first_audio_ms": 1756.125,
+          "first_audio_chunk_ms": 1756.125,
+          "tool_call_ms": null,
+          "tool_result_sent_ms": null,
+          "completed_ms": 1834.125,
+          "post_result_first_text_ms": null,
+          "post_result_first_audio_ms": null
+        },
+        "events": [
+          {
+            "event": "connect_start",
+            "t_ms": 140.0
+          },
+          {
+            "event": "connected",
+            "t_ms": 1687.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1687.0,
+            "type": "session.created"
+          },
+          {
+            "event": "session_update_sent",
+            "t_ms": 1687.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1781.0,
+            "type": "session.updated"
+          },
+          {
+            "event": "session_ready",
+            "t_ms": 1781.0
+          },
+          {
+            "event": "input_start",
+            "t_ms": 1781.0
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 1812.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2406.0,
+            "type": "input_audio_buffer.speech_started",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2",
+            "audio_start_ms": 0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2640.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2640.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2656.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 3484.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 3484.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 3484.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4156.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4156.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6171.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6171.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6171.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6187.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6187.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "input_end_send",
+            "t_ms": 6218.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7515.0,
+            "type": "input_audio_buffer.speech_stopped",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2",
+            "audio_end_ms": 4660
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7515.0,
+            "type": "input_audio_buffer.committed",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "input_committed",
+            "t_ms": 7515.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7718.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7718.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7734.0,
+            "type": "conversation.item.input_audio_transcription.completed",
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2"
+          },
+          {
+            "event": "asr_final",
+            "t_ms": 7734.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7750.0,
+            "type": "response.created"
+          },
+          {
+            "event": "response_created",
+            "t_ms": 7750.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7750.0,
+            "type": "response.output_item.added",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7750.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7750.0,
+            "type": "response.content_part.added",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7750.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 7750.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7968.0,
+            "type": "response.audio.delta",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 7968.0,
+            "bytes": 15360
+          },
+          {
+            "event": "nonzero_audio_detected",
+            "t_ms": 7984.0,
+            "first_window_received_ms": 7968.0,
+            "sample_offset": 2160,
+            "confirmed_received_ms": 7968.0,
+            "rms_threshold": 64,
+            "window_ms": 10,
+            "consecutive_windows": 2
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8015.0,
+            "type": "response.audio.delta",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 8015.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8015.0,
+            "type": "response.audio.delta",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 8015.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8015.0,
+            "type": "response.audio.delta",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 8015.0,
+            "bytes": 3840
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8046.0,
+            "type": "response.audio_transcript.done",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8046.0,
+            "type": "response.audio.done",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8046.0,
+            "type": "response.content_part.done",
+            "item_id": "item_J839y3Aqk8MeGFZjPBg7j",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8046.0,
+            "type": "response.output_item.done",
+            "response_id": "resp_H4lwnLmE15LEfiB6OpuRh"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 8046.0,
+            "type": "response.done"
+          },
+          {
+            "event": "response_done",
+            "t_ms": 8046.0
+          },
+          {
+            "event": "all_audio_sent",
+            "t_ms": 8328.0
+          },
+          {
+            "event": "connection_closed",
+            "t_ms": 9328.0,
+            "confirmed": true
+          }
+        ],
+        "transcripts": [
+          "画面里的帐篷是什么颜色？只回答颜色。"
+        ],
+        "replies": [
+          "绿色"
+        ],
+        "cleanup": {
+          "connection_opened": true,
+          "connection_closed": true,
+          "sender_finished": true,
+          "receiver_finished": true
+        },
+        "semantic_evidence": {
+          "expected_color": "红",
+          "correct_color_present": false,
+          "opposite_color_present": false,
+          "image_sent": true
+        },
+        "vad_config": {
+          "type": "server_vad",
+          "silence_duration_ms": 1200,
+          "extra_silence_seconds": 1.3
+        },
+        "timing": {
+          "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+          "input_end_send_ms": 6218.0,
+          "packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 6211.875,
+          "speech_end_seconds": 4.433875,
+          "speech_end_threshold": 300,
+          "raw_metrics": {
+            "connected_ms": 1687.0,
+            "session_ready_ms": 1781.0,
+            "input_start_ms": 1781.0,
+            "image_sent_ms": 1812.0,
+            "input_end_send_ms": 6218.0,
+            "input_end_packet_overshoot_ms": 6.125,
+            "speech_end_anchor_ms": 6211.875,
+            "committed_ms": 7515.0,
+            "asr_final_ms": 7734.0,
+            "response_created_ms": 7750.0,
+            "first_text_ms": 7750.0,
+            "first_audio_chunk_ms": 7968.0,
+            "first_nonzero_audio_ms": 7968.0,
+            "first_audio_ms": 7968.0,
+            "response_done_ms": 8046.0,
+            "all_audio_sent_ms": 8328.0,
+            "input_end_to_first_text_ms": 1532.0,
+            "input_end_to_first_audio_ms": 1750.0,
+            "input_end_to_response_done_ms": 1828.0
+          }
+        },
+        "fixture": {
+          "audio": "Vision",
+          "image": "RedTent",
+          "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+          "image_sha256": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e",
+          "synthetic": true,
+          "physical_devices": false
+        },
+        "tool_calls": [],
+        "tool_results": [],
+        "transcription_items": [
+          {
+            "item_id": "item_PjcZUivwfrrGEJkmyvPL2",
+            "text": "画面里的帐篷是什么颜色？只回答颜色。"
+          }
+        ],
+        "effective_session": {
+          "turn_detection": {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 1200,
+            "create_response": true,
+            "interrupt_response": true
+          },
+          "audio": {
+            "input": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 16000,
+                "sample_format": "s16le",
+                "channels": 1,
+                "packing": "interleaved",
+                "channel_layout": "mono"
+              }
+            },
+            "output": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 24000
+              },
+              "voice": "Tina"
+            }
+          },
+          "modalities": [
+            "text",
+            "audio"
+          ]
+        },
+        "experimental_config": {
+          "vad_type": "server_vad",
+          "silence_ms": 1200,
+          "image_interval_seconds": null
+        },
+        "usage": [
+          {
+            "total_tokens": 768,
+            "input_tokens": 752,
+            "output_tokens": 16,
+            "input_tokens_details": {
+              "text_tokens": 717,
+              "audio_tokens": 35
+            },
+            "output_tokens_details": {
+              "text_tokens": 3,
+              "audio_tokens": 13
+            }
+          }
+        ],
+        "output_audio_bytes": 49920,
+        "audio_activity": {
+          "first_window_received_ms": 7968.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 7968.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+        "transport_ok": true,
+        "error_code": null,
+        "error_details": null,
+        "limitations": [
+          "single_input_fixture_not_continuous_multiturn_acceptance",
+          "new_speech_is_not_processed_while_awaiting_tool_handler"
+        ],
+        "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+        "audio_input_seconds": 5.235,
+        "uploaded_audio_seconds": 6.535,
+        "audio_played": false
+      },
+      "cleanup_confirmed": true,
+      "finished_at": "2026-10-27T07:20:55.944819+00:00"
+    },
+    {
+      "spec": {
+        "id": "AliEndpointvision1",
+        "provider": "Alibaba",
+        "task": "vision",
+        "image": "RedTent",
+        "vad": "server_vad",
+        "interval": 1,
+        "silence": 1200
+      },
+      "state": "finished",
+      "started_at": "2026-10-27T07:20:56.029236+00:00",
+      "source_hashes": {
+        "tests\\RouteSelection.py": "0e2884a5fe315d69e4017987eca6dfdf7ce894402d2baa873b1af76e169a7c0b",
+        "modules\\ai\\AlibabaRealtime.py": "53afdc500f568098e8b464e87d1c7485d3a1eef20b30d370a5f6b5ea7b930b46",
+        "tests\\AlibabaBenchmark.py": "ba90066bcdfae51559d7f57c3c5d9d875c90a49bc7bd6026632e8e1c313b629e",
+        "tests\\TencentBenchmark.py": "7c339b1c2a5152d7e79000c31763a14aa8f3df73b9cbb1ff03c7f0a92aab60e6",
+        "tests\\DoubaoBenchmark.py": "85f73c551b27a75575c69d6c9fec3e5aa23a4be23919a4786c60bbc99e9dcb27"
+      },
+      "sample": {
+        "provider": "AlibabaRealtime",
+        "task": "vision",
+        "turn_mode": "automatic",
+        "phase": "causal_probe",
+        "started_at": "2026-10-27T07:20:56.068321+00:00",
+        "finished_at": "2026-10-27T07:21:04.098277+00:00",
+        "model": "qwen3.8-omni-flash-realtime",
+        "ok": true,
+        "answer_verified": true,
+        "delivery_verified": true,
+        "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+        "media_verified": true,
+        "latency": {
+          "first_text_ms": 1600.125,
+          "first_audio_ms": 1850.125,
+          "first_audio_chunk_ms": 1850.125,
+          "tool_call_ms": null,
+          "tool_result_sent_ms": null,
+          "completed_ms": 1897.125,
+          "post_result_first_text_ms": null,
+          "post_result_first_audio_ms": null
+        },
+        "events": [
+          {
+            "event": "connect_start",
+            "t_ms": 0.0
+          },
+          {
+            "event": "connected",
+            "t_ms": 344.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 344.0,
+            "type": "session.created"
+          },
+          {
+            "event": "session_update_sent",
+            "t_ms": 344.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 469.0,
+            "type": "session.updated"
+          },
+          {
+            "event": "session_ready",
+            "t_ms": 469.0
+          },
+          {
+            "event": "input_start",
+            "t_ms": 469.0
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 485.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 938.0,
+            "type": "input_audio_buffer.speech_started",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al",
+            "audio_start_ms": 0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1141.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1141.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1141.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1422.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1422.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 1485.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2063.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2063.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2063.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 2500.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2750.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2766.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 3485.0,
+            "bytes": 9978
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 4485.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4766.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4766.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4782.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4782.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4797.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "input_end_send",
+            "t_ms": 4922.0
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 5500.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6219.0,
+            "type": "input_audio_buffer.speech_stopped",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al",
+            "audio_end_ms": 4660
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6219.0,
+            "type": "input_audio_buffer.committed",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "input_committed",
+            "t_ms": 6219.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6422.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6422.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6422.0,
+            "type": "conversation.item.input_audio_transcription.completed",
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al"
+          },
+          {
+            "event": "asr_final",
+            "t_ms": 6422.0
+          },
+          {
+            "event": "image_sent",
+            "t_ms": 6500.0,
+            "bytes": 9978
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6516.0,
+            "type": "response.created"
+          },
+          {
+            "event": "response_created",
+            "t_ms": 6516.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6516.0,
+            "type": "response.output_item.added",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6516.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6516.0,
+            "type": "response.content_part.added",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6516.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 6516.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6766.0,
+            "type": "response.audio.delta",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 6766.0,
+            "bytes": 15360
+          },
+          {
+            "event": "nonzero_audio_detected",
+            "t_ms": 6766.0,
+            "first_window_received_ms": 6766.0,
+            "sample_offset": 1920,
+            "confirmed_received_ms": 6766.0,
+            "rms_threshold": 64,
+            "window_ms": 10,
+            "consecutive_windows": 2
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6797.0,
+            "type": "response.audio.delta",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 6797.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6797.0,
+            "type": "response.audio.delta",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 6813.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.audio.delta",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 6813.0,
+            "bytes": 3840
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.audio_transcript.done",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.audio.done",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.content_part.done",
+            "item_id": "item_SB9mqnlOSRMU8RKyeBNnY",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.output_item.done",
+            "response_id": "resp_XeYoSWyOcRZBOdrdvJlAF"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6813.0,
+            "type": "response.done"
+          },
+          {
+            "event": "response_done",
+            "t_ms": 6813.0
+          },
+          {
+            "event": "all_audio_sent",
+            "t_ms": 7000.0
+          },
+          {
+            "event": "connection_closed",
+            "t_ms": 8016.0,
+            "confirmed": true
+          }
+        ],
+        "transcripts": [
+          "画面里的帐篷是什么颜色？只回答颜色。"
+        ],
+        "replies": [
+          "红色"
+        ],
+        "cleanup": {
+          "connection_opened": true,
+          "connection_closed": true,
+          "sender_finished": true,
+          "receiver_finished": true
+        },
+        "semantic_evidence": {
+          "expected_color": "红",
+          "correct_color_present": true,
+          "opposite_color_present": false,
+          "image_sent": true
+        },
+        "vad_config": {
+          "type": "server_vad",
+          "silence_duration_ms": 1200,
+          "extra_silence_seconds": 1.3
+        },
+        "timing": {
+          "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+          "input_end_send_ms": 4922.0,
+          "packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 4915.875,
+          "speech_end_seconds": 4.433875,
+          "speech_end_threshold": 300,
+          "raw_metrics": {
+            "connected_ms": 344.0,
+            "session_ready_ms": 469.0,
+            "input_start_ms": 469.0,
+            "image_sent_ms": 6500.0,
+            "input_end_send_ms": 4922.0,
+            "input_end_packet_overshoot_ms": 6.125,
+            "speech_end_anchor_ms": 4915.875,
+            "committed_ms": 6219.0,
+            "asr_final_ms": 6422.0,
+            "response_created_ms": 6516.0,
+            "first_text_ms": 6516.0,
+            "first_audio_chunk_ms": 6766.0,
+            "first_nonzero_audio_ms": 6766.0,
+            "first_audio_ms": 6766.0,
+            "response_done_ms": 6813.0,
+            "all_audio_sent_ms": 7000.0,
+            "input_end_to_first_text_ms": 1594.0,
+            "input_end_to_first_audio_ms": 1844.0,
+            "input_end_to_response_done_ms": 1891.0
+          }
+        },
+        "fixture": {
+          "audio": "Vision",
+          "image": "RedTent",
+          "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+          "image_sha256": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e",
+          "synthetic": true,
+          "physical_devices": false
+        },
+        "tool_calls": [],
+        "tool_results": [],
+        "transcription_items": [
+          {
+            "item_id": "item_YkxJOX93LhuYUFa7jc2al",
+            "text": "画面里的帐篷是什么颜色？只回答颜色。"
+          }
+        ],
+        "effective_session": {
+          "turn_detection": {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 1200,
+            "create_response": true,
+            "interrupt_response": true
+          },
+          "audio": {
+            "input": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 16000,
+                "sample_format": "s16le",
+                "channels": 1,
+                "packing": "interleaved",
+                "channel_layout": "mono"
+              }
+            },
+            "output": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 24000
+              },
+              "voice": "Tina"
+            }
+          },
+          "modalities": [
+            "text",
+            "audio"
+          ]
+        },
+        "experimental_config": {
+          "vad_type": "server_vad",
+          "silence_ms": 1200,
+          "image_interval_seconds": 1
+        },
+        "usage": [
+          {
+            "total_tokens": 1434,
+            "input_tokens": 1418,
+            "output_tokens": 16,
+            "input_tokens_details": {
+              "text_tokens": 723,
+              "audio_tokens": 35,
+              "video_tokens": 660
+            },
+            "output_tokens_details": {
+              "text_tokens": 3,
+              "audio_tokens": 13
+            }
+          }
+        ],
+        "output_audio_bytes": 49920,
+        "audio_activity": {
+          "first_window_received_ms": 6766.0,
+          "sample_offset": 1920,
+          "confirmed_received_ms": 6766.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+        "transport_ok": true,
+        "error_code": null,
+        "error_details": null,
+        "limitations": [
+          "single_input_fixture_not_continuous_multiturn_acceptance",
+          "new_speech_is_not_processed_while_awaiting_tool_handler"
+        ],
+        "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+        "audio_input_seconds": 5.235,
+        "uploaded_audio_seconds": 6.535,
+        "audio_played": false
+      },
+      "cleanup_confirmed": true,
+      "finished_at": "2026-10-27T07:21:04.098831+00:00"
+    },
+    {
+      "spec": {
+        "id": "AliEndpointstatusNone",
+        "provider": "Alibaba",
+        "task": "status",
+        "image": null,
+        "vad": "server_vad",
+        "interval": null,
+        "silence": 1200
+      },
+      "state": "finished",
+      "started_at": "2026-10-27T07:21:04.150645+00:00",
+      "source_hashes": {
+        "tests\\RouteSelection.py": "0e2884a5fe315d69e4017987eca6dfdf7ce894402d2baa873b1af76e169a7c0b",
+        "modules\\ai\\AlibabaRealtime.py": "53afdc500f568098e8b464e87d1c7485d3a1eef20b30d370a5f6b5ea7b930b46",
+        "tests\\AlibabaBenchmark.py": "ba90066bcdfae51559d7f57c3c5d9d875c90a49bc7bd6026632e8e1c313b629e",
+        "tests\\TencentBenchmark.py": "7c339b1c2a5152d7e79000c31763a14aa8f3df73b9cbb1ff03c7f0a92aab60e6",
+        "tests\\DoubaoBenchmark.py": "85f73c551b27a75575c69d6c9fec3e5aa23a4be23919a4786c60bbc99e9dcb27"
+      },
+      "sample": {
+        "provider": "AlibabaRealtime",
+        "task": "status",
+        "turn_mode": "automatic",
+        "phase": "causal_probe",
+        "started_at": "2026-10-27T07:21:04.646756+00:00",
+        "finished_at": "2026-10-27T07:21:17.254979+00:00",
+        "model": "qwen3.8-omni-flash-realtime",
+        "ok": true,
+        "answer_verified": true,
+        "delivery_verified": true,
+        "system_instructions": "你参加实时接口测试，连接的是simulated测试设备。用户查询电量时必须调用run_program，code为print(drone.get_status())。根据实际工具结果简短报告模拟电量，不得猜测，不得执行动作。",
+        "media_verified": true,
+        "latency": {
+          "first_text_ms": 5177.562,
+          "first_audio_ms": 5537.562,
+          "first_audio_chunk_ms": 5537.562,
+          "tool_call_ms": 1771.562,
+          "tool_result_sent_ms": 4771.562,
+          "completed_ms": 6302.562,
+          "post_result_first_text_ms": 5177.562,
+          "post_result_first_audio_ms": 5537.562
+        },
+        "events": [
+          {
+            "event": "connect_start",
+            "t_ms": 0.0
+          },
+          {
+            "event": "connected",
+            "t_ms": 312.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 344.0,
+            "type": "session.created"
+          },
+          {
+            "event": "session_update_sent",
+            "t_ms": 344.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 469.0,
+            "type": "session.updated"
+          },
+          {
+            "event": "session_ready",
+            "t_ms": 469.0
+          },
+          {
+            "event": "input_start",
+            "t_ms": 469.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 953.0,
+            "type": "input_audio_buffer.speech_started",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2",
+            "audio_start_ms": 0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1140.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1140.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1469.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 1469.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2109.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2109.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2125.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2812.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 2828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4828.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 4844.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "input_end_send",
+            "t_ms": 5265.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6562.0,
+            "type": "input_audio_buffer.speech_stopped",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2",
+            "audio_end_ms": 4940
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6562.0,
+            "type": "input_audio_buffer.committed",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "input_committed",
+            "t_ms": 6562.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6765.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6765.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6781.0,
+            "type": "conversation.item.input_audio_transcription.delta",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6906.0,
+            "type": "conversation.item.input_audio_transcription.completed",
+            "item_id": "item_GmtowN4nxsiC13EO79lE2"
+          },
+          {
+            "event": "asr_final",
+            "t_ms": 6906.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6906.0,
+            "type": "response.created"
+          },
+          {
+            "event": "response_created",
+            "t_ms": 6906.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6906.0,
+            "type": "response.output_item.added",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6906.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6922.0,
+            "type": "response.function_call_arguments.delta",
+            "item_id": "item_Pxpk44pKDTKTttxxWD1HS",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6953.0,
+            "type": "response.function_call_arguments.delta",
+            "item_id": "item_Pxpk44pKDTKTttxxWD1HS",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 6969.0,
+            "type": "response.function_call_arguments.delta",
+            "item_id": "item_Pxpk44pKDTKTttxxWD1HS",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7000.0,
+            "type": "response.function_call_arguments.delta",
+            "item_id": "item_Pxpk44pKDTKTttxxWD1HS",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7015.0,
+            "type": "response.function_call_arguments.done",
+            "item_id": "item_Pxpk44pKDTKTttxxWD1HS",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "tool_call",
+            "t_ms": 7031.0,
+            "call_id": "call_507ea0d5e45f408692b8b860",
+            "name": "run_program"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7031.0,
+            "type": "response.output_item.done",
+            "response_id": "resp_XEs14DIJ4j3R2kWUQvxZ4"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 7031.0,
+            "type": "response.done"
+          },
+          {
+            "event": "tool_execution_started",
+            "t_ms": 7031.0,
+            "call_id": "call_507ea0d5e45f408692b8b860"
+          },
+          {
+            "event": "all_audio_sent",
+            "t_ms": 7265.0
+          },
+          {
+            "event": "tool_result_sent",
+            "t_ms": 10031.0,
+            "call_id": "call_507ea0d5e45f408692b8b860"
+          },
+          {
+            "event": "continuation_requested",
+            "t_ms": 10031.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10109.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10437.0,
+            "type": "response.created"
+          },
+          {
+            "event": "response_created",
+            "t_ms": 10437.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10437.0,
+            "type": "response.output_item.added",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10437.0,
+            "type": "conversation.item.created"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10437.0,
+            "type": "response.content_part.added",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10437.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10437.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10625.0,
+            "type": "response.audio_transcript.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_text_received",
+            "t_ms": 10625.0
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10797.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 10797.0,
+            "bytes": 15360
+          },
+          {
+            "event": "nonzero_audio_detected",
+            "t_ms": 10797.0,
+            "first_window_received_ms": 10797.0,
+            "sample_offset": 2160,
+            "confirmed_received_ms": 10797.0,
+            "rms_threshold": 64,
+            "window_ms": 10,
+            "consecutive_windows": 2
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10859.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 10859.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10922.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 10922.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 10969.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 10969.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11031.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11031.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11062.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11062.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11109.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11109.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11125.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11125.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11172.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11172.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11219.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11219.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11250.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11250.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11297.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11297.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11328.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11328.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11375.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11375.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11406.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11406.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11453.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11453.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11484.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11484.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11531.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11531.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11547.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11547.0,
+            "bytes": 15360
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.audio.delta",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "model_audio_received",
+            "t_ms": 11562.0,
+            "bytes": 3840
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.audio_transcript.done",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.audio.done",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.content_part.done",
+            "item_id": "item_WWju4pRySO6SacYtmWDrL",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.output_item.done",
+            "response_id": "resp_M6iwRuntpuMdDjPtwYe8w"
+          },
+          {
+            "event": "server_event",
+            "t_ms": 11562.0,
+            "type": "response.done"
+          },
+          {
+            "event": "response_done",
+            "t_ms": 11562.0
+          },
+          {
+            "event": "connection_closed",
+            "t_ms": 12578.0,
+            "confirmed": true
+          }
+        ],
+        "transcripts": [
+          "请查询模拟无人机的电量，不要操作飞机。"
+        ],
+        "replies": [
+          "模拟无人机电量是80%。它现在处于着陆状态，连接正常。"
+        ],
+        "cleanup": {
+          "query_runtime_stopped": true,
+          "connection_opened": true,
+          "connection_closed": true,
+          "sender_finished": true,
+          "receiver_finished": true
+        },
+        "semantic_evidence": {
+          "actual_tool_battery_80": true,
+          "reply_contains_80": true,
+          "container_rpc": true,
+          "battery_results": [
+            80
+          ]
+        },
+        "vad_config": {
+          "type": "server_vad",
+          "silence_duration_ms": 1200,
+          "extra_silence_seconds": 1.3
+        },
+        "timing": {
+          "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+          "input_end_send_ms": 5265.0,
+          "packet_overshoot_ms": 5.5625,
+          "speech_end_anchor_ms": 5259.4375,
+          "speech_end_seconds": 4.7144375,
+          "speech_end_threshold": 300,
+          "raw_metrics": {
+            "connected_ms": 312.0,
+            "session_ready_ms": 469.0,
+            "input_start_ms": 469.0,
+            "input_end_send_ms": 5265.0,
+            "input_end_packet_overshoot_ms": 5.5625,
+            "speech_end_anchor_ms": 5259.4375,
+            "committed_ms": 6562.0,
+            "asr_final_ms": 6906.0,
+            "response_created_ms": 6906.0,
+            "tool_call_ms": 7031.0,
+            "all_audio_sent_ms": 7265.0,
+            "result_sent_ms": 10031.0,
+            "first_text_ms": 10437.0,
+            "post_result_first_text_ms": 10437.0,
+            "first_audio_chunk_ms": 10797.0,
+            "first_nonzero_audio_ms": 10797.0,
+            "first_audio_ms": 10797.0,
+            "post_result_first_audio_chunk_ms": 10797.0,
+            "post_result_first_audio_ms": 10797.0,
+            "response_done_ms": 11562.0,
+            "input_end_to_first_text_ms": 5172.0,
+            "input_end_to_first_audio_ms": 5532.0,
+            "input_end_to_tool_call_ms": 1766.0,
+            "input_end_to_response_done_ms": 6297.0,
+            "result_to_post_result_first_text_ms": 406.0,
+            "result_to_post_result_first_audio_ms": 766.0
+          }
+        },
+        "fixture": {
+          "audio": "Status",
+          "image": null,
+          "sha256": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138",
+          "image_sha256": null,
+          "synthetic": true,
+          "physical_devices": false
+        },
+        "tool_calls": [
+          {
+            "call_id": "call_507ea0d5e45f408692b8b860",
+            "name": "run_program",
+            "arguments": {
+              "code": "print(drone.get_status())"
+            }
+          }
+        ],
+        "tool_results": [
+          {
+            "call_id": "call_507ea0d5e45f408692b8b860",
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "reason": "",
+              "simulated": true,
+              "journal": [
+                {
+                  "method": "get_status",
+                  "args": [],
+                  "kwargs": {},
+                  "result": {
+                    "battery": 80,
+                    "height_cm": 0,
+                    "connected": true,
+                    "flight_state": "landed",
+                    "control_owner": "none",
+                    "timestamp": 1793085674.2936077,
+                    "control_epoch": 0,
+                    "command_epoch": 0,
+                    "simulated": true
+                  }
+                }
+              ],
+              "follow_cleanup": {
+                "status": "no_control"
+              },
+              "debug": "{'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793085674.2936077, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\n"
+            }
+          }
+        ],
+        "transcription_items": [
+          {
+            "item_id": "item_GmtowN4nxsiC13EO79lE2",
+            "text": "请查询模拟无人机的电量，不要操作飞机。"
+          }
+        ],
+        "effective_session": {
+          "turn_detection": {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 1200,
+            "create_response": true,
+            "interrupt_response": true
+          },
+          "audio": {
+            "input": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 16000,
+                "sample_format": "s16le",
+                "channels": 1,
+                "packing": "interleaved",
+                "channel_layout": "mono"
+              }
+            },
+            "output": {
+              "format": {
+                "type": "pcm",
+                "sample_rate": 24000
+              },
+              "voice": "Tina"
+            }
+          },
+          "modalities": [
+            "text",
+            "audio"
+          ]
+        },
+        "experimental_config": {
+          "vad_type": "server_vad",
+          "silence_ms": 1200,
+          "image_interval_seconds": null
+        },
+        "usage": [
+          {
+            "total_tokens": 1172,
+            "input_tokens": 1140,
+            "output_tokens": 32,
+            "input_tokens_details": {
+              "text_tokens": 1105,
+              "audio_tokens": 35
+            },
+            "output_tokens_details": {
+              "text_tokens": 32
+            }
+          },
+          {
+            "total_tokens": 1500,
+            "input_tokens": 1403,
+            "output_tokens": 97,
+            "input_tokens_details": {
+              "text_tokens": 1368,
+              "audio_tokens": 35
+            },
+            "output_tokens_details": {
+              "text_tokens": 20,
+              "audio_tokens": 77
+            }
+          }
+        ],
+        "output_audio_bytes": 295680,
+        "audio_activity": {
+          "first_window_received_ms": 10797.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 10797.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+        "transport_ok": true,
+        "error_code": null,
+        "error_details": null,
+        "limitations": [
+          "single_input_fixture_not_continuous_multiturn_acceptance",
+          "new_speech_is_not_processed_while_awaiting_tool_handler"
+        ],
+        "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+        "audio_input_seconds": 5.5,
+        "uploaded_audio_seconds": 6.8,
+        "audio_played": false
+      },
+      "cleanup_confirmed": true,
+      "finished_at": "2026-10-27T07:21:17.254979+00:00"
+    }
+  ],
+  "physical_devices": false,
+  "billing_verified": false,
+  "max_sessions": 38
+}

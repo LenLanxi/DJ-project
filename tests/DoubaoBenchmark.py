@@ -113,7 +113,7 @@ def delivery_verified(sample):
         and cleanup.get('short_token_file_deleted') is True)
 
 
-async def run_trial(task, image, credentials, fixture_meta, index, secrets):
+async def run_trial(task, image, credentials, fixture_meta, index, secrets, *, endpoint_ms=None):
     name = {'speech': 'Speech', 'status': 'Status', 'vision': 'Vision'}[task]
     audio = fixture_meta['audio'][name]
     sample = dict(provider='DoubaoRTC', task=task, turn_mode='automatic', ok=False,
@@ -186,7 +186,11 @@ async def run_trial(task, image, credentials, fixture_meta, index, secrets):
                 event = json.loads(line)
                 kind, stamp = event.get('event'), event.get('monotonic_ms')
                 if kind == 'room_joined':
-                    start = await control.call('start', instructions=task_instructions(task), tools=TOOLS)
+                    options = {} if endpoint_ms is None else {'endpointMs': endpoint_ms}
+                    start = await control.call('start', instructions=task_instructions(task), tools=TOOLS, **options)
+                    sample['endpoint_override'] = dict(requested_ms=endpoint_ms,
+                        config_path='S2SConfig.ProviderParams.asr.extra.end_smooth_window_ms',
+                        forwarding_verified=False)
                     sample['control_start'] = start
                     if not start.get('ok'):
                         raise RuntimeError('StartVoiceChat rejected')
