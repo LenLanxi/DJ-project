@@ -140,6 +140,20 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['reason'], 'sandbox_output_budget_exceeded')
         self.assertLessEqual(len(result['debug'].encode()), 16000)
 
+    async def test26_budget_failure_survives_unconfirmed_container_cleanup(self):
+        runner, _backend = self.runner()
+        process = Process([{'type':'done','ok':True}], stderr=b'x' * 65000)
+        with fake_process(runner, process), patch.object(runner, '_remove_container',
+                new=AsyncMock(return_value=['container_creation_unconfirmed'])):
+            result = await runner.run('pass')
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed')
+        self.assertEqual(result['failure_reason'], 'sandbox_output_budget_exceeded')
+        self.assertEqual(result['cleanup_errors'], ['container_creation_unconfirmed'])
+        self.assertEqual(result['pending_container'], runner.last_cleanup['pending_container'])
+        self.assertFalse(runner.last_cleanup['confirmed'])
+        self.assertLessEqual(len(result['debug'].encode()), 16000)
+
     async def test07_rpc_budget_exhaustion_stops_before_extra_action(self):
         runner, backend = self.runner(max_rpc=1)
         with fake_process(runner, Process([rpc(1), rpc(2, 'move_forward', [20])])):
@@ -360,7 +374,9 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
             raise AssertionError(args)
         with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
             task = asyncio.create_task(runner.run('pass'))
-            await asyncio.wait_for(entered.wait(), .5)
+            # Admission is not the cancellation-latency assertion below.
+            # Windows asyncio debug scheduling can exceed 500ms under load.
+            await asyncio.wait_for(entered.wait(), 5)
             runner.cancel()
             result = await asyncio.wait_for(task, .5)
         self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
@@ -512,7 +528,18 @@ class RealSandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
         runner = SandboxRunner(Gateway(MockBackend()), timeout=5)
         result = await self.run_recording_container(runner, "print('x'*65000)")
         self.assertFalse(result['ok'], result)
-        self.assertEqual(result['reason'], 'sandbox_output_budget_exceeded')
+        # On a fast engine --rm may finish before an RPC/done message was
+        # consumed. The conservative create fence then remains unconfirmed.
+        # Preserve the budget failure without overriding cleanup uncertainty.
+        if result['reason'] == 'sandbox_cleanup_unconfirmed':
+            self.assertEqual(result['failure_reason'], 'sandbox_output_budget_exceeded')
+            self.assertTrue(result['cleanup_errors'])
+            self.assertTrue(result['pending_container'])
+            self.assertFalse(runner.last_cleanup['confirmed'])
+            self.assertEqual(runner.last_cleanup['pending_container'], result['pending_container'])
+        else:
+            self.assertEqual(result['reason'], 'sandbox_output_budget_exceeded')
+            self.assertTrue(runner.last_cleanup['confirmed'])
         self.assertLessEqual(len(result['debug'].encode()), 16000)
 
     async def test14_real_cancel_during_host_vision_wait_is_prompt(self):

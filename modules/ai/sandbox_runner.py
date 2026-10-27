@@ -271,6 +271,7 @@ class SandboxRunner:
                     result = {'ok':False, 'status':'failed', 'reason':'sandbox_output_budget_exceeded'}
                 if cleanup_errors:
                     result = {'ok':False, 'status':'failed', 'reason':'sandbox_cleanup_unconfirmed',
+                              'failure_reason':result.get('reason'),
                               'cleanup_errors':cleanup_errors,
                               'pending_container':name if container_attempted else None}
                 if begun:

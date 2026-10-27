@@ -1,0 +1,27 @@
+{
+  "baseline_commit": "85da33abb1c23a06ebf05a740cdff13fd9ce01d8",
+  "original_ci_run": 40468388250,
+  "windows": "success",
+  "linux_job": 122069258051,
+  "linux_result": "1 failed, 54 passed",
+  "failed_test": "RealSandboxSafetyTests.test13_real_stdout_flood_is_bounded_and_failed",
+  "observed_reason": "sandbox_cleanup_unconfirmed",
+  "previous_assertion": "sandbox_output_budget_exceeded",
+  "fix": "Retain primary failure_reason under conservative cleanup uncertainty; assert bounded debug and pending container identity. No cleanup success predicate weakened.",
+  "deterministic_regression": "SandboxSafetyTests.test26_budget_failure_survives_unconfirmed_container_cleanup",
+  "targeted_result": "90 passed, 5 subtests passed",
+  "targeted_receipt": "CleanupVerified.xml",
+  "earlier_targeted_failure": {
+    "receipt": "CleanupRegression.xml",
+    "result": "1 failed, 62 passed",
+    "cause": "test21 fixture admission exceeded 500ms under Windows asyncio debug scheduling",
+    "fix": "5 second admission wait; cancellation assertions unchanged"
+  },
+  "other_admission_fix": "AlibabaTests test15 readiness wait 2 to 5 seconds; tool cancellation assertions unchanged",
+  "cloud_trials_after_followup": 0,
+  "source_hashes": {
+    "modules\\ai\\sandbox_runner.py": "b8ee578b4521e796e861bff63a934c19373039734ab37377ed7d125ffae0813c",
+    "tests\\SandboxSafetyTests.py": "7e85493a2321dd652ddc78a2587d8043e6e9dd1322ca75d56489e8523c8d716b",
+    "tests\\AlibabaTests.py": "ca6f9dc0952e277d532ed0e656cd2bccdb62859af8bf839bb509486caf9e2bb6"
+  }
+}

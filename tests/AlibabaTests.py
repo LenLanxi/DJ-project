@@ -322,7 +322,7 @@ class WireTests(unittest.IsolatedAsyncioTestCase):
                 return connect(f'ws://127.0.0.1:{server.sockets[0].getsockname()[1]}', **kwargs)
             adapter = AlibabaRealtime(CONFIG, instructions='', tools=TOOLS, tool_handler=tool, connect=local)
             work = asyncio.create_task(adapter.run_turn(PCM, realtime_pacing=False))
-            await asyncio.wait_for(entered.wait(), 2)
+            await asyncio.wait_for(entered.wait(), 5)
             await adapter.close()
             with self.assertRaises(asyncio.CancelledError): await work
         self.assertTrue(cancelled.is_set())

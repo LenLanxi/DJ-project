@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="63" time="76.463" timestamp="2026-10-27T15:41:39.608145+08:00" hostname="default"><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test01_begin_failure_does_not_lock_runner_running" time="0.259" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test02_cancel_aborts_blocking_host_observation_promptly" time="0.365" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test03_cancelled_old_host_action_cannot_use_new_model_grant" time="0.664" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test04_repeated_rpc_id_is_rejected_before_second_action" time="0.665" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test05_out_of_order_and_boolean_rpc_ids_are_rejected" time="2.018" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test06_stderr_budget_overflow_cannot_report_done_success" time="0.644" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test07_rpc_budget_exhaustion_stops_before_extra_action" time="3.535" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test08_oversized_rpc_has_no_device_effect" time="0.844" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test09_cli_wait_failure_still_removes_named_container_and_unlocks" time="2.510" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test10_external_task_cancellation_releases_running_flag" time="2.330" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test15_cancel_during_spawn_still_removes_named_container" time="2.535" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test16_cancel_during_stdin_backpressure_is_prompt" time="1.957" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test17_output_flood_aborts_blocking_host_rpc" time="0.798" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test18_container_remove_failure_is_not_silent_success" time="1.164" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test19_late_daemon_create_is_removed_before_cli_is_killed" time="1.204" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test20_absent_before_create_is_not_confirmed_even_if_cli_exited" time="0.912" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test21_unresolved_spawn_retains_cleanup_identity" time="1.822"><failure message="TimeoutError">fut = &lt;Task cancelled name='Task-291' coro=&lt;Event.wait() done, defined at C:\Users\bente\AppData\Roaming\uv\python\cpython-3....py:200&gt; created at C:\Users\bente\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\asyncio\tasks.py:680&gt;
+timeout = 0.5
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+    
+        if timeout is None:
+            return await fut
+    
+        if timeout &lt;= 0:
+            fut = ensure_future(fut, loop=loop)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+    
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+    
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+    
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+    
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+&gt;                   return fut.result()
+                           ^^^^^^^^^^^^
+
+..\..\..\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\asyncio\tasks.py:500: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;asyncio.locks.Event object at 0x000001F2C47FCE50 [set]&gt;
+
+    async def wait(self):
+        """Block until the internal flag is true.
+    
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+    
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+&gt;           await fut
+E           asyncio.exceptions.CancelledError
+
+..\..\..\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\asyncio\locks.py:213: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;SandboxSafetyTests.SandboxSafetyTests testMethod=test21_unresolved_spawn_retains_cleanup_identity&gt;
+
+    async def test21_unresolved_spawn_retains_cleanup_identity(self):
+        runner, _backend = self.runner()
+        runner.SPAWN_SETTLE_SECONDS = .01
+        entered, spawn_cancelled = asyncio.Event(), asyncio.Event()
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'):
+                entered.set()
+                try: await asyncio.Event().wait()
+                finally: spawn_cancelled.set()
+            if args[:3] == ('docker','rm','-f'):
+                return Process()
+            raise AssertionError(args)
+        with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            task = asyncio.create_task(runner.run('pass'))
+&gt;           await asyncio.wait_for(entered.wait(), .5)
+
+tests\SandboxSafetyTests.py:363: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fut = &lt;Task cancelled name='Task-291' coro=&lt;Event.wait() done, defined at C:\Users\bente\AppData\Roaming\uv\python\cpython-3....py:200&gt; created at C:\Users\bente\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\asyncio\tasks.py:680&gt;
+timeout = 0.5
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+    
+        if timeout is None:
+            return await fut
+    
+        if timeout &lt;= 0:
+            fut = ensure_future(fut, loop=loop)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+    
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+    
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+    
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+    
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+                    return fut.result()
+                except exceptions.CancelledError as exc:
+&gt;                   raise exceptions.TimeoutError() from exc
+E                   TimeoutError
+
+..\..\..\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\asyncio\tasks.py:502: TimeoutError</failure></testcase><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test22_follow_cleanup_error_preserves_pending_container_identity" time="1.240" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test23_invalid_stdout_does_not_fence_container_creation" time="1.210" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test24_external_task_cancel_retains_unconfirmed_cleanup_evidence" time="0.468" /><testcase classname="tests.SandboxSafetyTests.SandboxSafetyTests" name="test25_second_task_cancel_during_cleanup_cannot_confirm_absence" time="0.632" /><testcase classname="tests.SandboxSafetyTests.RealSandboxSafetyTests" name="test11_real_infinite_loop_cancelled_without_leftover_container" time="3.315" /><testcase classname="tests.SandboxSafetyTests.RealSandboxSafetyTests" name="test12_real_infinite_loop_deadline_removes_container" time="3.972" /><testcase classname="tests.SandboxSafetyTests.RealSandboxSafetyTests" name="test13_real_stdout_flood_is_bounded_and_failed" time="4.961" /><testcase classname="tests.SandboxSafetyTests.RealSandboxSafetyTests" name="test14_real_cancel_during_host_vision_wait_is_prompt" time="5.360" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_busy_manual_owner" time="0.413" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_cancel_invalidates_new_motion" time="0.207" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_failed_action_not_success" time="0.333" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_interrupt_does_not_wait_for_blocking_action" time="0.436" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_multi_step_and_follow_resume" time="0.801" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_no_docker_no_host_execution" time="0.211" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_no_fake_camera" time="0.266" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_read_only_does_not_acquire" time="0.410" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_sdk_units_only" time="0.264" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_stop_never_resumes" time="0.378" /><testcase classname="tests.GatewayTests.GatewayTests" name="test_unknown_host_function_rejected" time="0.257" /><testcase classname="tests.GatewayTests.PlaybackTests" name="test_dac_latency_subtracted" time="0.001" /><testcase classname="tests.GatewayTests.PlaybackTests" name="test_interrupt_drops_unplayed_audio" time="0.001" /><testcase classname="tests.GatewayTests.PlaybackTests" name="test_overflow_is_explicit" time="0.001" /><testcase classname="tests.GatewayTests.PlaybackTests" name="test_pcm_alignment" time="0.001" /><testcase classname="tests.GatewayTests.PlaybackTests" name="test_unplayed_item_truncates_to_zero" time="0.001" /><testcase classname="tests.GatewayTests.ConfigTests" name="test_container_boundary" time="0.001" /><testcase classname="tests.GatewayTests.ContainerIntegration" name="test_host_secrets_and_network_unavailable" time="2.132" /><testcase classname="tests.GatewayTests.ContainerIntegration" name="test_infinite_loop_timeout" time="2.903" /><testcase classname="tests.GatewayTests.ContainerIntegration" name="test_multi_step_full_python" time="5.107" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_actual_container_can_explicitly_adjust_and_receive_cleanup_confirmation" time="3.652" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_adjustment_rejects_more_motion_but_interrupt_still_works" time="0.751" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_adjustment_requires_follow_and_matching_completed_motion" time="0.509" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_explicit_depth_adjustment_applies_after_new_frame_and_success" time="0.689" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_failed_program_does_not_apply_accepted_adjustment" time="0.645" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_pre_action_frame_cannot_rebase_even_if_its_id_is_new" time="0.866" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_regular_temporary_action_preserves_original_reference" time="0.463" /><testcase classname="tests.R3IntegrationTests.R3IntegrationTests" name="test_runtime_default_uses_adaptive_depth_and_height_guards" time="0.441" /><testcase classname="tests.R3IntegrationTests.HeightContractTests" name="test_real_stale_height_does_not_become_fresh_by_polling" time="0.011" /><testcase classname="tests.R3IntegrationTests.HeightContractTests" name="test_status_preserves_packet_receipt_time_on_repeated_queries" time="0.014" /><testcase classname="tests.CleanupTests.CleanupTests" name="test_auto_removal_race_confirmed_absent_is_success" time="0.713" /><testcase classname="tests.CleanupTests.CleanupTests" name="test_daemon_error_is_not_proof_of_absence" time="0.227" /><testcase classname="tests.CleanupTests.CleanupTests" name="test_listing_must_confirm_no_matching_container" time="0.316" /><testcase classname="tests.CleanupTests.CleanupTests" name="test_unconfirmed_container_cannot_restore_follow" time="1.199" /><testcase classname="tests.ContainerWireTests.ProtocolTests" name="test_missing_final_result_is_failure" time="0.744" /><testcase classname="tests.ContainerWireTests.ProtocolTests" name="test_multiple_rpc_calls_and_journal" time="1.852" /><testcase classname="tests.ContainerWireTests.ProtocolTests" name="test_program_done_does_not_hide_interface_error" time="0.847" /><testcase classname="tests.ContainerWireTests.ProtocolTests" name="test_unknown_host_call_has_no_effect" time="0.849" /></testsuite></testsuites>
