@@ -10,7 +10,8 @@ from sandbox_runner import SandboxRunner
 class PayloadTests(unittest.IsolatedAsyncioTestCase):
     async def run_channel(self, value, count):
         gateway=SimpleNamespace(begin=lambda:None, finish=AsyncMock(),
-            dispatch=AsyncMock(return_value=value),cancelled=threading.Event(),simulated=True)
+            dispatch=AsyncMock(return_value=value),cancelled=threading.Event(),simulated=True,
+            cleanup={'status':'no_control'})
         runner=SandboxRunner(gateway)
         requests=[{'type':'rpc','id':i+1,'method':'get_frame','args':[],'kwargs':{}} for i in range(count)]
         requests.append({'type':'done','ok':True})

@@ -16,6 +16,7 @@
 | `rotate(degrees)` | 非零整数 -360..360；正顺时针、负逆时针，实际方向待现场核对。 |
 | `update_velocity(lr,fb,ud,yaw)` | 四整数 -100..100，属于 RC 请求值，不是厘米/秒；看门狗会归零。 |
 | `start_follow()` / `stop_follow()` | 无参数；调用本地跟随服务。控制交接失败不伪报成功。 |
+| `adjust_follow_reference(axis)` | axis为depth/horizontal/vertical；仅已有跟随被本任务暂停、且对应轴平移已完成时接受。随后不再运动。动作后新帧有效且程序成功时才更新该轴参考并恢复跟随；accepted不是应用完成。默认临时动作不更新参考。 |
 
 程序可使用分支、循环和 Python 标准库，但只在无网络、只读、无宿主挂载的受限 Docker 中运行。程序有时间、请求次数和输出预算，不允许无限执行。`print` 进入有上限的调试输出。
 

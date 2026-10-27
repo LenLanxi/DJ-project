@@ -9,7 +9,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from r3_follow.core import State
+from r3_follow.core import State, Observation
 from r3_follow.mock_port import MockPort
 from r3_follow.service import FollowService
 from r3_follow.team2_adapter import load_reviewed_stub
@@ -88,6 +88,22 @@ class ActualSdkYawRuntimeTests(unittest.TestCase):
         self.assertTrue(all(worker.is_alive() for worker in service.workers))
         return service
 
+    def test_first_budget_miss_waits_for_next_frame_through_unchanged_sdk(self):
+        original = MarkerTracker.detect
+        calls = []
+        def detect(tracker, frame, frame_id, acquired_at, source="camera", **kwargs):
+            calls.append(frame_id)
+            if len(calls) == 1:
+                return Observation(frame_id, acquired_at, source,
+                    frame.shape[1], frame.shape[0], tracker.target_id, False,
+                    reason="detection_budget_exceeded")
+            return original(tracker, frame, frame_id, acquired_at, source, **kwargs)
+        with patch.object(MarkerTracker, "detect", detect):
+            result = self.sdk.start_follow()
+        self.assertTrue(result.ok, result.reason)
+        self.assertGreaterEqual(len(calls), 2)
+        self.assertTrue(self.sdk.is_following())
+
     def velocity(self):
         return tuple(self.sdk._driver.snapshot()["velocity"])
 
@@ -106,6 +122,21 @@ class ActualSdkYawRuntimeTests(unittest.TestCase):
         self.assertLessEqual(self.velocity()[1], 30)
         self.assertTrue(self.sdk.stop_follow().ok)
         self.assertEqual(self.velocity(), (0, 0, 0, 0))
+
+    def test_plan_a_config_reaches_unchanged_sdk_and_sends_lateral_with_yaw(self):
+        config=REPO/'modules/follow/configs/aircraft_A_ID0_plan_a.json'
+        with patch.dict('os.environ', {'R3_FOLLOW_CONFIG':str(config)}):
+            result=self.sdk.start_follow()
+        self.assertTrue(result.ok,result.reason)
+        service=self.sdk._follow._bridge.service
+        self.assertEqual(service.config.pid_tuning,'responsive_v1')
+        self.assertEqual(service.controller.steering_mode,'adaptive')
+        self.change(x=.60,size=.20)
+        self.wait_for(lambda:self.velocity()[0]>0 and self.velocity()[1]>0 and self.velocity()[3]>0)
+        self.change(x=.40,size=.20)
+        self.wait_for(lambda:self.velocity()[0]<0 and self.velocity()[3]<0)
+        self.assertTrue(self.sdk.stop_follow().ok)
+        self.assertEqual(self.velocity(),(0,0,0,0))
 
     def test_repeated_sdk_start_during_recovery_keeps_original_service_and_deadline(self):
         service = self.start()

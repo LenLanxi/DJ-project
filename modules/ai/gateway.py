@@ -25,6 +25,7 @@ class Gateway:
         self.observation = None
         self.observations = set()
         self.cleanup = {'status': 'idle'}
+        self.follow_adjust_axis = self.last_translation = self.translation_completed_at = None
 
     def begin(self):
         if self.acquired:
@@ -37,6 +38,7 @@ class Gateway:
         self.resume = True
         self.observations.clear()
         self.cleanup = {'status': 'pending'}
+        self.follow_adjust_axis = self.last_translation = self.translation_completed_at = None
 
     def _current(self, generation):
         if self.cancelled.is_set() or generation != self.generation:
@@ -158,9 +160,26 @@ class Gateway:
             result = await asyncio.to_thread(self.vision.frame)
             self._current(generation)
             return result
+        if method == 'adjust_follow_reference':
+            axes = {'depth': ('move_forward','move_back'),
+                    'horizontal': ('move_left','move_right'),
+                    'vertical': ('move_up','move_down')}
+            if len(args) != 1 or not isinstance(args[0],str) or args[0] not in axes:
+                raise ValueError('follow adjustment axis must be depth, horizontal or vertical')
+            if not self.acquired or not self.was_following or self.ticket is None:
+                raise RuntimeError('follow_adjustment_requires_paused_follow')
+            if self.last_translation not in axes[args[0]] or self.translation_completed_at is None:
+                raise RuntimeError('follow_adjustment_requires_completed_matching_translation')
+            self.follow_adjust_axis = args[0]
+            return {'ok':True,'status':'accepted','axis':args[0],
+                    'reason':'applied_only_after_success_and_fresh_post_action_frame'}
         if method in ('start_follow', 'stop_follow'):
             if args:
                 raise ValueError('follow takes no arguments')
+            if self.follow_adjust_axis is not None:
+                if method == 'start_follow':
+                    raise RuntimeError('follow_adjustment_must_be_last_motion')
+                self.follow_adjust_axis = None
             self.resume = False
             if method == 'stop_follow':
                 result = await self._bound(self.backend.stop_follow)
@@ -187,6 +206,10 @@ class Gateway:
             return result
         if method not in MOTION:
             raise ValueError('host capability not exposed: ' + str(method))
+        if self.follow_adjust_axis is not None:
+            if method not in ('land','stop_motion'):
+                raise RuntimeError('follow_adjustment_must_be_last_motion')
+            self.follow_adjust_axis = None
         if method in DISTANCE:
             if len(args) != 1 or type(args[0]) is not int or not 20 <= args[0] <= 500:
                 raise ValueError('distance must be an integer from 20 to 500 cm')
@@ -215,6 +238,10 @@ class Gateway:
         if method == 'land':
             await self._confirm_landed(generation)
             result = dict(result, status='completed', is_blocking=True, landed_confirmed=True)
+        if method in DISTANCE:
+            self.last_translation, self.translation_completed_at = method, time.time()
+        else:
+            self.last_translation = self.translation_completed_at = None
         if method in DISTANCE | {'rotate', 'update_velocity'} and self.observation is not None:
             # One image cannot justify repeated moves after the view changed.
             self.observation = dict(self.observation, consumed=True)
@@ -290,9 +317,15 @@ class Gateway:
                 and self.was_following and not self.cancelled.is_set()):
             if ticket is None:
                 raise RuntimeError('follow_recovery_ticket_missing')
-            recovered = await self._bound(self.backend.finish_follow_action, ticket, True)
+            if self.follow_adjust_axis is None:
+                recovered = await self._bound(self.backend.finish_follow_action, ticket, True)
+            else:
+                recovered = await self._bound(self.backend.finish_follow_action, ticket, True,
+                                              self.follow_adjust_axis, self.translation_completed_at)
             self._current(generation)
             if not recovered.get('ok'):
                 self.cleanup = {'status': 'follow_resume_failed', 'result': recovered}
                 raise RuntimeError('follow_resume_failed: ' + str(recovered))
             self.cleanup = {'status': 'follow_resumed'}
+            if self.follow_adjust_axis is not None:
+                self.cleanup['reference_adjusted'] = self.follow_adjust_axis

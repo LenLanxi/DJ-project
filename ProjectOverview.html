@@ -59,10 +59,10 @@
 <tr><td><code>modules/rtc</code><br><code>RTCBridge.py</code></td><td>网页耳机与无人机视频、云服务配置、本机授权和工具消息；长期凭据留在服务端。</td></tr>
 <tr><td><code>modules/ai</code></td><td>容器执行、网关、SDK 适配，以及本机按需视觉调用与用量记录。</td></tr>
 <tr><td><code>drone_sdk</code></td><td>控制权、遥测、实际发送、看门狗、图传与跟随生命周期交接。</td></tr>
-<tr><td><code>modules/follow</code></td><td>ArUco 标记识别及可配置 PID；本轮保持算法，调整外层联调和源码绑定。</td></tr>
+<tr><td><code>modules/follow</code></td><td>合并三组 b2ce3d2：ArUco、PID、自适应横移/转向、相对距离、提前减速及带遥测保护的上下跟随。</td></tr>
 <tr><td><code>tests</code><br><code>ScenarioAcceptance</code></td><td>行为回归、替身和验收证据；测试替身不作为正式飞机入口。</td></tr>
 </tbody></table></div>
-<p>跟随比较标记的水平偏差和大小变化，用 PID 调节请求。默认配置以转向对准目标。“OpenPose”来自复用控制方法的来源，当前没有启用人体骨架识别；标记大小也不是精确米数。</p>
+<p>跟随比较标记的位置和大小变化，用 PID 调节请求。默认 motion_follow 在靠近画面中央时主要横移，偏离较大时逐渐多转向，并启用上下跟随和提前减速。“OpenPose”来自控制方法的来源，没有启用人体骨架识别；相对标记大小也不是精确米数。临时程序默认保留原基准，只有显式 adjust_follow_reference 且动作后新帧有效、程序成功时才更新指定轴。</p>
 </section>
 <section id="scenario"><span class="index">03 / WALK THROUGH</span><h2>你的完整场景，逐步会发生什么</h2>
 <div class="routes">

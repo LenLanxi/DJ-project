@@ -81,6 +81,7 @@ def describe_status(*, state, active, visible, closed, pending_resume,
         "device_unavailable_or_not_airborne": "设备不可用或不在飞行状态",
         "explicit_stop": "已收到停止指令",
         "not_started": "尚未开始",
+        "image_size_changed_requires_new_session": "画面分辨率已改变，需关闭并重新建立跟随服务",
     }.get(reason, reason or "尚未开始")
     target = "目标现在可见，但跟随没有运行" if visible else "当前没有新鲜、可靠的目标"
     return f"跟随未运行（{cause}）；{target}。排除原因后需重新开始；不会因绿框出现自行启动。"

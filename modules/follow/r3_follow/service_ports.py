@@ -38,6 +38,8 @@ class DeviceStatus:
     connected: bool | None
     airborne: bool | None
     lease: Lease | None
+    height_cm: float | None = None
+    height_fresh: bool = False
 
 
 class SimulationPort(Protocol):

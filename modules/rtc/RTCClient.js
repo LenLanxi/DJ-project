@@ -43,6 +43,11 @@
       reason: String(result.reason || '').slice(0, 120)
     };
     if (typeof result.simulated === 'boolean') compact.simulated = result.simulated;
+    if (result.follow_cleanup?.status === 'follow_resumed') {
+      compact.follow_resumed = true;
+      if (typeof result.follow_cleanup.reference_adjusted === 'string')
+        compact.follow_reference_adjusted = result.follow_cleanup.reference_adjusted;
+    }
     if (typeof result.debug === 'string' && result.debug.trim()) {
       compact.program_output = result.debug.trim().slice(0, 180);
       if (result.debug.trim().length > 180) compact.truncated = true;

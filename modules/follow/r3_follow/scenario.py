@@ -23,7 +23,7 @@ def run(path):
         return request
 
     def zero(request):
-        return request.right == request.forward == 0
+        return request.right == request.forward == request.up == request.yaw == 0
 
     frame(0)
     assert zero(record("default_stopped", 0))

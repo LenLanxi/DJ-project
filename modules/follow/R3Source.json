@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/Zackxx777/DJ-project-R3",
+  "source_commit": "b2ce3d2b1f7b874f76022c76d3c6ee695bb39f2e",
+  "comparison_base": "4f586860bc7dbcf46dd8be97aa259fc7027d02a8",
+  "integration_base": "6d0ff3e175e3a653a445aa7f96688ca9a020071b",
+  "scope": "Follow control, configurations, offline diagnostics and regression tests; preserve existing vendor licenses and provenance.",
+  "adaptations": [
+    "Preserve current RTC and Docker execution rather than importing upstream legacy voice/host execution routes.",
+    "Expose existing SDK state-packet receipt timestamp to the R3 height guard; do not install a second telemetry parser.",
+    "Combine startup/preview/recovery improvements with immutable operation cancellation, grant epochs and retained cleanup state.",
+    "Reference rebasing is explicit and conditional on a matching completed translation, fresh post-action frame and program success; default temporary programs preserve the original reference."
+  ],
+  "hardware_verified_by_this_integration": false
+}

@@ -36,7 +36,9 @@ class MockPort:
 
     def get_status(self):
         with self.lock:
-            return DeviceStatus(self.connected, self.airborne, self.lease)
+            return DeviceStatus(self.connected, self.airborne, self.lease,
+                                getattr(self, "height_cm", 120.),
+                                getattr(self, "height_fresh", True))
 
     def _zero(self, reason):
         self.velocity = (0, 0, 0, 0)

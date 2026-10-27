@@ -4,6 +4,7 @@ MODE_NAMES = {
     "yaw": "转向跟随（不横移）",
     "lateral": "横移跟随（不转向，待实飞）",
     "hybrid": "转向＋横移（共用横向请求，待实飞）",
+    "adaptive": "横移为主，偏到画面边缘时加强转向（待实飞）",
 }
 
 
@@ -66,3 +67,15 @@ def depth_status_text(guard):
         "waiting_for_stable_shape": "正在确认形状稳定，前后归零",
     }
     return reasons.get(guard.get("reason"), "形状检查：" + str(guard.get("reason")))
+
+
+def braking_text(status):
+    labels = {
+        'approach_braking': '正在提前减速／制动',
+        'depth_trend_response': '正在按距离变化调整请求',
+        'small_reversal_zero': '小幅反向请求暂时归零，避免来回跳动',
+        'insufficient_consistent_trend': '沿用 PID，等待可靠的变化趋势',
+        'geometry_blocked_or_legacy_distance': '未启用趋势修正（检查距离模式或目标形状）',
+    }
+    reason=status.get('reason','')
+    return '前后制动：'+labels.get(reason,'未积累运动趋势')

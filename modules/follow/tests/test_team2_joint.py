@@ -40,6 +40,10 @@ class JointTests(unittest.TestCase):
         self.service = self.runtime.bridge.service
         self.now, self.seq = 10.0, 0
         self.service.clock = lambda: self.now
+        self.service.wall = lambda: 1800000000. + self.now
+        # This fixture advances simulated time explicitly. Use the same clock
+        # for detector admission; CPU-budget behavior has dedicated tests.
+        self.service.tracker._clock = self.service.clock
         self.packet = None
         self.port.frame_provider = lambda: self.packet
         self.addCleanup(self.cleanup)
@@ -57,7 +61,7 @@ class JointTests(unittest.TestCase):
     def frame(self, **kwargs):
         self.now += .11
         self.seq += 1
-        self.packet = FrameSnapshot(synthetic_frame(**kwargs), self.seq, time.time())
+        self.packet = FrameSnapshot(synthetic_frame(**kwargs), self.seq, self.service.wall())
         self.service.capture_once()
         self.service.control_once()
 
@@ -336,7 +340,7 @@ class JointTests(unittest.TestCase):
             return original(*args, **kwargs)
         self.now += .11
         self.seq += 1
-        self.packet = FrameSnapshot(synthetic_frame(x=.8), self.seq, time.time())
+        self.packet = FrameSnapshot(synthetic_frame(x=.8), self.seq, self.service.wall())
         worker = threading.Thread(target=self.service.capture_once)
         priority = threading.Thread(target=lambda: (self.runtime.interrupt(), done.set()))
         with patch.object(self.service.tracker, "detect", side_effect=slow):

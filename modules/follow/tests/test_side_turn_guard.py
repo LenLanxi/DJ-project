@@ -251,7 +251,9 @@ class ServiceShapeTests(unittest.TestCase):
         self.service.control_once()
         self.assertEqual(self.port.velocity, (30, 0, 0, 0))
         self.assertAlmostEqual(self.service.last_send-previous, .01)
-        self.assertTrue(self.service.events[-1]["urgent_depth_stop"])
+        motion = next(event for event in reversed(self.service.events)
+                      if event['event'] == 'motion_request')
+        self.assertTrue(motion["urgent_depth_stop"])
         n = len(self.port.events)
         for _ in range(5):
             self.service.control_once()

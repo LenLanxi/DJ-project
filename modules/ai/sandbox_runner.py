@@ -236,6 +236,7 @@ class SandboxRunner:
             finally:
                 self.running = False
         return {**result, 'simulated':self.gateway.simulated, 'journal':journal,
+                'follow_cleanup':dict(self.gateway.cleanup),
                 'debug':debug.decode(errors='replace')}
 
     @staticmethod

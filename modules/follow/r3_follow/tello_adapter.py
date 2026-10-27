@@ -127,7 +127,8 @@ def preview_rc(request: MotionRequest, *, full_scale: int) -> RCPreview:
     if request.state != State.TRACKING:
         return RCPreview(0, 0)
     if any(not isinstance(v, (int, float)) or not math.isfinite(v)
-           or abs(v) > .3 for v in (request.right, request.forward, request.yaw)):
+           or abs(v) > .3 for v in (request.right, request.forward, request.yaw, request.up)):
         raise ValueError("Invalid dimensionless motion request")
     return RCPreview(round(request.right * full_scale),
-                     round(request.forward * full_scale), yaw=round(request.yaw * full_scale))
+                     round(request.forward * full_scale), up_down=round(request.up * full_scale),
+                     yaw=round(request.yaw * full_scale))

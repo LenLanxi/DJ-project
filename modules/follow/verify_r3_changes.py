@@ -42,7 +42,7 @@ def main():
          patch("cv2.VideoCapture", side_effect=AssertionError("Camera forbidden")), \
          patch("tkinter.Tk", side_effect=AssertionError("Desktop forbidden")):
         result = unittest.TextTestRunner(stream=stream, verbosity=2).run(unittest.TestSuite(tests))
-    report = dict(base_commit="9889b47cbfcd38ec48bcf5095295a31c4ec7eaa0",
+    report = dict(base_commit="9a7d2a17c4634b0c26bcab82a48410021031e714",
         python=sys.version, executable=sys.executable, opencv=cv2.__version__, numpy=numpy.__version__,
         run=result.testsRun, passed=result.testsRun-len(result.failures)-len(result.errors)-len(result.skipped),
         failures=[test.id() for test, _ in result.failures], errors=[test.id() for test, _ in result.errors],

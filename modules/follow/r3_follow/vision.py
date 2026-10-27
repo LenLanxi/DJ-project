@@ -479,7 +479,11 @@ class MarkerTracker:
             "rejected_quads_sample": [np.asarray(quad[0]).tolist() for quad in
                 sorted(rejected, key=lambda q: abs(cv2.contourArea(q)), reverse=True)[:6]],
             "image_width": width, "image_height": height,
-            "image_sharpness": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
+            # Diagnostic only; avoid a full-resolution float64 convolution on
+            # every control frame. Detector pixels/identity rules stay intact.
+            "image_sharpness": float(cv2.Laplacian(cv2.resize(gray,
+                (min(320,width), max(1, round(height*min(320,width)/width)))), cv2.CV_16S).var()),
+            "sharpness_diagnostic_width": min(320,width),
             "detect_ms": (perf_counter()-started)*1000}
         check_budget("image_diagnostics:after")
         matches = [] if ids is None else [i for i, v in enumerate(ids.flatten()) if int(v) == self.target_id]
@@ -521,6 +525,12 @@ class MarkerTracker:
     def _same_quad(a, b):
         """Deduplicate the same physical quad across crops/order/refinement."""
         tolerance = max(3., .04*min(np.linalg.norm(a-np.roll(a, -1, axis=0), axis=1)))
+        # Disjoint bounding boxes cannot pass either corner-distance or IoU
+        # matching. Avoid eight corner permutations and polygon intersection
+        # for unrelated background contours; no candidate/decoder is skipped.
+        if (np.any(a.min(axis=0) - b.max(axis=0) > tolerance)
+                or np.any(b.min(axis=0) - a.max(axis=0) > tolerance)):
+            return False
         if any(np.max(np.linalg.norm(a-np.roll(order, n, axis=0), axis=1)) < tolerance
                for order in (b, b[::-1]) for n in range(4)):
             return True
@@ -534,7 +544,7 @@ class MarkerTracker:
                 and np.linalg.norm(a.mean(0)-b.mean(0)) < .15*np.sqrt(min(area_a, area_b)))
 
 
-def synthetic_frame(x=0.5, size=0.25, visible=True, marker_id=0):
+def synthetic_frame(x=0.5, size=0.25, visible=True, marker_id=0, *, y=0.5):
     """Synthetic camera input only; does not simulate aircraft physics."""
     frame = np.full((480, 640, 3), 245, dtype=np.uint8)
     if visible:
@@ -542,6 +552,6 @@ def synthetic_frame(x=0.5, size=0.25, visible=True, marker_id=0):
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         marker = cv2.aruco.generateImageMarker(dictionary, marker_id, side)
         left = max(20, min(620 - side, int(x * 640 - side / 2)))
-        top = 240 - side // 2
+        top = max(20, min(460 - side, int(y * 480) - side // 2))
         frame[top:top+side, left:left+side] = cv2.cvtColor(marker, cv2.COLOR_GRAY2BGR)
     return frame

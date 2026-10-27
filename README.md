@@ -13,11 +13,15 @@
 - `modules/ai/sandbox_runner.py`、`sandbox/worker.py`：完整 Python 程序在 Docker 内执行；没有宿主机执行回退。
 - `modules/ai/gateway.py`、`backends.py`：参数检查、控制授权编号、临时交接、结果与清理。
 - `drone_sdk`：真实 Tello 驱动、遥测、最终发送检查、停止、降落及图传。
-- `modules/follow`：第三组标记识别及可配置 PID。本轮保持算法不变；只迁移外层联调代码及更新 SDK 源码绑定。
+- `modules/follow`：合并三组 `DJ-project-R3@b2ce3d2` 的 ArUco、可配置 PID、自适应横移/转向、相对距离、提前减速与上下跟随；来源见 `modules/follow/R3Source.json`。
 - `tests`：替身、行为回归、真实容器检查和显式启用的云接口诊断。替身不进入正式执行路径。
 - `ScenarioAcceptance/Evidence/Current`：本轮软件检查、云语音诊断和费用估算；`History` 与 `Results` 保留历史证据。均不能代替真机验收。
 
 控制关系：RTC 模型 → 完整 Python → 隔离容器 → 网关 → SDK → Tello。跟随在电脑本地持续运行，云端只负责意图、观察和程序；两个模块共用同一连接。
+
+启动器默认 `aircraft_A_ID0_motion_follow.json`：ID0、adaptive、responsive_v1、relative_size、上下跟随；横向共享预算50 RC、前后40 RC、上下20 RC。高度配置50–200cm，距边界20cm时拦截继续外向升降；高度遥测未知/过期时升降归零。RC不是物理速度，高度保护不是实际刹停保证。参考标记平均边长占图宽的比例上限0.20，默认不是米制测距；pose模式需要另行测量标记及标定相机。
+
+临时程序默认保留原跟随距离/构图。用户明确调整跟随位置时，可在对应轴移动后调用 `adjust_follow_reference('depth'/'horizontal'/'vertical')`；等待动作后新帧且整段程序成功才更新并恢复。该调用返回accepted时尚未应用，最终工具结果的follow_cleanup提供确认。红帐篷等临时任务不应重设原跟随基准。短暂丢失默认归零等待最多30秒，旧帧/异常仍停止；旋转后恢复仍要求原标记可见。
 
 ## 环境
 

@@ -12,7 +12,7 @@ from dataclasses import replace
 HERE = Path(__file__).resolve().parent
 PACKAGE = HERE.parents[1]
 SOURCE = HERE
-EXPECTED_VERSION = 'r3-9889b47-closeout1'
+EXPECTED_VERSION = 'r3-motion-follow1'
 EXPECTED_PROFILE = 'openpose_pid_marker_v2'
 
 
@@ -32,12 +32,12 @@ sys.path.insert(0,str(SOURCE))
 import cv2
 import numpy as np
 from r3_follow import __version__
-from r3_follow.config import FollowConfig
+from r3_follow.config import FollowConfig, load_config
 from r3_follow.service import FollowService
 from r3_follow.mock_port import MockPort
 from r3_follow.service_ports import FrameSnapshot
 from r3_follow.vision import synthetic_frame
-from r3_follow.presentation import motion_text, distance_text, depth_status_text
+from r3_follow.presentation import motion_text, distance_text, depth_status_text, braking_text
 from r3_follow.physical_metrics import create_distance_calibration, estimate_distance
 
 
@@ -81,11 +81,13 @@ class WebcamMockPort(MockPort):
 
 
 def make_service(reader, target_id=0, log_directory=False,
-                 monotonic=time.monotonic, wall=time.time, *, steering_mode='yaw'):
+                 monotonic=time.monotonic, wall=time.time, *, steering_mode='yaw',
+                 vertical_follow=False, distance_mode="relative_size", config=None):
     if __version__!=EXPECTED_VERSION:raise RuntimeError('后台版本不匹配')
     port=WebcamMockPort(reader,monotonic,wall)
-    config=FollowConfig(f'camera-bench-ID{target_id}',target_id,
-                        'DICT_4X4_50','openpose_pid',steering_mode=steering_mode)
+    config=load_config(config) if config is not None else FollowConfig(f'camera-bench-ID{target_id}',target_id,
+                        'DICT_4X4_50','openpose_pid',steering_mode=steering_mode,
+                        vertical_follow=vertical_follow, distance_mode=distance_mode)
     service=FollowService(port,**config.to_dict(),recovery_window=3,
         log_directory=log_directory,monotonic=monotonic,wall_clock=port.epoch_time)
     status=service.get_follow_status()
@@ -94,7 +96,8 @@ def make_service(reader, target_id=0, log_directory=False,
         service.close();raise RuntimeError('未启用本次适配的开源PID，停止测试')
     service._record('camera_bench_context',actual_frame_source='local_webcam',
         device_port='MockPort_only_no_SDK',source_version=__version__,
-        control_profile=EXPECTED_PROFILE,steering_mode=steering_mode,source_path=str(SOURCE),
+        control_profile=EXPECTED_PROFILE,steering_mode=config.steering_mode,source_path=str(SOURCE),
+        vertical_follow=config.vertical_follow, effective_config=config.to_dict(),
         recording_images=False,recording_audio=False,
         timestamp_origin='host_camera_read_complete_not_hardware_exposure')
     return port,service
@@ -106,6 +109,10 @@ PHASES=[('正对固定','保持标记正对镜头、不移动',5),
         ('缓慢拿近','保持正对，慢慢拿回参考位置',5),
         ('侧转后转正','原地缓慢侧转，再转回正对',5),
         ('短遮挡恢复','遮住约1秒后立即露出，保持正对至结束',5)]
+
+VERTICAL_PHASES=PHASES[:4]+[
+        ('缓慢抬高','保持距离不变，把标记向画面上方移动；应显示飞机上升正值',5),
+        ('缓慢放低','保持距离不变，把标记向画面下方移动；应显示飞机下降负值',5)]+PHASES[4:]
 
 
 def displayed_distance(observation, calibration, status, *, now, camera_key, marker_key):
@@ -119,13 +126,14 @@ def displayed_distance(observation, calibration, status, *, now, camera_key, mar
         marker_key=marker_key,reference_size_ratio=status.get('reference_size'))
 
 
-def phase_at(elapsed):
+def phase_at(elapsed, vertical_follow=False):
     if elapsed<5:return -1,'准备','保持参考位置，等待倒计时',5-elapsed
     remaining=elapsed-5
-    for index,(name,prompt,duration) in enumerate(PHASES):
+    phases=VERTICAL_PHASES if vertical_follow else PHASES
+    for index,(name,prompt,duration) in enumerate(phases):
         if remaining<duration:return index,name,prompt,duration-remaining
         remaining-=duration
-    return len(PHASES),'完成','本轮已停止，日志已记录',0
+    return len(phases),'完成','本轮已停止，日志已记录',0
 
 
 def test_start_decision(status):
@@ -174,19 +182,27 @@ def save_diagnostic_frame(reader, observation=None, directory=None, wall=time.ti
         message=f'已保存第{frame_id}帧原始画面（含背景，无识别框）。{detection_note} 文件：{image_path.name}')
 
 
-def gui(camera, target_id, steering_mode='yaw'):
+def gui(camera, target_id, steering_mode='yaw', vertical_follow=False, config=None):
     verify_source()  # Also guard callers that import gui() instead of using CLI.
+    if config is not None:
+        config=load_config(config)
+        if config.distance_mode == 'pose' and config.camera_id != f'local-webcam-{camera}':
+            raise ValueError('Use a webcam-specific calibration; aircraft pose configuration must not open a webcam')
+        target_id,steering_mode,vertical_follow=config.target_id,config.steering_mode,config.vertical_follow
     import tkinter as tk
     from tkinter import ttk
     from follow_demo import CameraReader  # only reuse camera reader, not old GUI/controller
     # Metadata writes must not race the session logger's background mkdir.
     (HERE/'logs').mkdir(parents=True,exist_ok=True)
     root=tk.Tk()
-    root.title('R3 开源PID摄像头测试 · closeout1 · 仅模拟运动')
+    root.title('R3 跟随响应测试 · 仅模拟运动')
     root.geometry(f'{min(1040,root.winfo_screenwidth()-70)}x{min(740,root.winfo_screenheight()-100)}')
     root.minsize(700,480)
     reader=CameraReader(camera)
-    port,service=make_service(reader,target_id,HERE/'logs',steering_mode=steering_mode)
+    port,service=make_service(reader,target_id,HERE/'logs',steering_mode=steering_mode,
+                              vertical_follow=vertical_follow,config=config)
+    phases=VERTICAL_PHASES if vertical_follow else PHASES
+    test_seconds=sum(p[2] for p in phases)
     service.start_background()
     service._record('bench_open',camera_index=camera)
     log_path=service.session_log.path
@@ -196,7 +212,7 @@ def gui(camera, target_id, steering_mode='yaw'):
     camera_key=f'local-camera-{camera}-session-{service.service_session_id}'
     metadata={'version':__version__,'profile':EXPECTED_PROFILE,'target_id':target_id,
         'source':'local_webcam','motion':'MockPort only; no aircraft','steering_mode':steering_mode,
-        'camera_key':camera_key,'distance_calibration':None,
+        'camera_key':camera_key,'distance_calibration':None,'vertical_follow':vertical_follow,
         'session_log':str(log_path),'source_path':str(SOURCE),'phases':[],
         'images_saved':False,'hardware_connected':False,
         'pid_settings':service.controller._openpose.status(),
@@ -208,11 +224,14 @@ def gui(camera, target_id, steering_mode='yaw'):
     save_metadata()
     bar=ttk.Frame(root,padding=8);bar.pack(side='bottom',fill='x')
     note=tk.StringVar(value='先让标记正对镜头，看到绿框后记录参考大小，再开始。')
-    phase_text=tk.StringVar(value='本轮记录：准备5秒＋测试30秒；程序会提示动作。')
+    phase_text=tk.StringVar(value=f'本轮记录：准备5秒＋测试{test_seconds}秒；程序会提示动作。')
     ttk.Label(root,text='本机摄像头 → 开源PID计算 → 模拟请求（未连接无人机）',
               font=('Microsoft YaHei',14,'bold')).pack(pady=(8,2))
     ttk.Label(root,text=f'{EXPECTED_PROFILE}  |  {__version__}  |  DICT_4X4_50 ID{target_id}',
               foreground='#075f51').pack()
+    ttk.Label(root,text=f'距离计算：{service.config.distance_mode}；限幅：{service.rc_caps} RC；高度为模拟值').pack()
+    ttk.Label(root,text='自动上下：'+('已开启（上限20 RC，保持标记在画面中部）' if vertical_follow
+                                  else '未开启（旧配置兼容模式，上下请求为0）')).pack()
     ttk.Label(root,textvariable=phase_text,wraplength=950,font=('Microsoft YaHei',12,'bold')).pack(pady=6)
     body=ttk.Frame(root);body.pack(fill='both',expand=True,padx=8)
     picture=ttk.Label(body,anchor='center');picture.pack(side='left',fill='both',expand=True)
@@ -273,7 +292,7 @@ def gui(camera, target_id, steering_mode='yaw'):
         else:result={'start':service.start_follow,
                 'pause':service.pause_follow,'resume':service.resume_follow,
                 'stop':service.stop_follow}[name]()
-        success={'calibrate':'参考大小已记录。现在点“2 开始”。','start':'跟随计算已开启，可点“3 开始30秒分段测试”。',
+        success={'calibrate':'参考大小已记录。现在点“2 开始”。','start':f'跟随计算已开启，可点“3 开始{test_seconds}秒分段测试”。',
                  'pause':'已暂停。','resume':'已恢复。','stop':'已停止；新绿框不会自动重新开始。'}
         failed={'new_valid_frame_required':'还没有可靠的新画面，请等绿框出现。',
                 'Fresh valid target required':'目标没有稳定识别，请正对镜头后再试。',
@@ -296,9 +315,10 @@ def gui(camera, target_id, steering_mode='yaw'):
             save_metadata();return
         state.update(test_started=time.monotonic(),phase=None,finished=False,aborted=False)
         metadata['test_started_monotonic']=state['test_started'];metadata['phases']=[]
-        service._record('bench_test_start',phases=PHASES,preparation_seconds=5)
+        service._record('bench_test_start',phases=phases,preparation_seconds=5,
+                        vertical_follow=vertical_follow)
         save_metadata()
-    ttk.Button(bar,text='3 开始30秒分段测试（另有5秒准备）',command=begin_test).pack(fill='x',pady=3)
+    ttk.Button(bar,text=f'3 开始{test_seconds}秒分段测试（另有5秒准备）',command=begin_test).pack(fill='x',pady=3)
     def save_current_frame():
         with service.lock:observation=service.controller.observation
         result=save_diagnostic_frame(reader,observation)
@@ -336,6 +356,7 @@ def gui(camera, target_id, steering_mode='yaw'):
         details.set(f'帧号：{status["frame_id"]}\n识别耗时：{vision.get("detection_ms",0):.1f} ms\n'
             f'识别结果帧龄：{age:.1f} ms\n' if age is not None else '等待相机新画面\n')
         details.set(details.get()+(depth_status_text(status['distance_guard'])+'\n')+
+            braking_text(status['depth_brake'])+'\n'+
             ('相机：'+error if error else '')+
             (f'\n日志错误：{service.session_log.error}' if service.session_log.error else ''))
         distance_result=displayed_distance(obs,state['distance_calibration'],status,now=service.clock(),
@@ -354,18 +375,18 @@ def gui(camera, target_id, steering_mode='yaw'):
             phase_text.set('本轮已中断，日志已保存；本轮不会标记为完成。')
             save_metadata()
         if state['test_started'] is not None:
-            elapsed=time.monotonic()-state['test_started'];index,name,prompt,left=phase_at(elapsed)
+            elapsed=time.monotonic()-state['test_started'];index,name,prompt,left=phase_at(elapsed,vertical_follow)
             if index!=state['phase']:
                 state['phase']=index
                 row={'index':index,'name':name,'phase_at_monotonic':time.monotonic(),'elapsed':elapsed}
                 metadata['phases'].append(row);service._record('bench_phase',**row)
             phase_text.set(f'{name}：{prompt}（约{max(0,int(left)+1)}秒）')
-            if index==len(PHASES):
+            if index==len(phases):
                 service.stop_follow()
                 service._record('bench_test_completed')
                 state.update(test_started=None,finished=True)
                 note.set('本轮完成并已停止。可以关闭窗口，再回复“测完了”。')
-                phase_text.set('30秒分段测试完成，已停止。');save_metadata()
+                phase_text.set(f'{test_seconds}秒分段测试完成，已停止。');save_metadata()
         root.after(100,update)
     def close():
         state['closing']=True
@@ -428,6 +449,26 @@ def self_check():
             checks['stopped_rejection_explains_actual_state']=not allowed and '需重新开始' in why
             checks['tracking_can_start_test']=test_start_decision(dict(following=True))[0]
     finally:service.close()
+    clock,reader=Clock(),Reader()
+    up_port,up_service=make_service(reader,monotonic=clock.mono,wall=clock.wall,vertical_follow=True)
+    try:
+        def vertical_feed(seq,y=.5,visible=True):
+            clock.now+=.1
+            reader.latest=(seq,clock.now,synthetic_frame(y=y,visible=visible))
+            up_service.capture_once();up_service.control_once()
+        vertical_feed(1)
+        assert up_service.calibrate_reference().ok and up_service.start_follow().ok
+        checks['vertical_explicitly_enabled']=up_service.get_follow_status()['vertical_follow']
+        for seq in range(2,7):vertical_feed(seq,.3)
+        checks['upward_actual_nonzero']=up_port.velocity[2]>0
+        for seq in range(7,13):vertical_feed(seq,.7)
+        checks['downward_actual_negative']=up_port.velocity[2]<0
+        vertical_feed(13,visible=False)
+        checks['loss_zero_includes_vertical']=up_port.velocity==(0,0,0,0)
+        up_service.stop_follow();vertical_feed(14,.3)
+        checks['stop_blocks_vertical_restart']=up_port.velocity==(0,0,0,0) and not up_service.is_following()
+        checks['vertical_test_phase_boundaries']=[phase_at(t,True)[0] for t in (25,30,35,40,45)]==[4,5,6,7,8]
+    finally:up_service.close()
     assert all(checks.values()),checks
     report=dict(python=sys.version,profile=EXPECTED_PROFILE,source=EXPECTED_VERSION,
         checks=checks,camera_opened=False,desktop_opened=False,passed=True)
@@ -442,9 +483,11 @@ if __name__=='__main__':
     parser.add_argument('--steering-mode',choices=('yaw','lateral','hybrid'),default='yaw',
                         help='lateral/hybrid are explicit uncalibrated offline candidates')
     parser.add_argument('--self-check',action='store_true')
+    parser.add_argument('--config',type=Path,help='加载指定三组配置；覆盖目标、模式和上下开关，仍只用MockPort')
+    parser.add_argument('--vertical-follow',action='store_true',help='启用原开源升降PID；只发给MockPort')
     args=parser.parse_args()
     if sys.version_info[:2]!=(3,11):raise SystemExit('请使用本项目Python3.11启动入口')
     verify_source()
     cv2.setNumThreads(1)
     if args.self_check:self_check()
-    else:gui(args.camera,args.target_id,args.steering_mode)
+    else:gui(args.camera,args.target_id,args.steering_mode,args.vertical_follow,args.config)
