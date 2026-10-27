@@ -120,7 +120,18 @@ class Team2StubPort:
             if (type(status.timestamp) not in (int,float) or not math.isfinite(status.timestamp)
                     or not 0 <= time.time()-status.timestamp <= .5):
                 connected=airborne=None
-            return DeviceStatus(connected,airborne,self.lease)
+            height = getattr(status, 'height_cm', None)
+            # The reviewed SDK's timestamp is query time, not telemetry time.
+            # Real altitude must carry its own acquisition stamp. Simulated
+            # status is explicitly tagged and only represents invented height.
+            height_stamp = getattr(status, 'height_timestamp', None)
+            height_time_valid = (type(height_stamp) in (int, float)
+                and math.isfinite(height_stamp) and 0 <= time.time()-height_stamp <= .5)
+            height_fresh = (connected is True and airborne is True
+                and (getattr(status, 'simulated', None) is True or height_time_valid)
+                and type(height) in (int, float) and math.isfinite(height) and 0 <= height <= 1000)
+            return DeviceStatus(connected, airborne, self.lease,
+                                height if height_fresh else None, height_fresh)
 
     def request_control(self, owner):
         with self.lock:

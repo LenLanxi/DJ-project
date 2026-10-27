@@ -50,6 +50,28 @@ class MultiTargetDemoAcceptanceTests(unittest.TestCase):
         self.assertTrue(any(v['reason'] == 'observation_not_assigned_marker'
                             for v in result['violations']))
 
+    def test_missing_vertical_channel_cannot_pass(self):
+        original=OpenPoseMarkerControl.update
+        def suppress_vertical(control,*args,**kwargs):
+            horizontal=original(control,*args,**kwargs)
+            control.vertical_request=0
+            return horizontal
+        with patch.object(OpenPoseMarkerControl,'update',suppress_vertical):
+            code,result=self.execute()
+        self.assertEqual(code,1)
+        self.assertFalse(result['scenario_checks']['aircraft-A_vertical_follows_own_marker'])
+
+    def test_reversed_vertical_direction_cannot_pass(self):
+        original=OpenPoseMarkerControl.update
+        def reverse_vertical(control,*args,**kwargs):
+            horizontal=original(control,*args,**kwargs)
+            control.vertical_request=-control.vertical_request
+            return horizontal
+        with patch.object(OpenPoseMarkerControl,'update',reverse_vertical):
+            code,result=self.execute()
+        self.assertEqual(code,1)
+        self.assertTrue(any(v['reason']=='vertical_wrong_direction' for v in result['violations']))
+
 
 if __name__ == '__main__':
     unittest.main()

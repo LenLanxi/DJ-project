@@ -10,7 +10,7 @@ import time
 import uuid
 from pathlib import Path
 
-from .core import FollowController, State
+from .core import FollowController, State, FRAME_TIME_EPSILON
 from .service_ports import FrameSnapshot, Result
 from .vision import MarkerTracker
 from .session_log import SessionLog
@@ -28,13 +28,17 @@ class HandoffTicket:
 
 
 class FollowService:
-    def __init__(self, port, *, tracker=None, monotonic=time.monotonic,
+    def __init__(self, port, *, tracker=None, monotonic=time.perf_counter,
                  wall_clock=time.time, recovery_window=0, steering_mode="yaw",
                  log_directory=None, target_id=0, instance_id="r3-default",
                  dictionary="DICT_4X4_50", control_profile="legacy",
                  physical_distance_m=None, detection_budget_ms=120.,
                  yaw_limit=0.20, forward_limit=0.30, max_request_rate=0.8,
-                 console_notices=False, notice_sink=None):
+                 console_notices=False, notice_sink=None, vertical_follow=False,
+                 distance_mode="apparent_pixels", camera_calibration=None,
+                 camera_id=None, marker_side_m=None,
+                 vertical_min_height_cm=50., vertical_max_height_cm=200.,
+                 pid_tuning="marker_v2", reference_size_limit=None):
         if getattr(port, "simulation_only", None) is not True:
             raise ValueError("This version only accepts simulation ports")
         self.port = port
@@ -44,7 +48,15 @@ class FollowService:
         self.detection_budget_ms = float(detection_budget_ms)
         self.config = FollowConfig(instance_id, target_id, dictionary,
                                    control_profile, physical_distance_m, steering_mode,
-                                   yaw_limit, forward_limit, max_request_rate)
+                                   yaw_limit, forward_limit, max_request_rate, vertical_follow,
+                                   distance_mode, camera_calibration, camera_id, marker_side_m,
+                                   vertical_min_height_cm, vertical_max_height_cm, pid_tuning,
+                                   reference_size_limit)
+        pose_estimator = None
+        if distance_mode == "pose":
+            from .pose_depth import PoseDepth
+            pose_estimator = PoseDepth(camera_calibration, marker_side_m, camera_id=camera_id)
+        self.vertical_guard_reason = "disabled" if not vertical_follow else "awaiting_height"
         # Display labels may repeat; the session identifier must never repeat,
         # including separate services whose frame IDs and generations coincide.
         self.service_session_id = uuid.uuid4().hex
@@ -63,13 +75,16 @@ class FollowService:
                                            steering_mode=steering_mode,
                                            yaw_limit=yaw_limit,
                                            forward_limit=forward_limit,
-                                           control_profile=control_profile)
+                                           control_profile=control_profile,
+                                           vertical_follow=vertical_follow,
+                                           pid_tuning=pid_tuning,
+                                           distance_mode=distance_mode, pose_estimator=pose_estimator,
+                                           reference_size_limit=reference_size_limit)
         # RC clamp is derived from the SAME limits the law uses, so raising the
-        # budget in one place cannot be silently re-clamped here. up_down stays
-        # 0: this law never commands altitude. Hard ceiling is the SDK's RC range.
-        self.rc_caps = (min(100, round(self.controller.forward_limit * 100)),
+        # budget in one place cannot be silently re-clamped here. Vertical is opt-in. Hard ceiling is the SDK's RC range.
+        self.rc_caps = (min(100, round((yaw_limit if control_profile == "openpose_pid" else forward_limit) * 100)),
                         min(100, round(self.controller.forward_limit * 100)),
-                        0,
+                        20 if vertical_follow else 0,
                         min(100, round(self.controller.yaw_limit * 100)))
         self.lock = threading.RLock()
         self.vision_lock = threading.Lock()
@@ -90,6 +105,7 @@ class FollowService:
         self.last_vision = {}
         self.frame_ready = False
         self.last_send = -math.inf
+        self.last_regular_send = -math.inf
         self.last_channels = None
         self.last_reason = "not_started"
         self.last_halt_reason = ""
@@ -109,11 +125,18 @@ class FollowService:
         if self.session_log is None and self.log_directory is not False:
             directory = self.log_directory if self.log_directory is not None else (
                 Path(__file__).resolve().parents[1] / "logs" / "background")
-            self.session_log = SessionLog(directory, dict(version="r3-9889b47-closeout1",
+            self.session_log = SessionLog(directory, dict(version="r3-motion-follow1",
                 service_session_id=self.service_session_id,
                 instance_id=self.config.instance_id, target_id=self.config.target_id,
                 dictionary=self.config.dictionary,
                 configured_control_profile=self.config.control_profile,
+                pid_tuning=self.config.pid_tuning,
+                vertical_follow=self.config.vertical_follow,
+                vertical_limit_rc=20 if self.config.vertical_follow else 0,
+                distance_mode=self.config.distance_mode,
+                camera_calibration_sha256=(self.controller.pose_estimator.sha256
+                    if self.controller.pose_estimator else None),
+                height_guard_cm=[self.config.vertical_min_height_cm,self.config.vertical_max_height_cm],
                 physical_distance_m=self.config.physical_distance_m,
                 physical_distance_source="manual_note_not_estimated",
                 port_declared_simulation_only=self.port.simulation_only,
@@ -246,7 +269,7 @@ class FollowService:
                             and packet.timestamp <= self.last_received_timestamp):
                         raise ValueError("new_frame_timestamp_not_advancing")
                 age = wall - packet.timestamp
-                if packet.stale or packet.frame is None or not 0 <= age <= .5:
+                if packet.stale or packet.frame is None or not -FRAME_TIME_EPSILON <= age <= .5+FRAME_TIME_EPSILON:
                     with self.lock:
                         if not self.closed and generation == self.generation:
                             self._record("input_frame_rejected", phase="snapshot_validation",
@@ -263,7 +286,7 @@ class FollowService:
                             self._record("observation_discarded", reason="late_invalid_packet",
                                          frame_id=packet.frame_id)
                     return False
-                acquired_at = now-age
+                acquired_at = now-max(0., age)
                 # Leave scheduling room; this is a cooperative budget, not an
                 # interrupt of an OpenCV call. Age is checked again on return.
                 budget_ms = min(self.detection_budget_ms, max(.001, (.5-age-.02)*1000))
@@ -276,9 +299,24 @@ class FollowService:
                         self._record("observation_discarded", reason="lifecycle_changed_before_detection",
                                      frame_id=packet.frame_id)
                         return False
+                    previous = self.controller.observation
+                    if previous is not None and acquired_at <= previous.acquired_at:
+                        # Raw IDs AND raw wall capture stamps already advanced.
+                        # A coarse/jittery local clock mapping can still reverse
+                        # their monotonic values. Discard this sample, never
+                        # invent a newer capture time or reset freshness. The
+                        # control worker still expires the previous sample.
+                        self.last_received_frame_id = packet.frame_id
+                        self.last_received_timestamp = packet.timestamp
+                        self._record("observation_discarded", reason="nonadvancing_clock_mapping",
+                            frame_id=packet.frame_id, frame_timestamp=packet.timestamp,
+                            acquired_at_monotonic=acquired_at,
+                            previous_frame_id=previous.frame_id,
+                            previous_acquired_at=previous.acquired_at)
+                        return False
                     work_now = self.clock()
                     input_age = work_now-acquired_at
-                    if not 0 <= input_age <= self.controller.max_age:
+                    if not -FRAME_TIME_EPSILON <= input_age <= self.controller.max_age+FRAME_TIME_EPSILON:
                         self._record("input_frame_rejected", phase="before_detection",
                             reason="future_acquired_at" if input_age < 0 else "expired_before_detection",
                             frame_id=packet.frame_id, frame_timestamp=packet.timestamp,
@@ -315,7 +353,7 @@ class FollowService:
                                      **self.last_vision)
                         self._publish_status()
                         return False
-                    if not 0 <= completed_at-acquired_at <= self.controller.max_age:
+                    if not -FRAME_TIME_EPSILON <= completed_at-acquired_at <= self.controller.max_age+FRAME_TIME_EPSILON:
                         self._record("observation_rejected", reason="vision_result_expired", **self.last_vision)
                         self._fault("vision_result_expired", invalid_frame=True, state=State.STALE)
                         return False
@@ -324,9 +362,28 @@ class FollowService:
                         raise ValueError("detector_changed_frame_identity_or_time")
                     self.last_frame_id, self.last_timestamp = packet.frame_id, packet.timestamp
                     if not self.controller.observe(observation):
-                        self._fault("invalid_observation", invalid_frame=True)
+                        previous = self.controller.observation
+                        self._record("observation_rejected",
+                            reason=self.controller.last_observation_rejection,
+                            rejected_observation=repr(observation)[:1600],
+                            previous_frame_id=previous.frame_id if previous else None,
+                            previous_acquired_at=previous.acquired_at if previous else None,
+                            frame_timestamp=packet.timestamp,
+                            acquired_at_monotonic=acquired_at, **self.last_vision)
+                        reason = (self.controller.last_stop_reason
+                            if self.controller.last_stop_reason == "image_size_changed_requires_new_session"
+                            else "invalid_observation")
+                        self._fault(reason, invalid_frame=True)
                         return False
-                    self.frame_ready = True
+                    # The SDK waits for frame_ready before its first calibration.
+                    # A timed-out identity scan supplies no calibratable target:
+                    # keep waiting within the SDK's existing startup deadline.
+                    # Once calibrated, preserve the normal loss/zero/recovery path.
+                    self.frame_ready = not (
+                        self.controller.reference_size is None
+                        and not observation.found
+                        and observation.reason in ("detection_budget_exceeded",
+                                                   "ambiguous_scan_budget_exceeded"))
                     self.last_observation_published_at = completed_at
                     diagnostics = getattr(self.tracker, "last_diagnostics", {})
                     self._record("observation", frame_id=packet.frame_id,
@@ -343,6 +400,7 @@ class FollowService:
                                  duplicate_check=diagnostics.get("duplicate_check"),
                                  identity_check=diagnostics.get("identity_check"),
                                  recognition_attempts=diagnostics.get("attempts", [])[:32],
+                                 detected_markers=diagnostics.get("detected_markers", [])[:16],
                                  rejected_quads_sample=diagnostics.get("rejected_quads_sample", [])[:6],
                                  detector_method=diagnostics.get("detector_method"),
                                  recognition_profile=diagnostics.get("recognition_profile"))
@@ -396,6 +454,7 @@ class FollowService:
             self.lease = grant.lease
             self.cleanup_unconfirmed = False
             self.last_send = -math.inf
+            self.last_regular_send = -math.inf
             self.last_channels = None
             self.last_reason = "started"
             self.last_halt_reason, self.last_halt_at = "", None
@@ -451,7 +510,7 @@ class FollowService:
             self.control_once()  # Expire stale follow state before deciding eligibility.
             self._cancel_ticket()
             ticket = HandoffTicket(self.generation,
-                                   self.controller.state == State.TRACKING,
+                                   self.controller.state in (State.TRACKING, State.RECOVERING) and self.lease is not None,
                                    self.last_frame_id, self.service_session_id,
                                    uuid.uuid4().hex)
             self.controller.pause()
@@ -464,13 +523,37 @@ class FollowService:
             self._publish_status()
             return Result("completed"), ticket
 
-    def finish_action(self, ticket, status):
+    def finish_action(self, ticket, status, *, adjust_axis=None, not_before=None):
         with self.lock:
             if (not isinstance(ticket, HandoffTicket) or ticket != self.ticket or self.closed
                     or ticket.service_session_id != self.service_session_id):
                 return Result("failed", "obsolete_ticket")
             if status == "accepted":
                 return Result("accepted", "waiting_for_action_completion")
+            if status == 'completed' and adjust_axis is not None:
+                if (adjust_axis not in ('horizontal', 'vertical', 'depth') or
+                        type(not_before) not in (int, float) or not math.isfinite(not_before)):
+                    self._cancel_ticket()
+                    return Result('failed', 'invalid_adjustment')
+                if not ticket.was_following:
+                    self._cancel_ticket()
+                    return Result('failed', 'not_previously_following')
+                if (self.last_timestamp is None or self.last_timestamp <= not_before
+                        or self.last_frame_id <= ticket.frame_id):
+                    return Result('failed', 'awaiting_post_action_frame')
+                device = self.port.get_status()
+                if adjust_axis == 'vertical' and not device.height_fresh:
+                    self._cancel_ticket()
+                    return Result('failed', 'height_unknown_or_stale')
+                ok, reason = self.controller.rebase_axis(adjust_axis, self.clock())
+                if not ok:
+                    self._cancel_ticket()
+                    return Result('failed', reason)
+                self._record('reference_adjusted', axis=adjust_axis,
+                             target_x_fraction=self.controller.target_x_fraction,
+                             target_y_fraction=self.controller.target_y_fraction,
+                             reference_size=self.controller.reference_size,
+                             post_action_frame_id=self.last_frame_id)
             self._cancel_ticket()
             if status != "completed":
                 return self._fault("action_failed_or_cancelled")
@@ -482,6 +565,26 @@ class FollowService:
             self._record("handoff_finish", status=result.status, reason=result.reason)
             self._publish_status()
             return result
+
+    def _guard_vertical(self, channels, status):
+        """Block stale/unknown altitude and outward motion near height bounds.
+
+        The 20 cm margin is a provisional command guard, not a braking-distance
+        guarantee. No automatic climb/descent/landing is invented here.
+        """
+        self.vertical_guard_reason = "disabled" if not self.config.vertical_follow else "clear"
+        if not self.config.vertical_follow:
+            return channels
+        height = getattr(status, "height_cm", None)
+        fresh = getattr(status, "height_fresh", False)
+        up = channels[2]
+        if fresh is not True or type(height) not in (int, float) or not math.isfinite(height):
+            up, self.vertical_guard_reason = 0, "height_unknown_or_stale"
+        elif up > 0 and height >= self.config.vertical_max_height_cm-20:
+            up, self.vertical_guard_reason = 0, "upper_height_margin"
+        elif up < 0 and height <= self.config.vertical_min_height_cm+20:
+            up, self.vertical_guard_reason = 0, "lower_height_margin"
+        return channels[0], channels[1], up, channels[3]
 
     def control_once(self):
         with self.lock:
@@ -514,18 +617,22 @@ class FollowService:
                     self._fault("missing_lease")
                     return
                 # Preview conversion only; not a calibrated physical speed.
-                channels = (round(motion.right * 100), round(motion.forward * 100), 0,
+                channels = (round(motion.right * 100), round(motion.forward * 100), round(motion.up * 100),
                             round(motion.yaw * 100))
                 channels = tuple(max(-cap, min(cap, value))
                                  for value, cap in zip(channels, self.rc_caps))
+                channels = self._guard_vertical(channels, status)
                 now = self.clock()
                 urgent_zero = channels == (0, 0, 0, 0) and channels != self.last_channels
                 urgent_depth_stop = (self.last_channels is not None
                                      and self.last_channels[1] != 0 and channels[1] == 0)
                 reductions = None if self.last_channels is None else tuple(
-                    0 if old and new == 0 else old
-                    for old, new in zip(self.last_channels, channels))
-                if now - self.last_send < .1 - 1e-9 and not urgent_zero:
+                    new if (old and new == 0) or (self.config.control_profile == 'openpose_pid'
+                           and index == 1 and old*new > 0
+                           and abs(new) < abs(old)) else old
+                    for index,(old,new) in enumerate(zip(self.last_channels,channels)))
+                regular_due = now-self.last_regular_send >= .1-1e-9
+                if not regular_due and not urgent_zero:
                     if reductions is None or reductions == self.last_channels:
                         return
                     # Safety braking may bypass the 10 Hz deadline. No other
@@ -537,13 +644,22 @@ class FollowService:
                     self._fault("velocity_rejected: " + result.reason)
                     return
                 self.last_send, self.last_channels = now, channels
+                if regular_due:
+                    self.last_regular_send = now
                 self._record("motion_request", channels=channels, status=result.status,
                              state=str(self.controller.state), reason=motion.reason,
                              reference_size=self.controller.reference_size,
                              observation_frame_id=self.controller.observation.frame_id,
                              observation_age_ms=(now-self.controller.observation.acquired_at)*1000,
                              openpose_control=self.controller.status()["openpose_control"],
+                             depth_brake=self.controller.status()["depth_brake"],
                              distance_guard=self.controller.distance_guard.status(),
+                             distance_measurement=self.controller.distance_status(),
+                             vertical_guard_reason=self.vertical_guard_reason,
+                             height_cm=getattr(status, 'height_cm', None),
+                             height_fresh=getattr(status, 'height_fresh', False),
+                             requested_up_rc=round(motion.up*100),
+                             reference_size_limit=self.config.reference_size_limit,
                              urgent_depth_stop=urgent_depth_stop)
             except Exception as exc:
                 self._fault("control_error: " + str(exc))
@@ -575,6 +691,18 @@ class FollowService:
             closed=self.closed, pending_resume=self.ticket is not None,
             cleanup_pending=pending_cleanup, reason=reason, budget_wait=budget_wait,
             identity_wait=bool(obs is not None and obs.reason == "ambiguous_scan_budget_exceeded"))
+        distance = self.controller.distance_status()
+        if active and visible and not distance['forward_allowed']:
+            message += "；前后暂停：距离信息不可靠（" + distance['reason'] + "）"
+        brake = self.controller._depth_brake.status()
+        if active and self.controller.last_request.reason == 'at_or_inside_reference_no_forward':
+            message += '；已达到跟随距离，阻止预测补偿继续前进'
+        if active and self.config.vertical_follow:
+            extra = {"height_unknown_or_stale": "高度数据未知或过期，升降暂停",
+                     "upper_height_margin": "接近高度上限，上升暂停",
+                     "lower_height_margin": "接近高度下限，下降暂停"}.get(self.vertical_guard_reason)
+            if extra:
+                message += "；" + extra
         return dict(target_visible=visible, observation_fresh=bool(fresh),
             observation_age_ms=None if age is None else age*1000,
             raw_frame_age_ms=None if raw_age is None else raw_age*1000,
@@ -586,6 +714,10 @@ class FollowService:
             last_halt_reason=self.last_halt_reason, last_halt_at=self.last_halt_at,
             requested_channels=self.last_channels if active and self.last_channels is not None else (0,0,0,0),
             physical_hover_confirmed=False, status_message=message,
+            vertical_guard_reason=self.vertical_guard_reason,
+            reference_size_limit=self.config.reference_size_limit,
+            distance_measurement=distance,
+            depth_brake=brake,
             status_notice_seq=self.notice_seq)
 
     def _publish_status(self):
@@ -619,6 +751,13 @@ class FollowService:
                         dictionary=self.config.dictionary,
                         configured_control_profile=self.config.control_profile,
                         configured_steering_mode=self.config.steering_mode,
+                        pid_tuning=self.config.pid_tuning,
+                        vertical_follow=self.config.vertical_follow,
+                        vertical_limit_rc=20 if self.config.vertical_follow else 0,
+                        vertical_target_y_fraction=self.controller.target_y_fraction,
+                        altitude_limits_enforced=True,
+                        altitude_limit_scope="request_guard_only_not_physical_height_guarantee",
+                        handoff_required=self.lease is not None,
                         motion_unit="RC_channel_value_not_physical_velocity",
                         actual_velocity_m_s=None,
                         actual_velocity_source="not_measured",

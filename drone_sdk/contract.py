@@ -32,6 +32,7 @@ class StatusResult:
     simulated: bool = True
     command_channel_ambiguous: bool = False
     command_uncertainty: Optional[dict] = None
+    height_timestamp: Optional[float] = None  # actual state-packet receipt, never query time
 
 @dataclass
 class FrameResult:

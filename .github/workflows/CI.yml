@@ -1,5 +1,8 @@
 name: Companion
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -19,7 +22,7 @@ jobs:
           node-version: '24'
       - run: uv sync --frozen
       - run: npm --prefix modules/rtc ci --ignore-scripts --no-audit --no-fund
-      - run: uv run --frozen pytest -q
+      - run: uv run --frozen pytest -q -o faulthandler_timeout=90 --durations=10
       - run: npm --prefix modules/rtc test
   containers:
     runs-on: ubuntu-latest
@@ -35,4 +38,4 @@ jobs:
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       - run: uv sync --frozen
       - run: docker build -t companion-sandbox:0.4 modules/ai/sandbox
-      - run: uv run --frozen pytest tests/SandboxSafetyTests.py tests/GatewayTests.py -q
+      - run: uv run --frozen pytest tests/SandboxSafetyTests.py tests/GatewayTests.py tests/R3IntegrationTests.py -q -o faulthandler_timeout=90 --durations=10

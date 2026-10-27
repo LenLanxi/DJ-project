@@ -16,7 +16,7 @@
 <div class="layout">
 <aside class="sidebar" aria-label="文档导航">
 <div class="brand">COMPANION / 项目导览</div>
-<div class="edition">2026.10.26<br>审查基线 7da7706<br>离线单页 · 不含凭据</div>
+<div class="edition">2026.10.27<br>RTC 基线 7da7706 · R3 b2ce3d2<br>离线单页 · 不含凭据</div>
 <nav>
 <a href="#status">现在到了哪里</a><a href="#process">这轮怎样执行</a><a href="#architecture">结构与工作原理</a><a href="#scenario">完整场景推演</a><a href="#safety">关键保护机制</a><a href="#tests">测试证明了什么</a><a href="#blockers">当前主要阻碍</a><a href="#requirements">与原方案的关系</a><a href="#next">下一步与阅读入口</a>
 </nav>
@@ -27,20 +27,20 @@
 <div class="eyebrow">执行过程与代码全局情况</div>
 <h1>从一句话，到一条真实指令<span>AI 随行小伙伴，当前版本说明</span></h1>
 <p class="intro">准备并起飞 → 跟随前行的用户 → 接收自然语言 → 朝红色帐篷移动并原地旋转一周 → 恢复跟随。这份文档围绕这条链路，解释代码如何连接，以及证据在哪一步结束。</p>
-<div class="meta"><span>软件基线：7da7706</span><span>代码与证据：PR #6 已合并</span><span>记录截至：2026-10-26 23:51（北京时间）</span></div>
+<div class="meta"><span>RTC 基线：7da7706；三组来源：b2ce3d2</span><span>三组集成与证据：PR #7</span><span>跟随回归日期：2026-10-27；云诊断日期：2026-10-26</span></div>
 </header>
 <section id="status" style="padding-top:0;margin-top:0;border-top:0">
 <div class="verdict"><strong>软件结构已统一，完整现场任务仍未通过。</strong><p>当前版本具备真实设备入口、模型程序执行链和多项失败保护。云服务启停与视觉调用已有真实结果，但没有真机、蓝牙耳机、RTC 音视频联合验收；实测视觉延迟还会阻断导航。</p></div>
-<div class="metrics"><div class="metric"><b>863</b><span>本地 Python 测试条目通过</span></div><div class="metric"><b>49</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>关闭思考后的单次视觉观察</span></div></div>
+<div class="metrics"><div class="metric"><b>984</b><span>本地 Python 测试条目通过</span></div><div class="metric"><b>50</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>前次关闭思考后的单次视觉观察</span></div></div>
 <p class="caption">数字分别描述软件回归与一次合成图云调用，不代表飞行成功率。</p>
 </section>
-<section id="process"><span class="index">01 / EXECUTION</span><h2>这轮工作怎样推进</h2>
+<section id="process"><span class="index">01 / EXECUTION</span><h2>项目近期怎样推进</h2>
 <div class="steps">
 <div class="work"><h3>先固定目标与版本</h3><p>以 Companion HTML 为需求依据，核对本地状态、远程主分支及源码基线。先区分必须实现的现场行为与可更换的技术手段，避免把“接口存在”算成任务完成。</p></div>
 <div class="work"><h3>清除重复生产路线</h3><p>删除旧 Agent、Demo、Session、ProgramRunner、固定口令、分段 STT/TTS、本地语音降级、重复 docs 实现和旧启动器。有价值的断言迁入 tests；历史证据保留版本归属。</p></div>
 <div class="work"><h3>收紧执行与取消边界</h3><p>将模型完整 Python 放入 Docker，动作统一经过网关与 SDK。重点复现旧授权复活、迟到线程、命令回复错配及清理失败，再修改真正产生副作用的边界。</p></div>
 <div class="work"><h3>分层验证，再调用真实云服务</h3><p>先用替身、实际 SDK 方法、本机网络和真实容器检查机制，再用短录音、RTC 启停与合成图验证云端。收费调用保留脱敏收据，失败样例也保留。</p></div>
-<div class="work"><h3>发布候选并保留未决项</h3><p>PR #6 合并后，本地与远程 main 同步到 7da7706。push CI 双平台通过；同内容的重复 PR 作业最终取消，阻塞原因未定位，不能计作通过。</p></div>
+<div class="work"><h3>集成三组并保留未决项</h3><p>在 RTC 版本上通过 PR #7 迁入三组自适应跟随、上下控制和提前减速，保留容器与取消保护。完整离线回归和双平台 CI 通过；这次没有真机、耳机或收费 API 调用，不将软件集成当作现场验收。</p></div>
 </div></section>
 <section id="architecture"><span class="index">02 / SYSTEM MAP</span><h2>一个系统，两种节奏</h2>
 <p>电脑同时承担本地跟随和云端交互。持续跟随需要及时更新；自然语言与复杂视觉允许更长处理时间。它们共享画面和 SDK，但必须交接控制权，不能同时持续发出冲突动作。</p>
@@ -59,10 +59,10 @@
 <tr><td><code>modules/rtc</code><br><code>RTCBridge.py</code></td><td>网页耳机与无人机视频、云服务配置、本机授权和工具消息；长期凭据留在服务端。</td></tr>
 <tr><td><code>modules/ai</code></td><td>容器执行、网关、SDK 适配，以及本机按需视觉调用与用量记录。</td></tr>
 <tr><td><code>drone_sdk</code></td><td>控制权、遥测、实际发送、看门狗、图传与跟随生命周期交接。</td></tr>
-<tr><td><code>modules/follow</code></td><td>ArUco 标记识别及可配置 PID；本轮保持算法，调整外层联调和源码绑定。</td></tr>
+<tr><td><code>modules/follow</code></td><td>合并三组 b2ce3d2：ArUco、PID、自适应横移/转向、相对距离、提前减速及带遥测保护的上下跟随。</td></tr>
 <tr><td><code>tests</code><br><code>ScenarioAcceptance</code></td><td>行为回归、替身和验收证据；测试替身不作为正式飞机入口。</td></tr>
 </tbody></table></div>
-<p>跟随比较标记的水平偏差和大小变化，用 PID 调节请求。默认配置以转向对准目标。“OpenPose”来自复用控制方法的来源，当前没有启用人体骨架识别；标记大小也不是精确米数。</p>
+<p>跟随比较标记的位置和大小变化，用 PID 调节请求。默认 motion_follow 在靠近画面中央时主要横移，偏离较大时逐渐多转向，并启用上下跟随和提前减速。“OpenPose”来自控制方法的来源，没有启用人体骨架识别；相对标记大小也不是精确米数。临时程序默认保留原基准，只有显式 adjust_follow_reference 且动作后新帧有效、程序成功时才更新指定轴。</p>
 </section>
 <section id="scenario"><span class="index">03 / WALK THROUGH</span><h2>你的完整场景，逐步会发生什么</h2>
 <div class="routes">
@@ -83,7 +83,7 @@
 </section>
 <section id="tests"><span class="index">05 / EVIDENCE</span><h2>“测试通过”分别证明什么</h2>
 <div class="tablewrap"><table><thead><tr><th>验证层</th><th>实际做过什么</th><th>边界</th></tr></thead><tbody>
-<tr><td>行为回归</td><td>863 条目、458 子测试通过；独立函数来源 836 个。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
+<tr><td>行为回归</td><td>984 条目、496 子测试通过；独立函数来源 957 个。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
 <tr><td>执行与协议</td><td>真实 Docker、本机 HTTP／WebSocket／UDP、实际 SDK 方法配合假传输。</td><td>未连接飞机，不能测物理响应。</td></tr>
 <tr><td>直连语音诊断</td><td>预录音进真实云服务；生成程序经容器、假设备并回传结果。</td><td>不同于正式 RTC，未使用实体耳机。</td></tr>
 <tr><td>RTC 控制面</td><td>两组真实 StartVoiceChat → StopVoiceChat，均确认清理。</td><td>没有客户端入房或上传媒体。</td></tr>
@@ -105,9 +105,9 @@
 <section id="next"><span class="index">08 / NEXT STEPS</span><h2>接下来按什么顺序推进</h2>
 <ol class="order"><li><b>先解决视觉时效与导航策略。</b>测真实图传，验证云端语义识别与本机连续跟踪的分工；明确停止距离和用户重获方式。</li><li><b>再做地面媒体联调。</b>用真实耳机、无人机图传和 RTC 入房，测问答、打断、断连和退出，核对云任务清理。</li><li><b>分段真机验证，最后串场景。</b>依次测起降、方向、刹停、标记丢失与短距跟随，再判断是否具备帐篷任务条件。</li></ol>
 <pre><code>.\start_flight.ps1 -DryRun</code></pre><p class="caption">此命令仅查看配置。现场操作按 FLIGHT_SOP.md 分阶段执行；停止为 F12／Ctrl+Shift+Alt+A，降落为 F11／Ctrl+Shift+Alt+L，仍须核对飞机真实状态。</p>
-<details><summary>打开源码、测试与证据入口</summary><div class="filelinks"><a href="README.md">README：安装与正式入口</a><a href="API.md">API：模型接口及结果含义</a><a href="FLIGHT_SOP.md">FLIGHT_SOP：现场验证顺序</a><a href="tests/OperationTests.py">OperationTests：迟到线程与任务清理</a><a href="ScenarioAcceptance/Evidence/Current/Build.json">Build.json：验证数量及未完成范围</a><a href="ScenarioAcceptance/Evidence/Current/VisionFast.json">VisionFast.json：2.125 秒及过期拒绝</a><a href="ScenarioAcceptance/Evidence/Current/RtcCloudFast.json">RtcCloudFast.json：正式配置真实启停</a><a href="ScenarioAcceptance/Evidence/Current/Budget.json">Budget.json：费用估算范围与用量</a><a href="REQUIREMENTS.html/Companion(1).html">原始 Companion 需求</a></div></details>
+<details><summary>打开源码、测试与证据入口</summary><div class="filelinks"><a href="README.md">README：安装与正式入口</a><a href="API.md">API：模型接口及结果含义</a><a href="FLIGHT_SOP.md">FLIGHT_SOP：现场验证顺序</a><a href="tests/OperationTests.py">OperationTests：迟到线程与任务清理</a><a href="ScenarioAcceptance/Evidence/R3Integration/Build.json">Build.json：验证数量及未完成范围</a><a href="ScenarioAcceptance/Evidence/Current/VisionFast.json">VisionFast.json：2.125 秒及过期拒绝</a><a href="ScenarioAcceptance/Evidence/Current/RtcCloudFast.json">RtcCloudFast.json：正式配置真实启停</a><a href="ScenarioAcceptance/Evidence/Current/Budget.json">Budget.json：费用估算范围与用量</a><a href="REQUIREMENTS.html/Companion(1).html">原始 Companion 需求</a></div></details>
 </section>
-<footer class="footer"><a href="https://github.com/LenLanxi/DJ-project/pull/6">GitHub PR #6</a><a href="https://github.com/LenLanxi/DJ-project/actions/runs/40348744355">已通过的 push CI</a><a href="https://github.com/LenLanxi/DJ-project/actions/runs/40348752290">已取消的重复 PR 检查</a><p>本文依据审查基线的源码及 Current 证据编写。离线可读；本页不加载外部脚本、不开启设备、不调用云服务。之后的代码更新可能改变这里的结论。</p></footer>
+<footer class="footer"><a href="https://github.com/LenLanxi/DJ-project/pull/7">三组集成 PR #7</a><a href="https://github.com/LenLanxi/DJ-project/actions/runs/40457223180">已通过的集成 CI</a><a href="https://github.com/LenLanxi/DJ-project/pull/6">前次 RTC 重构 PR #6</a><p>本页结合 R3Integration 跟随回归与 Current 前次云诊断，分别保留验证日期和范围。离线可读；不加载外部脚本、不开启设备、不调用云服务。之后的代码更新可能改变这里的结论。</p></footer>
 </main></div>
 <script>
 'use strict';

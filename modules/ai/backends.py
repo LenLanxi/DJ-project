@@ -32,14 +32,17 @@ class SDKBackend:
         with self.sdk.operation_guard(OPERATION.get()):
             r,ticket=self.sdk._follow.pause_for_action()
         return {'ok':r.ok,'ticket':ticket}
-    def finish_follow_action(self,ticket,success):
+    def finish_follow_action(self,ticket,success,adjust_axis=None,not_before=None):
         if success and ticket is not None:
             bridge, generation, inner=ticket
             deadline=time.monotonic()+.5
-            while bridge.service.last_frame_id<=inner.frame_id and time.monotonic()<deadline:
+            while (bridge.service.last_frame_id<=inner.frame_id
+                   or (adjust_axis is not None and (bridge.service.last_timestamp is None
+                       or bridge.service.last_timestamp<=not_before))) and time.monotonic()<deadline:
                 time.sleep(.01)
         with self.sdk.operation_guard(OPERATION.get()):
-            return self.normalize(self.sdk._follow.finish_action(ticket,'completed' if success else 'failed'))
+            options = {} if adjust_axis is None else dict(adjust_axis=adjust_axis,not_before=not_before)
+            return self.normalize(self.sdk._follow.finish_action(ticket,'completed' if success else 'failed',**options))
     def normalize(self,value): return asdict(value) if is_dataclass(value) else value
     def priority_stop(self, land=False):
         """Trusted physical/user interruption; a new lease invalidates old cleanup."""

@@ -143,14 +143,22 @@ def run(output):
         frame = marker_scene(step, {0, 1, 2})
         stamp = clock.value
         for service, port, tracker, script in members:
+            size = getattr(service, '_benchmark_image_size', None)
+            pixels = frame
+            if size:
+                scale = min(size[0]/frame.shape[1], size[1]/frame.shape[0])
+                resized = cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+                pixels = np.full((size[1],size[0],3),245,dtype=np.uint8)
+                left,top = (size[0]-resized.shape[1])//2,(size[1]-resized.shape[0])//2
+                pixels[top:top+resized.shape[0],left:left+resized.shape[1]] = resized
             script.costs = deque((costs or {}).get(service.config.target_id, ()))
-            port.publish(frame, step, stamp)
+            port.publish(pixels, step, stamp)
             service.capture_once()
             if step == 0:
                 if not service.calibrate_reference().ok or not service.start_follow().ok:
                     violations.append({'scenario': scenario, 'reason': 'cannot_start_valid_marker'})
             service.control_once()
-            snapshot(scenario, phase, step, service, port, tracker)
+            snapshot(scenario, phase, step, service, port, tracker, truth=size is None)
 
     def prime(scenario, clock, members):
         for step in range(6):
@@ -245,6 +253,10 @@ def run(output):
         for unbounded in (True, False):
             scenario = 'constructed_434ms_'+('unbounded' if unbounded else 'cooperative')
             clock, members = group(unbounded=unbounded)
+            # Keep a single camera resolution throughout this timing scenario;
+            # a genuine mid-session format change now correctly stops control.
+            for member, *_ in members:
+                member._benchmark_image_size = (contrast.shape[1], contrast.shape[0])
             prime(scenario, clock, members)
             service, port, tracker, script = members[0]
             last_good_at = clock.value

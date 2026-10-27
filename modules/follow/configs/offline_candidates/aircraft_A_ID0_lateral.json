@@ -7,5 +7,9 @@
   "steering_mode": "lateral",
   "yaw_limit": 0.5,
   "forward_limit": 0.4,
-  "max_request_rate": 2.0
+  "max_request_rate": 2.0,
+  "vertical_follow": true,
+  "distance_mode": "relative_size",
+  "vertical_min_height_cm": 50,
+  "vertical_max_height_cm": 200
 }

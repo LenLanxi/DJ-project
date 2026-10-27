@@ -1,0 +1,16 @@
+{
+  "instance_id": "aircraft-A-plan-a",
+  "target_id": 0,
+  "dictionary": "DICT_4X4_50",
+  "control_profile": "openpose_pid",
+  "physical_distance_m": null,
+  "steering_mode": "adaptive",
+  "pid_tuning": "responsive_v1",
+  "yaw_limit": 0.5,
+  "forward_limit": 0.4,
+  "max_request_rate": 2.0,
+  "vertical_follow": true,
+  "distance_mode": "relative_size",
+  "vertical_min_height_cm": 50,
+  "vertical_max_height_cm": 200
+}

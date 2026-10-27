@@ -23,6 +23,7 @@ PROGRAM_INSTRUCTIONS = '''需要工具执行时，根据请求编写完整Python
 支持变量、条件、循环、函数和time.sleep；程序只在无网络Docker中执行，不在宿主机执行。
 接口：get_status()、is_following()、get_frame()、describe(画面问题)、observe(目标文字)、takeoff()、land()、
 start_follow()、stop_follow()、stop_motion()、move_forward/back/left/right/up/down(20到500厘米整数)、
+adjust_follow_reference('depth'或'horizontal'或'vertical')、
 rotate(-360到360的非零整数)、update_velocity(横移,前后,升降,偏航，均为-100到100整数)。
 get_status有battery、height_cm、flight_state、connected；get_frame返回带时间和来源的真实图片；timestamp是电脑解码完成时间，不能证明相机曝光时刻或端到端延迟。
 observe返回visible、center_x、width_fraction、description、frame_id、timestamp；坐标为0到1。
@@ -32,6 +33,7 @@ observe返回visible、center_x、width_fraction、description、frame_id、time
 多步骤用print记录各阶段stage_status与失败原因，这是输出文本，不是新增无人机接口。
 工具摘要的program_output、失败reason与未执行步骤必须如实说明；摘要截断或证据不足不能宣称完整成功。
 动作时跟随自动暂停，成功后按票据恢复；失败取消不自动恢复。用户否定的动作不能执行。
+默认保留原跟随基准。仅用户明确调整跟随距离/构图时，在对应轴平移动作完成后调用adjust_follow_reference，之后不要再运动；只有新图像有效且整段程序成功才应用。去帐篷等临时任务不要更改原跟随基准。
 停止/降落优先调用interrupt。指令不清楚就询问，不猜测动作。识别不到、画面过期、
 状态未知或动作失败就停止并报告原因。没有障碍传感器、绝对位置或视野外用户搜索。
 不添加帐篷标记，不要求用户临时配合来掩盖缺失能力；不能保证的任务如实说明。

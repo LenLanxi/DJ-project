@@ -3,7 +3,7 @@
 # .\start_flight.ps1 -AllowTakeoff
 # .\start_flight.ps1 -DryRun                 inspect settings, no network/hardware/API
 param(
-    [string]$Config = 'modules\follow\configs\aircraft_A_ID0.json',
+    [string]$Config = 'modules\follow\configs\aircraft_A_ID0_motion_follow.json',
     [string]$Address = '',
     [int]$MinBattery = 30,
     [int]$MaxSessionSeconds = 180,

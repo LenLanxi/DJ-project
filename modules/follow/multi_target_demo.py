@@ -106,7 +106,7 @@ def run(output):
                 # 上限来自该机自己的配置（不是全局常量）：只改钳位、不改算法上限时
                 # 这里仍然会抓到"超出本机预算"。升降恒为 0、横移恒为 0 是不可放松的。
                 if (not all(math.isfinite(v) for v in port.velocity)
-                        or port.velocity[0] != 0 or port.velocity[2] != 0
+                        or port.velocity[0] != 0 or abs(port.velocity[2]) > (20 if config.vertical_follow else 0)
                         or abs(port.velocity[1]) > round(config.forward_limit * 100)
                         or abs(port.velocity[3]) > round(config.yaw_limit * 100)):
                     violations.append(dict(step=step, instance=config.instance_id,
@@ -121,6 +121,9 @@ def run(output):
                     if port.velocity[3]*(truth_x-480) < 0:
                         violations.append(dict(step=step, instance=config.instance_id,
                                                reason="yaw_wrong_direction"))
+                    if port.velocity[2]*(300-truth_y) < 0:
+                        violations.append(dict(step=step, instance=config.instance_id,
+                                               reason="vertical_wrong_direction"))
                 rows.append(dict(step=step, t=round(step*.1, 3), instance=config.instance_id,
                     target_id=config.target_id, input_has_target=i in visible,
                     source_step=source_step, expected_center_x=truth_x,
@@ -128,6 +131,7 @@ def run(output):
                     frame_id=service.last_frame_id, state=state,
                     found=observation.found if observation else False,
                     center_x=observation.center_x if observation else None,
+                    center_y=observation.center_y if observation else None,
                     size_ratio=observation.size_ratio if observation else None,
                     left_right=port.velocity[0], forward_back=port.velocity[1],
                     up_down=port.velocity[2], yaw=port.velocity[3],
@@ -143,18 +147,21 @@ def run(output):
         own = [r for r in rows if r["instance"] == config.instance_id]
         checks[config.instance_id+"_actually_follows"] = any(
             r["forward_back"] > 0 and r["yaw"] != 0 for r in own if 3 <= r["step"] <= 9)
+        checks[config.instance_id+"_vertical_follows_own_marker"] = (
+            any(r["up_down"]*(300-r["expected_center_y"]) > 0 for r in own if 3 <= r["step"] <= 9)
+            if config.vertical_follow else all(r["up_down"] == 0 for r in own))
         loss_start = (10, 20, 30)[i]
         checks[config.instance_id+"_loss_zero"] = all(
             r["state"] == "recovering_target" and not r["found"]
-            and r["forward_back"] == r["yaw"] == 0
+            and r["left_right"] == r["forward_back"] == r["up_down"] == r["yaw"] == 0
             for r in own if loss_start <= r["step"] < loss_start+4)
         checks[config.instance_id+"_recovers"] = own[loss_start+7]["state"] == "tracking"
         stop_at, expected_state = ((45, "stopped"), (50, "paused"), (55, "stopped"))[i]
         checks[config.instance_id+"_explicit_stop_or_pause"] = all(
-            r["state"] == expected_state and r["forward_back"] == r["yaw"] == 0
+            r["state"] == expected_state and r["left_right"] == r["forward_back"] == r["up_down"] == r["yaw"] == 0
             for r in own if r["step"] >= stop_at)
     checks["C_frozen_frame_stops"] = all(
-        r["state"] == "frame_stale" and r["forward_back"] == r["yaw"] == 0
+        r["state"] == "frame_stale" and r["left_right"] == r["forward_back"] == r["up_down"] == r["yaw"] == 0
         for r in rows if r["instance"] == configs[2].instance_id and r["step"] in (45, 46))
     checks["C_explicit_restart"] = any(
         r["state"] == "tracking" and r["yaw"] > 0

@@ -127,7 +127,8 @@ def get_status():
             _flight_state, _current_owner or 'none', time.time(), _control_epoch,
             _command_epoch, _driver.snapshot()['velocity'], _driver.SIMULATED,
             h.get('command_channel_ambiguous', False) if h else False,
-            h.get('command_uncertainty') if h else None)
+            h.get('command_uncertainty') if h else None,
+            h.get('telemetry_timestamp') if h else None)
 
 def request_control(owner, *, priority=False):
     """priority=True 是紧急保留通道：不被在途动作/落地流程/占用者拦住，并作废在途动作。"""

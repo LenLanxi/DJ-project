@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 
 from r3_follow.core import FollowController, State
+from r3_follow import __version__ as SOURCE_VERSION
 from r3_follow.vision import MarkerTracker, synthetic_frame
 from r3_follow.diagnostics import ExperimentSession, follow_hint, recognition_hint
 
@@ -86,12 +87,13 @@ class CameraReader:
 
 
 def gui(camera_index=None, smoke=False, diagnostics=False, tello_video=False,
-        recovery_window=3.0, test_driver=None):
+        recovery_window=3.0, test_driver=None, detection_budget_ms=None):
     import tkinter as tk
     from tkinter import ttk
 
     root = tk.Tk()
-    root.title(f"R3跟随模块 · 电脑模拟版 v{APP_VERSION}")
+    root.title(f"R3地面标记识别 · {SOURCE_VERSION}" if tello_video else
+               f"R3跟随模块 · 电脑模拟版 v{APP_VERSION}")
     root.geometry(f"{min(1020, root.winfo_screenwidth()-60)}x{min(760, root.winfo_screenheight()-100)}")
     root.minsize(680, 420)
     # Fixed action bar plus a scrollable workspace. No camera/desktop changes.
@@ -110,7 +112,8 @@ def gui(camera_index=None, smoke=False, diagnostics=False, tello_video=False,
     canvas.create_window((0,0), window=workspace, anchor="nw")
     workspace.bind("<Configure>", lambda _e: canvas.configure(scrollregion=canvas.bbox("all")))
     controller, tracker = FollowController(
-        recovery_window=recovery_window, max_request_rate=.8, require_geometry=True), MarkerTracker()
+        recovery_window=recovery_window, max_request_rate=.8, require_geometry=True), MarkerTracker(
+            processing_budget_ms=detection_budget_ms)
     experiment = ExperimentSession(controller)
     if tello_video:
         from r3_follow.tello_adapter import TelloCameraReader
@@ -119,9 +122,11 @@ def gui(camera_index=None, smoke=False, diagnostics=False, tello_video=False,
         reader = CameraReader(camera_index) if camera_index is not None else None
     mode = "Tello视频（仅接收画面）" if tello_video else (
         "电脑摄像头" if reader else "生成的标记画面（非真实相机）")
-    heading = "Tello画面接入 · 仅模拟运动请求，不控制飞行" if tello_video else "仅模拟运动请求 · 未连接无人机"
+    heading = "Tello地面标记识别 · 不会发送飞行动作" if tello_video else "仅模拟运动请求 · 未连接无人机"
     ttk.Label(workspace, text=heading, font=("Microsoft YaHei", 17, "bold")).pack(pady=8)
     ttk.Label(workspace, text=f"输入：{mode}  ｜  目标：DICT_4X4_50 编号0").pack()
+    if tello_video:
+        ttk.Label(workspace, text=f"识别源码：{SOURCE_VERSION} ｜ 预算：{detection_budget_ms} ms ｜ 本轮不测跟随控制").pack()
     content = ttk.Frame(workspace)
     content.pack(fill="both", expand=True, padx=12, pady=8)
     picture = ttk.Label(content)
@@ -156,7 +161,8 @@ def gui(camera_index=None, smoke=False, diagnostics=False, tello_video=False,
                "observation": asdict(controller.observation) if controller.observation else None,
                "request": asdict(controller.last_request), "reference_size": controller.reference_size,
                "detector_details": tracker.last_diagnostics,
-               "app_version": APP_VERSION,
+               "app_version": APP_VERSION, "source_version": SOURCE_VERSION,
+               "detection_budget_ms": detection_budget_ms,
                "automated_gui_check": test_driver is not None,
                "session_log": logfile.name,
                "recovery_window_seconds": controller.recovery_window,
@@ -330,13 +336,15 @@ def gui(camera_index=None, smoke=False, diagnostics=False, tello_video=False,
                 diag_var.set("短测完成，汇总已保存到logs/reports；双击09可打开。" if summary else
                              f"短测完成：logs/{report.name}；自动汇总失败，原始日志仍保留。")
         for name, button in action_buttons.items():
-            button.configure(state="normal" if experiment.allowed(name) else "disabled")
+            button.configure(state="normal" if not tello_video and experiment.allowed(name) else "disabled")
         recovery_choice.configure(state="readonly" if (
             controller.state == State.STOPPED and not experiment.testing) else "disabled")
         obs_var.set(error or ("尚无画面" if obs is None else
                     f"帧 {obs.frame_id} ｜ {'新画面' if fresh else '已过期'}\n" +
                     (f"编号0：中心({obs.center_x:.0f}, {obs.center_y:.0f})\n大小比例 {obs.size_ratio:.3f}，边长约{obs.size_ratio*obs.width:.0f}像素" if obs.found else "当前未找到唯一编号0")))
         req_var.set(f"模拟请求\n左右：{request.right:+.2f}（正值=右）\n前后：{request.forward:+.2f}（正值=前）")
+        if tello_video:
+            req_var.set(f"本轮仅检测标记\n识别耗时：{tracker.last_diagnostics.get('detection_ms', 0):.1f} ms\n预算：{detection_budget_ms} ms")
         image = current["image"].copy()
         if fresh and obs.found:
             points = np.array(obs.corners, dtype=np.int32)
@@ -391,6 +399,8 @@ if __name__ == "__main__":
     parser.add_argument("--scenario", action="store_true")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--diagnostics", action="store_true")
+    parser.add_argument("--detection-budget-ms", type=float, default=None,
+                        help="Cooperative detection budget; use 120 for current flight-profile recognition")
     parser.add_argument("--recovery-window", type=float, choices=(1.5, 3.0), default=3.0,
                         help="Computer experiment only; core integration default remains manual restart")
     args = parser.parse_args()
@@ -400,4 +410,5 @@ if __name__ == "__main__":
         rows = run(dest)
         print(f"PASS {len(rows)} scenario checkpoints: {dest}")
     else:
-        gui(args.camera, args.smoke, args.diagnostics, args.tello_video, args.recovery_window)
+        gui(args.camera, args.smoke, args.diagnostics, args.tello_video, args.recovery_window,
+            detection_budget_ms=args.detection_budget_ms)

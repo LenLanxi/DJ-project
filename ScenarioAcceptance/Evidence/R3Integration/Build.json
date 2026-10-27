@@ -1,0 +1,66 @@
+{
+  "status": "offline_integration_passed_pending_hardware",
+  "recorded_utc": "2026-10-27T05:46:20.560908+00:00",
+  "source_commit": "cd4192a93447ef99b8b8a98e04b07329861ab69b",
+  "r3_source": "b2ce3d2b1f7b874f76022c76d3c6ee695bb39f2e",
+  "integration_base": "6d0ff3e175e3a653a445aa7f96688ca9a020071b",
+  "python": {
+    "command": "RUN_DOCKER_TESTS=1 uv run --frozen pytest -q --tb=short -o faulthandler_timeout=90 --durations=10 --junitxml=ScenarioAcceptance/Evidence/R3Integration/Python.xml",
+    "passed_items": 984,
+    "unique_function_origins": 957,
+    "inherited_additional_items": 27,
+    "passed_subtests": 496,
+    "failed": 0,
+    "skipped": 0,
+    "junit_cases_including_subtests": 1480,
+    "seconds": 280.38
+  },
+  "node": {
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0,
+    "file": "Node.xml"
+  },
+  "additional_checks": {
+    "configuration_passed": true,
+    "image_function_checks_passed": 99,
+    "generated_image_steps": 846,
+    "reviewed_handoff_records": 14,
+    "launcher_dry_run_passed": true,
+    "sdk_source_pins_match": true
+  },
+  "source_ci": {
+    "workflow_run_id": 40456655282,
+    "windows": "success",
+    "linux_containers": "success"
+  },
+  "environment": {
+    "os": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15",
+    "docker_image": "sha256:2072cb33c2daa396b312ba0b2867ea280ba8e647d5010b5a27f8fcfa2ef2e1eb"
+  },
+  "scope": {
+    "actual_docker": true,
+    "actual_sdk_with_simulated_device": true,
+    "generated_aruco_images": true,
+    "external_network_or_paid_api": false,
+    "real_camera_microphone_aircraft": false,
+    "hardware_acceptance": false,
+    "full_red_tent_scenario_accepted": false
+  },
+  "integration_decisions": [
+    "Preserve current RTC/Docker route, immutable cancellation and grant epochs.",
+    "Use current telemetry packet receipt stamp for height; no second parser.",
+    "Temporary programs preserve the original reference; explicit rebase requires a matching completed translation and fresh post-action image.",
+    "Virtual-clock behavior tests use a consistent detector clock; production image-budget and freshness gates stay unchanged."
+  ],
+  "limitations": [
+    "No physical yaw/lateral/up direction, speed, braking or altitude response calibration in this integration.",
+    "Cloud visual inference still exceeds the existing navigation freshness gate; this merge does not solve tent navigation, obstacle clearance or user reacquisition."
+  ],
+  "files": {
+    "python": "Python.xml",
+    "node": "Node.xml",
+    "additional": "Checks.json"
+  }
+}

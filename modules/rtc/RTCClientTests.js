@@ -17,6 +17,15 @@ function client() {
 }
 const subtitle = item => ({ type: 'subv', value: { data: [item] } });
 
+test('reference adjustment feedback requires confirmed follow cleanup', () => {
+  const accepted = toolReply('id', { ok: true, status: 'completed',
+    journal: [{ method: 'adjust_follow_reference', result: { ok: true, status: 'accepted' } }] });
+  assert.equal(JSON.parse(accepted.Content).follow_reference_adjusted, undefined);
+  const applied = toolReply('id', { ok: true, status: 'completed',
+    follow_cleanup: { status: 'follow_resumed', reference_adjusted: 'depth' } });
+  assert.equal(JSON.parse(applied.Content).follow_reference_adjusted, 'depth');
+});
+
 test('TLV Unicode round trip uses exact big endian length', () => {
   const raw = encodeTLV('tool', { text: '前进然后旋转', tool_calls: [call()] });
   assert.equal(new DataView(raw).getUint32(4, false), raw.byteLength - 8);

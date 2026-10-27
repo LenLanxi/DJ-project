@@ -34,8 +34,8 @@ class Team3FollowBridge:
     def pause_for_action(self):
         return self.service.pause_for_action()
 
-    def finish_action(self, ticket, status):
-        return self.service.finish_action(ticket,status)
+    def finish_action(self, ticket, status, **adjustment):
+        return self.service.finish_action(ticket,status, **adjustment)
 
     def close(self):
         return self.service.close()
