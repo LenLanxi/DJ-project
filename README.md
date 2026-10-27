@@ -15,7 +15,7 @@
 - `drone_sdk`：真实 Tello 驱动、遥测、最终发送检查、停止、降落及图传。
 - `modules/follow`：合并三组 `DJ-project-R3@b2ce3d2` 的 ArUco、可配置 PID、自适应横移/转向、相对距离、提前减速与上下跟随；来源见 `modules/follow/R3Source.json`。
 - `tests`：替身、行为回归、真实容器检查和显式启用的云接口诊断。替身不进入正式执行路径。
-- `ScenarioAcceptance/Evidence/Current`：本轮软件检查、云语音诊断和费用估算；`History` 与 `Results` 保留历史证据。均不能代替真机验收。
+- `ScenarioAcceptance/Evidence/R3Integration`：本次三组集成回归；`Current` 保留前次 RTC 重构、云语音诊断与费用记录；`History` 与 `Results` 为更早证据。均不能代替真机验收。
 
 控制关系：RTC 模型 → 完整 Python → 隔离容器 → 网关 → SDK → Tello。跟随在电脑本地持续运行，云端只负责意图、观察和程序；两个模块共用同一连接。
 
