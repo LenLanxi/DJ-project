@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="reference adjustment feedback requires confirmed follow cleanup" time="0.003850" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="TLV Unicode round trip uses exact big endian length" time="0.000404" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="malformed TLV cannot reach tool dispatch" time="0.000822" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="default audio devices are excluded instead of silently selected" time="0.000489" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="tool without completed user turn is rejected rather than queued for later" time="0.033634" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="partial speech does not authorize a program" time="0.000231" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="completed human subtitle sends identity and waits for the exact host turn acknowledgement" time="0.000784" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="mismatched turn acknowledgement never relabels a queued tool" time="0.000392" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="identical duplicate tool is not forwarded twice; changed payload is rejected" time="0.000504" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="new speech while the old model is still planning interrupts before any tool arrives" time="0.000448" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="cloud interruption state reaches local cancellation before final subtitles" time="0.000558" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="RTC program is bounded by UTF-8 bytes, while short loops remain possible" time="0.000562" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="basic RTS reply remains below one KiB and retains observation and actual completion status" time="0.000590" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="interrupt invalidates local turn synchronously before network acknowledgement" time="0.001183" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="late tool result cannot be returned to the cloud after local interruption" time="0.000469" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="pending identifier alone cannot authorize a mismatched epoch result" time="0.000388" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="slow cloud stop cannot keep local capture and RTC room alive" time="0.027234" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="simulated source flag survives compact tool feedback" time="0.000273" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="Chinese program branch evidence survives the one KiB reply without claiming task success" time="0.000384" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="joining publishes only the external drone canvas and explicit headset devices" time="0.002664" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="late canceled session request cannot create a socket or stop a newer connection" time="0.004678" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="canceling an awaited SDK setup cannot resume microphone capture or publication" time="0.001466" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="late callbacks from a closed bridge or destroyed RTC engine cannot end a newer connection" time="0.002228" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCClientTests.js"/>
+	<testcase name="RTC token matches official little-endian message and HMAC format" time="0.006083" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="tokens cannot be made immortal or long-lived" time="0.000672" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="missing credentials remain explicit and do not generate fake RTC sessions" time="0.000973" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="session response includes only temporary credentials and server-generated identifiers" time="0.001358" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="mixed orchestration uses external vision model and real stream snapshots" time="0.001167" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="public model resource omits APIKey, custom model includes it" time="0.000751" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="successful start means submitted, not bot ready or verified hardware" time="0.000754" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="empty or mismatched cloud response cannot be called success" time="0.000252" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="lost start response keeps task identifiers for cleanup" time="0.000926" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="failed stop remains retryable and does not discard old session" time="0.001357" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="missing heartbeat revokes tools and stops bot without extending deadline" time="0.000778" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="heartbeat cannot extend the total 180-second deadline" time="0.000736" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="automatic stop retries after unknown result instead of pretending success" time="0.000716" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="stop during pending start waits for known task then stops it" time="0.000575" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="function results are matched by ToolCallID with server-owned task identity" time="0.000856" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="official signer receives exact 2025-06-01 request without automatic retries" time="0.001730" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="malformed upstream replies do not masquerade as success" time="0.001486" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="installed official SDK signs requests without a network call" time="0.379251" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="loopback HTTP rejects foreign origins, secret-bearing bad JSON and arbitrary hosts" time="0.134822" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="HTTP shutdown returns only after stop and closes a clean service" time="0.023444" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="failed shutdown retains hidden cleanup service, rejects new work and retries" time="0.023959" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="installed browser SDK is served locally without cloud access" time="0.022791" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="audit events correlate cloud cleanup without recording any credentials or bodies" time="0.001385" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="audit distinguishes heartbeat disconnection from an absolute session deadline" time="0.000718" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="closing an unstarted session does not fabricate a confirmed cloud StopVoiceChat" time="0.000328" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="audit writer failure is explicit and does not prevent priority cloud cleanup" time="0.000506" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<testcase name="a late client receives only the remaining runtime deadline and cannot restart beyond it" time="0.000529" classname="test" file="C:\Users\bente\Desktop\tmp\DJProject\modules\rtc\RTCServiceTests.js"/>
+	<!-- tests 50 -->
+	<!-- suites 0 -->
+	<!-- pass 50 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 900.4914 -->
+</testsuites>

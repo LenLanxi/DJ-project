@@ -1,0 +1,1746 @@
+{
+  "config": {
+    "ok": true,
+    "errors": [],
+    "warnings": [
+      "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\modules\\follow\\configs\\aircraft_A_ID0_motion_follow.json: 当前按标记大小保持相对距离；侧转仍可能暂停前后，不输出实测米数。",
+      "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\modules\\follow\\configs\\aircraft_A_ID0_motion_follow.json: 真实高度及其采集时间未检查；缺失或过期时自动升降会被拦住。",
+      "这是静态配置检查；三机设备绑定、控制权、网络、高度时效与物理响应尚未实测。"
+    ],
+    "configs": [
+      {
+        "file": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\modules\\follow\\configs\\aircraft_A_ID0_motion_follow.json",
+        "errors": [],
+        "warnings": [
+          "当前按标记大小保持相对距离；侧转仍可能暂停前后，不输出实测米数。",
+          "真实高度及其采集时间未检查；缺失或过期时自动升降会被拦住。"
+        ],
+        "sha256": "e56da5bb3f566b3fdb668e7fafffcd22b377a889c0cd02126dd20f41aeb47eb5",
+        "effective": {
+          "instance_id": "aircraft-A-motion-follow",
+          "target_id": 0,
+          "dictionary": "DICT_4X4_50",
+          "control_profile": "openpose_pid",
+          "physical_distance_m": null,
+          "steering_mode": "adaptive",
+          "yaw_limit": 0.5,
+          "forward_limit": 0.4,
+          "max_request_rate": 2.0,
+          "vertical_follow": true,
+          "distance_mode": "relative_size",
+          "camera_calibration": null,
+          "camera_id": null,
+          "marker_side_m": null,
+          "vertical_min_height_cm": 50,
+          "vertical_max_height_cm": 200,
+          "pid_tuning": "responsive_v1",
+          "reference_size_limit": 0.2
+        },
+        "actual_service_rc_caps": [
+          50,
+          40,
+          20,
+          50
+        ],
+        "actual_pid": {
+          "profile": "openpose_pid_marker_v2",
+          "input_frame_width": 640.0,
+          "parameter_set": "responsive_v1",
+          "steering_mode": "adaptive",
+          "horizontal_limit": 0.5,
+          "horizontal_allocation": "lateral_center_yaw_edge_shared_budget",
+          "horizontal_budget_unit": "sum of absolute RC numbers; not physical speed or thrust",
+          "yaw_gains": [
+            0.16,
+            0.0,
+            0.03
+          ],
+          "pitch_gains": [
+            0.75,
+            0.01,
+            0.06
+          ],
+          "vertical": {
+            "enabled": true,
+            "profile": "openpose_throttle_marker_v1",
+            "gains": [
+              0.4,
+              0.0,
+              0.0
+            ],
+            "limit": 0.2,
+            "target_y_fraction": 0.5,
+            "raw_normalized_request": 0.0,
+            "components": [
+              0,
+              0,
+              0
+            ],
+            "physical_tuning_verified": false,
+            "altitude_limits_enforced": false
+          },
+          "depth_filter_tau_s": 0.08,
+          "depth_reference_deadband_equivalent_px": 1.0,
+          "depth_integral_paused": false,
+          "reference_size": null,
+          "relative_depth_error": null,
+          "relative_depth_equivalent_span": 128.0,
+          "filtered_size_delta_equivalent_px": null,
+          "yaw_components": [
+            0,
+            0,
+            0
+          ],
+          "pitch_components": [
+            0,
+            0,
+            0
+          ],
+          "last_frame_id": null,
+          "last_capture_at": null,
+          "last_dt": null,
+          "update_reason": "reset",
+          "last_pitch_dt": null,
+          "depth_update_reason": "reset",
+          "raw_normalized_request": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "physical_tuning_verified": false,
+          "distance_unit": "apparent marker ratio, not metres",
+          "output_unit": "normalized RC request, not physical speed"
+        },
+        "source_version": "r3-motion-follow1",
+        "source_directory": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\modules\\follow",
+        "actual_depth_brake": {
+          "profile": "bounded_depth_lead_v1",
+          "reason": "initial",
+          "samples": 0,
+          "proportional_scale": 0.96,
+          "relative_rate_per_s": null,
+          "observation_age_s": null,
+          "horizon_s": null,
+          "predicted_relative_error": null,
+          "raw_forward_request": 0.0,
+          "limited_forward_request": 0.0,
+          "correction": 0.0,
+          "correction_limit": 0.2,
+          "reversal_threshold_rc": 3.0,
+          "response_allowance_s": 0.25,
+          "braking_allowance_s": 0.4,
+          "rate_filter_tau_s": 0.1,
+          "physical_tuning_verified": false
+        },
+        "depth_brake_enabled": true
+      }
+    ],
+    "hardware_verified": false,
+    "configuration_scope_only": true
+  },
+  "image_function_checks": {
+    "version": "r3-motion-follow1",
+    "python": "3.11.15 (main, Apr  7 2026, 20:47:24) [MSC v.1944 64 bit (AMD64)]",
+    "checks": [
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "向右对准",
+        "channels": [
+          0,
+          0,
+          0,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "向左对准",
+        "channels": [
+          0,
+          0,
+          0,
+          -20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "同时前进上升对准",
+        "channels": [
+          0,
+          25,
+          20,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "yaw",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "向右对准",
+        "channels": [
+          20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "向左对准",
+        "channels": [
+          -20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "同时前进上升对准",
+        "channels": [
+          20,
+          25,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "lateral",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "向右对准",
+        "channels": [
+          10,
+          0,
+          0,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "向左对准",
+        "channels": [
+          -10,
+          0,
+          0,
+          -10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "同时前进上升对准",
+        "channels": [
+          10,
+          25,
+          20,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 0,
+        "mode": "hybrid",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "向右对准",
+        "channels": [
+          0,
+          0,
+          0,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "向左对准",
+        "channels": [
+          0,
+          0,
+          0,
+          -20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "同时前进上升对准",
+        "channels": [
+          0,
+          25,
+          20,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "yaw",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "向右对准",
+        "channels": [
+          20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "向左对准",
+        "channels": [
+          -20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "同时前进上升对准",
+        "channels": [
+          20,
+          25,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "lateral",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "向右对准",
+        "channels": [
+          10,
+          0,
+          0,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "向左对准",
+        "channels": [
+          -10,
+          0,
+          0,
+          -10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "同时前进上升对准",
+        "channels": [
+          10,
+          25,
+          20,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 1,
+        "mode": "hybrid",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "向右对准",
+        "channels": [
+          0,
+          0,
+          0,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "向左对准",
+        "channels": [
+          0,
+          0,
+          0,
+          -20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "同时前进上升对准",
+        "channels": [
+          0,
+          25,
+          20,
+          20
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "yaw",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "向右对准",
+        "channels": [
+          20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "向左对准",
+        "channels": [
+          -20,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "同时前进上升对准",
+        "channels": [
+          20,
+          25,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "lateral",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "前进",
+        "channels": [
+          0,
+          25,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "后退",
+        "channels": [
+          0,
+          -13,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "上升",
+        "channels": [
+          0,
+          0,
+          20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "向右对准",
+        "channels": [
+          10,
+          0,
+          0,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "向左对准",
+        "channels": [
+          -10,
+          0,
+          0,
+          -10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "同时前进上升对准",
+        "channels": [
+          10,
+          25,
+          20,
+          10
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "保持位置",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "遮挡归零",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "恢复后按新位置下降",
+        "channels": [
+          0,
+          0,
+          -20,
+          0
+        ],
+        "passed": true
+      },
+      {
+        "target_id": 2,
+        "mode": "hybrid",
+        "case": "停止后不自行启动",
+        "channels": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "passed": true
+      }
+    ],
+    "steps": 846,
+    "passed": true,
+    "channels_order": [
+      "left_right",
+      "forward_back",
+      "up_down",
+      "yaw"
+    ],
+    "unit": "RC channel value, not cm/s or m/s",
+    "camera_opened": false,
+    "desktop_opened": false,
+    "hardware_connected": false,
+    "input": "generated ArUco images",
+    "output": "MockPort requests",
+    "real_flight_verified": false
+  },
+  "handoff": {
+    "scope": "actual workers/SDK/Gateway; synthetic frames and simulated flight only",
+    "default_volc_entry_not_used": true,
+    "records": [
+      {
+        "step": "simulated_takeoff",
+        "result": {
+          "ok": true,
+          "status": "completed",
+          "reason": "",
+          "is_blocking": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "model",
+          "timestamp": 1793079558.1908956,
+          "control_epoch": 1,
+          "command_epoch": 1,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "follow_start",
+        "result": {
+          "ok": true,
+          "current_owner": "follow",
+          "reason": "simulated_follow_started",
+          "control_epoch": 0,
+          "command_epoch": 0
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079558.2592165,
+          "control_epoch": 3,
+          "command_epoch": 3,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "off_center_generates_request",
+        "result": {
+          "nonzero": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079558.3854358,
+          "control_epoch": 3,
+          "command_epoch": 3,
+          "velocity": [
+            9,
+            0,
+            0,
+            9
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "temporarily_occluded",
+        "result": {
+          "recovering": true,
+          "is_following": false
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079558.666691,
+          "control_epoch": 3,
+          "command_epoch": 3,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "model_action_during_recovery",
+        "result": {
+          "exception": "RuntimeError",
+          "message": "control_busy: busy"
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079558.6692922,
+          "control_epoch": 3,
+          "command_epoch": 3,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "marker_returns",
+        "result": {
+          "following": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079559.1285195,
+          "control_epoch": 3,
+          "command_epoch": 3,
+          "velocity": [
+            3,
+            0,
+            0,
+            3
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "model_forward30",
+        "result": {
+          "ok": true,
+          "status": "completed",
+          "reason": "",
+          "is_blocking": true,
+          "simulated": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "model",
+          "timestamp": 1793079559.1341066,
+          "control_epoch": 5,
+          "command_epoch": 6,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "model_completed_then_resume",
+        "result": {
+          "following": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079559.170243,
+          "control_epoch": 7,
+          "command_epoch": 8,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "pause_before_late_callback",
+        "result": {
+          "ok": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "none",
+          "timestamp": 1793079559.1714323,
+          "control_epoch": 8,
+          "command_epoch": 10,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "explicit_stop",
+        "result": {
+          "ok": true,
+          "current_owner": "none",
+          "reason": "",
+          "control_epoch": 0,
+          "command_epoch": 0
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "none",
+          "timestamp": 1793079559.172439,
+          "control_epoch": 8,
+          "command_epoch": 10,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "late_completion_after_stop",
+        "result": {
+          "ok": false,
+          "current_owner": "none",
+          "reason": "obsolete_ticket",
+          "control_epoch": 0,
+          "command_epoch": 0
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "none",
+          "timestamp": 1793079559.6671948,
+          "control_epoch": 8,
+          "command_epoch": 10,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "restart",
+        "result": {
+          "ok": true,
+          "current_owner": "follow",
+          "reason": "simulated_follow_started",
+          "control_epoch": 0,
+          "command_epoch": 0
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "flying",
+          "control_owner": "follow",
+          "timestamp": 1793079559.726345,
+          "control_epoch": 9,
+          "command_epoch": 11,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "gateway_priority_land_sent",
+        "result": {
+          "following": false
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 120,
+          "connected": true,
+          "flight_state": "landing",
+          "control_owner": "model",
+          "timestamp": 1793079559.7283459,
+          "control_epoch": 10,
+          "command_epoch": 12,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      },
+      {
+        "step": "simulated_landed_confirmed",
+        "result": {
+          "landed": true
+        },
+        "device": {
+          "battery": 88,
+          "height_cm": 0,
+          "connected": true,
+          "flight_state": "landed",
+          "control_owner": "model",
+          "timestamp": 1793079559.7825546,
+          "control_epoch": 10,
+          "command_epoch": 12,
+          "velocity": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "simulated": true,
+          "command_channel_ambiguous": false,
+          "command_uncertainty": null,
+          "height_timestamp": null
+        }
+      }
+    ]
+  },
+  "real_flight_verified": false
+}
