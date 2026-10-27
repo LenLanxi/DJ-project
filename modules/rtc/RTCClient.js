@@ -108,7 +108,10 @@
       this.callIds = new Set();
       this.callSignatures = new Map();
       this.pendingTools = new Set();
-      this.paragraphs = new Set();
+      this.completedRounds = new Set();
+      this.userSubtitleRound = null;
+      this.userSubtitleText = '';
+      this.turnRevoked = false;
       this.pendingCalls = [];
       this.pendingTurn = null;
       this.turnOpen = false;
@@ -199,7 +202,8 @@
         this.session = session;
         this.epoch = null;
         this.bound = false;
-        this.callIds.clear(); this.callSignatures.clear(); this.pendingTools.clear(); this.paragraphs.clear(); this.pendingCalls = [];
+        this.callIds.clear(); this.callSignatures.clear(); this.pendingTools.clear(); this.completedRounds.clear(); this.pendingCalls = [];
+        this.userSubtitleRound = null; this.userSubtitleText = ''; this.turnRevoked = false;
         this.pendingTurn = null; this.turnOpen = false;
         this.lastFrame = 0; this.lastFrameId = null;
         const socket = new this.Socket(session.bridgeUrl);
@@ -309,20 +313,39 @@
       } else if (message.type === 'subv') {
         for (const item of Array.isArray(message.value.data) ? message.value.data : []) {
           if (item.userId === this.session.userId) {
-            const paragraph = item.paragraph === null || item.paragraph === undefined ? null : String(item.paragraph);
-            if ((this.pendingTools.size || this.turnOpen) && item.text && !this.paragraphs.has(paragraph)) {
+            if (this.turnRevoked) continue; // Only a new session can restore a revoked grant.
+            const text = typeof item.text === 'string' ? item.text.trim() : '';
+            // Official subv: paragraph is an end flag, roundId is an integer
+            // identity. Never coerce boolean flags or missing IDs into a grant.
+            const validRound = Number.isSafeInteger(item.roundId) && item.roundId >= 0;
+            if (!validRound || typeof item.paragraph !== 'boolean' || typeof item.definite !== 'boolean') {
+              if ((this.pendingTools.size || this.turnOpen) && text)
+                this.interrupt(false).catch(error => this.fail(error));
+              continue;
+            }
+            const id = String(item.roundId);
+            if (this.completedRounds.has(id)) continue;
+            if (this.userSubtitleRound !== null && item.roundId < this.userSubtitleRound) continue;
+            if ((this.pendingTools.size || this.turnOpen) && text) {
               this.interrupt(false).catch(error => this.fail(error));
               return;
             }
-            if (item.definite === true && item.text && paragraph !== null && !this.paragraphs.has(paragraph)) {
-              const id = paragraph;
-              this.paragraphs.add(id);
+            if (item.roundId !== this.userSubtitleRound) {
+              this.userSubtitleRound = item.roundId;
+              this.userSubtitleText = '';
+            }
+            // User subtitles are cumulative. Quick subtitles may finish with
+            // empty text; reuse only the latest text from this exact round.
+            if (text) this.userSubtitleText = text;
+            if (item.definite === true && item.paragraph === true && this.userSubtitleText) {
+              const completedText = this.userSubtitleText;
+              this.completedRounds.add(id);
               this.epoch = null;
               this.pendingTurn = id;
               this.turnOpen = true;
-              this.onMessage('你：' + item.text);
+              this.onMessage('你：' + completedText);
               this.send({ type: 'user_turn', sessionId: this.session.sessionId, roomId: this.session.roomId,
-                taskId: this.session.taskId, userId: item.userId, id, text: item.text, completed: true });
+                taskId: this.session.taskId, userId: item.userId, id, text: completedText, completed: true });
             }
           } else if (item.userId === this.session.botId && item.definite === true) this.onMessage('模型：' + item.text);
         }
@@ -341,7 +364,7 @@
     }
 
     forwardCalls(calls) {
-      if (this.epoch === null || !this.bound || !this.active) throw new Error('缺少有效控制轮次');
+      if (this.epoch === null || this.turnRevoked || !this.bound || !this.active) throw new Error('缺少有效控制轮次');
       const fresh = [];
       for (const call of calls) {
         if (!call || typeof call.id !== 'string' || call.id.length > 128) throw new Error('无效工具编号');
@@ -434,6 +457,7 @@
     async interrupt(land) {
       if (!this.active || !this.bound) throw new Error('本机控制尚未连接，请使用物理急停键');
       this.epoch = null;
+      this.turnRevoked = true;
       this.pendingCalls = [];
       this.pendingTurn = null;
       this.turnOpen = false;
@@ -488,7 +512,8 @@
         if (this.socket) this.socket.close();
         this.socket = null;
         this.bound = false;
-        this.pendingTools.clear(); this.callIds.clear(); this.callSignatures.clear(); this.paragraphs.clear();
+        this.pendingTools.clear(); this.callIds.clear(); this.callSignatures.clear(); this.completedRounds.clear();
+        this.userSubtitleRound = null; this.userSubtitleText = '';
         this.clearFrame();
         if (session) work.push(this.post('/api/stop', { sessionId: session.sessionId }).catch(error => {
           this.onMessage('云端停止未确认：' + String(error.message || error));

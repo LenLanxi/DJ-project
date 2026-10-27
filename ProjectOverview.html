@@ -18,7 +18,7 @@
 <div class="brand">COMPANION / 项目导览</div>
 <div class="edition">2026.10.27<br>RTC 基线 7da7706 · R3 b2ce3d2<br>离线单页 · 不含凭据</div>
 <nav>
-<a href="#status">现在到了哪里</a><a href="#process">这轮怎样执行</a><a href="#architecture">结构与工作原理</a><a href="#scenario">完整场景推演</a><a href="#safety">关键保护机制</a><a href="#tests">测试证明了什么</a><a href="#blockers">当前主要阻碍</a><a href="#requirements">与原方案的关系</a><a href="#next">下一步与阅读入口</a>
+<a href="#status">现在到了哪里</a><a href="#process">这轮怎样执行</a><a href="#architecture">结构与工作原理</a><a href="#routes">三路线本轮变化</a><a href="#scenario">完整场景推演</a><a href="#safety">关键保护机制</a><a href="#tests">测试证明了什么</a><a href="#blockers">当前主要阻碍</a><a href="#requirements">与原方案的关系</a><a href="#next">下一步与阅读入口</a>
 </nav>
 <button type="button" id="print">打印 / 保存为 PDF</button>
 </aside>
@@ -31,7 +31,7 @@
 </header>
 <section id="status" style="padding-top:0;margin-top:0;border-top:0">
 <div class="verdict"><strong>软件结构已统一，完整现场任务仍未通过。</strong><p>当前版本具备真实设备入口、模型程序执行链和多项失败保护。云服务启停与视觉调用已有真实结果，但没有真机、蓝牙耳机、RTC 音视频联合验收；实测视觉延迟还会阻断导航。</p></div>
-<div class="metrics"><div class="metric"><b>984</b><span>本地 Python 测试条目通过</span></div><div class="metric"><b>50</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>前次关闭思考后的单次视觉观察</span></div></div>
+<div class="metrics"><div class="metric"><b>1057</b><span>本地 Python 检查通过（含补充3项）</span></div><div class="metric"><b>60</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>前次关闭思考后的单次视觉观察</span></div></div>
 <p class="caption">数字分别描述软件回归与一次合成图云调用，不代表飞行成功率。</p>
 </section>
 <section id="process"><span class="index">01 / EXECUTION</span><h2>项目近期怎样推进</h2>
@@ -40,7 +40,7 @@
 <div class="work"><h3>清除重复生产路线</h3><p>删除旧 Agent、Demo、Session、ProgramRunner、固定口令、分段 STT/TTS、本地语音降级、重复 docs 实现和旧启动器。有价值的断言迁入 tests；历史证据保留版本归属。</p></div>
 <div class="work"><h3>收紧执行与取消边界</h3><p>将模型完整 Python 放入 Docker，动作统一经过网关与 SDK。重点复现旧授权复活、迟到线程、命令回复错配及清理失败，再修改真正产生副作用的边界。</p></div>
 <div class="work"><h3>分层验证，再调用真实云服务</h3><p>先用替身、实际 SDK 方法、本机网络和真实容器检查机制，再用短录音、RTC 启停与合成图验证云端。收费调用保留脱敏收据，失败样例也保留。</p></div>
-<div class="work"><h3>集成三组并保留未决项</h3><p>在 RTC 版本上通过 PR #7 迁入三组自适应跟随、上下控制和提前减速，保留容器与取消保护。完整离线回归和双平台 CI 通过；这次没有真机、耳机或收费 API 调用，不将软件集成当作现场验收。</p></div>
+<div class="work"><h3>集成三组并保留未决项</h3><p>在 RTC 版本上通过 PR #7 迁入三组自适应跟随、上下控制和提前减速，保留容器与取消保护。完整离线回归和双平台 CI 通过；三组集成时没有真机、耳机或收费 API 调用，不将软件集成当作现场验收。</p></div>
 </div></section>
 <section id="architecture"><span class="index">02 / SYSTEM MAP</span><h2>一个系统，两种节奏</h2>
 <p>电脑同时承担本地跟随和云端交互。持续跟随需要及时更新；自然语言与复杂视觉允许更长处理时间。它们共享画面和 SDK，但必须交接控制权，不能同时持续发出冲突动作。</p>
@@ -64,6 +64,19 @@
 </tbody></table></div>
 <p>跟随比较标记的位置和大小变化，用 PID 调节请求。默认 motion_follow 在靠近画面中央时主要横移，偏离较大时逐渐多转向，并启用上下跟随和提前减速。“OpenPose”来自控制方法的来源，没有启用人体骨架识别；相对标记大小也不是精确米数。临时程序默认保留原基准，只有显式 adjust_follow_reference 且动作后新帧有效、程序成功时才更新指定轴。</p>
 </section>
+<section id="routes"><span class="index">NEW / 2026-10-27</span><h2>三条实时路线，本轮实际改变了什么</h2>
+<p>正式飞行链路仍为豆包 RTC。新增阿里 Qwen3.8 WebSocket 与腾讯 TRTC 候选适配器、两家官方原生 SDK 文件媒体客户端，以及串行交错比较入口。它们不重新引入旧 Agent 或模拟飞行入口。</p>
+<div class="tablewrap"><table><thead><tr><th>路线</th><th>首个非零语音，中位数（范围）</th><th>额外能力实测</th></tr></thead><tbody>
+<tr><td>阿里 Qwen3.8</td><td>1.41 秒（1.34–1.44）</td><td>自动模式的电量工具回传失败，红蓝两图均答错；手动提交完整轮次后，同样工具及原图均成功。自动轮次绑定仍待修复。</td></tr>
+<tr><td>腾讯 TRTC</td><td>2.61 秒（2.54–3.20）</td><td>语音往返已测通。公开配置路线为语音级联；本轮没有验证视频理解或客户端工具回传。</td></tr>
+<tr><td>豆包 RTC</td><td>3.62 秒（3.06–4.26）</td><td>红蓝图均正确，实际 Docker→Gateway→假设备电量80→云端回答成功；工具问答首音6.56秒。</td></tr>
+</tbody></table></div>
+<p class="caption">每条语音路线3次；从同一录音最后有声采样实际发送算起。阿里为服务端WebSocket，另外两家是官方原生SDK；含编解码/缓冲差异，不含网页、声卡或蓝牙播放。活动窗口也略有差异：阿里/豆包连续20ms，腾讯连续40ms并取首窗时刻。</p>
+<p>媒体送达与字幕逐字遵从分开：三路均送达3/3；用户要求只说“测试收到”，字幕严格符合分别为阿里3/3、腾讯1/3、豆包0/3。后两路部分回答“收到，测试正常／通过”等，保留失败，不能用它抹掉可测的音频时延。</p>
+<p class="note warn">语音最快目前是阿里，但现接入的自动多模态／工具链尚未通过，不能据此切换完整飞行任务。手动提交诊断不混入自动模式统计；它说明基础通路可用，不能证明自动断句已修复。</p>
+<p>真实云字幕还揭示并修复网页协议错误：paragraph是结束标记，roundId才是轮次编号。现只在definite与paragraph均为true时授权，支持同轮空结束字幕，拒绝重复、缺轮次和撤销后的旧请求。腾讯未知启动结果后的清理责任也已保留，避免一次“尚未找到任务”便遗忘迟到创建的任务。</p>
+<p>桌面 DroneArchitectureBefore.html 冻结本轮开始前 main 686de44；本页随代码更新。证据与复现见 <a href="ScenarioAcceptance/Evidence/RealtimeComparison/Summary.json">Summary.json</a>、tests/RunRealtime.py 和各厂商 Setup.json。未使用真实无人机、麦克风、摄像头或耳机。</p>
+</section>
 <section id="scenario"><span class="index">03 / WALK THROUGH</span><h2>你的完整场景，逐步会发生什么</h2>
 <div class="routes">
 <article class="route"><div class="routehead"><b>01</b><h3>准备系统</h3><span class="tag">地面检查</span></div><div class="routedetail"><p><span>用户</span><span>只连接一架飞机，确认双网络、Docker、凭据和人体标记；打开打印的本机网址，选择耳机。</span></p><p><span>代码</span><span>启动器指定 PID 配置，检查连接、遥测、电量、温度和视频；网页发布 SDK 画面，不开启电脑摄像头。</span></p><p><span>飞机</span><span>启动程序并不等于起飞。三架普通 Tello 也不会因三份配置自动组成协同系统。</span></p></div></article>
@@ -83,7 +96,7 @@
 </section>
 <section id="tests"><span class="index">05 / EVIDENCE</span><h2>“测试通过”分别证明什么</h2>
 <div class="tablewrap"><table><thead><tr><th>验证层</th><th>实际做过什么</th><th>边界</th></tr></thead><tbody>
-<tr><td>行为回归</td><td>984 条目、496 子测试通过；独立函数来源 957 个。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
+<tr><td>行为回归</td><td>本轮全库1054条目＋协调器新增3项，504个子测试通过；Node 60项通过。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
 <tr><td>执行与协议</td><td>真实 Docker、本机 HTTP／WebSocket／UDP、实际 SDK 方法配合假传输。</td><td>未连接飞机，不能测物理响应。</td></tr>
 <tr><td>直连语音诊断</td><td>预录音进真实云服务；生成程序经容器、假设备并回传结果。</td><td>不同于正式 RTC，未使用实体耳机。</td></tr>
 <tr><td>RTC 控制面</td><td>两组真实 StartVoiceChat → StopVoiceChat，均确认清理。</td><td>没有客户端入房或上传媒体。</td></tr>

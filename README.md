@@ -19,6 +19,29 @@
 
 控制关系：RTC 模型 → 完整 Python → 隔离容器 → 网关 → SDK → Tello。跟随在电脑本地持续运行，云端只负责意图、观察和程序；两个模块共用同一连接。
 
+## 三条实时路线的候选测试
+
+正式飞行入口仍使用上面的豆包 RTC 路线。本轮新增的是独立候选适配器与文件媒体测试，不是旧 Agent、固定口令或模拟飞行入口的回归：
+
+- `modules/ai/AlibabaRealtime.py`：Qwen3.8 Omni WebSocket，真实 PCM、JPEG、原生 Function Calling 与工具结果回传；有会话期限、取消、输入预算和免费额度声明检查。它不在宿主机执行模型代码。
+- `modules/ai/TencentConversation.py`：TRTC 云签名、短期 UserSig、Start/Describe/Control/Stop、失败清理。当前公开接口是 STT→外部 LLM→TTS；不能仅配置视觉模型名称便宣称视频/客户端工具已接通。
+- `modules/rtc/NativeProbe.cpp`、`TencentProbe.cpp`：两家官方原生 SDK 的无窗口媒体测量客户端，不采集设备；与正式网页客户端的编解码、缓冲不同。
+- `tests/AlibabaBenchmark.py`、`DoubaoBenchmark.py`、`TencentBenchmark.py`：只有显式 `--real` 才调用云；统一文件输入、工具使用假设备，所有尝试包括失败均保留。真实调用不会被常规 pytest 或 CI 自动运行。
+
+协议依据：[阿里实时多模态与工具](https://help.aliyun.com/zh/model-studio/realtime)、[腾讯对话公开接口](https://cloud.tencent.com/document/api/647/108514)、[腾讯工具代理示例](https://github.com/Tencent-RTC/trtc-conversation-ai-example/tree/main/llm_function_call)。两家 RTC 的准确 SDK 来源及本地构建方式见 `ScenarioAcceptance/Evidence/RealtimeComparison/*Setup.json`；SDK 二进制、临时入房凭据和原始输出 PCM 留在忽略的 `modules/rtc/Build`，不提交。
+
+本机三次自动语音测量的首音中位数：阿里1.41秒、腾讯2.61秒、豆包3.62秒。三路媒体均送达3/3；严格字幕复述分别3/3、1/3、0/3。豆包通过红蓝图与容器工具往返；阿里自动图像/工具失败、手动提交隔离成功，不能据语音速度直接切换正式路线。实际paragraph是布尔结束标记、roundId才是轮次；网页已按真实协议修复并补回归。
+
+测试结果在 `ScenarioAcceptance/Evidence/RealtimeComparison`。`Summary.json` 分别记录语音、视觉对照与工具往返；Start 接口耗时不参加语音排名。计时从统一录音最后有声采样发出开始，首音频指收到/解码出的语音，未包含声卡、网页播放、蓝牙耳机或真实飞行延迟。三次重复只描述本机网络条件，不是普遍性能保证。
+
+离线重算结果，不调用云或设备：
+
+```powershell
+uv run --frozen python tests/CompareRealtime.py
+```
+
+重新收费/消耗试用额度前，先查看各 `*Benchmark.py --help`，显式指定服务端凭据文件；密钥不写命令行或测试证据，不传进网页。正式比较须串行运行、使用相同输入，开发排错样本不能混入正式排名。
+
 启动器默认 `aircraft_A_ID0_motion_follow.json`：ID0、adaptive、responsive_v1、relative_size、上下跟随；横向共享预算50 RC、前后40 RC、上下20 RC。高度配置50–200cm，距边界20cm时拦截继续外向升降；高度遥测未知/过期时升降归零。RC不是物理速度，高度保护不是实际刹停保证。参考标记平均边长占图宽的比例上限0.20，默认不是米制测距；pose模式需要另行测量标记及标定相机。
 
 临时程序默认保留原跟随距离/构图。用户明确调整跟随位置时，可在对应轴移动后调用 `adjust_follow_reference('depth'/'horizontal'/'vertical')`；等待动作后新帧且整段程序成功才更新并恢复。该调用返回accepted时尚未应用，最终工具结果的follow_cleanup提供确认。红帐篷等临时任务不应重设原跟随基准。短暂丢失默认归零等待最多30秒，旧帧/异常仍停止；旋转后恢复仍要求原标记可见。

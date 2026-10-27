@@ -1,0 +1,31 @@
+{
+  "sdkVersion": "3.60.107.700",
+  "platform": "Linux x86_64 Server",
+  "officialCatalogue": "https://docs.volcengine.com/docs/real-time-communication/rtc-get-sdk?lang=zh",
+  "downloadUrl": "https://portal.volccdn.com/obj/volcfe/cloud-universal-doc/upload_c75353ba9cc51d73829e232769de3351.zip",
+  "officialAudioDocs": "https://docs.volcengine.com/docs/real_time_communication/Native-sidecustomaudiocaptureandrendering?lang=en",
+  "officialAudioSample": "https://github.com/volcengine/VolcEngineRTC/blob/main/Windows/src/Advanced/AudioMixing/CustomAudioCapture.cpp",
+  "officialVideoSample": "https://github.com/volcengine/VolcEngineRTC/blob/main/Windows/src/Advanced/VideoConfig/CustomVideoCapture.cpp",
+  "licenseNotice": "SDK headers: Copyright (c) 2020 The VolcEngineRTC project authors. All Rights Reserved. No separate redistribution licence in archive; local cache only.",
+  "cachePath": "modules/rtc/Build/RTCNative",
+  "provenancePath": "modules/rtc/Build/RTCNative/Provenance.txt",
+  "buildWorkingDirectory": "modules/rtc",
+  "buildCommand": "docker build -f NativeBuild.Dockerfile -t companion-rtc-probe:1 .",
+  "selfTestCommand": "docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges companion-rtc-probe:1 --self-test",
+  "inputAudio": "mono S16LE 16000Hz, 10ms SDK frames (common 20ms chunks split in two)",
+  "inputImage": "640x360 I420 repeated at 2fps",
+  "outputAudio": "external pull 48kHz mono S16LE every10ms, threshold RMS>=64 for2frames",
+  "productionClient": "Web SDK4.69.3",
+  "measurementClient": "official native Linux Server SDK3.60.107.700 in Docker",
+  "differences": [
+    "native codec and jitter buffers may differ from Web",
+    "Docker network instead of browser network",
+    "no physical microphone, speaker, Bluetooth or camera delay",
+    "SDK room profile communication; production Web uses chat"
+  ],
+  "controlPlaneNotVoiceMetric": true,
+  "driver": "tests/DoubaoBenchmark.py --real --task speech --trials 1 --development",
+  "verifiedAudioBoundary": "onRemoteUserAudioFrame decoded PCM observer; pullExternalAudioFrame remained silent in the development probe",
+  "observationNote": "First development sample had silent pull observation; second proved inbound and outbound RTC audio via remote-user observer. This does not prove Web client playback or Bluetooth latency.",
+  "driverArguments": "--real --task speech|status|vision --image RedTent|BlueTent --trials 1 --output <json> [--development]"
+}

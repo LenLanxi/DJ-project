@@ -55,7 +55,7 @@ async function until(predicate){const deadline=Date.now()+5000;
  assert.equal(service.controller.session.status,'submitted');
  const identity=client.session;
  client.rtcMessage({type:'subv',value:{data:[{userId:identity.userId,
-  paragraph:1,text:'check status',definite:true}]}});
+  roundId:1,paragraph:true,text:'check status',definite:true}]}});
  await until(()=>Number.isInteger(client.epoch));
  client.rtcMessage({type:'tool',value:{tool_calls:[{id:'contractCall',
   function:{name:'run_program',arguments:JSON.stringify({code:'print(drone.get_status())'})}}]}});

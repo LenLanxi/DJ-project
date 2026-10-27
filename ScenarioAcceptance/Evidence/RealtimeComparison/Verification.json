@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-27T06:38:35.828754+00:00",
+  "base_commit": "686de448dce62dd869df0d1ecb317443f80d2c84",
+  "validation": {
+    "Python.xml": {
+      "junit_testcase_entries": 1054,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Coordinator.xml": {
+      "junit_testcase_entries": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Node.xml": {
+      "junit_testcase_entries": 60,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "pytest_full_items": 1054,
+    "supplementary_coordinator_items": 3,
+    "python_items_total": 1057,
+    "node_items": 60
+  },
+  "python_subtests": 504,
+  "separate_native_selftests": {
+    "DoubaoRTC": true,
+    "TencentTRTC": true
+  },
+  "source_sha256": {
+    "modules/ai/AlibabaRealtime.py": "18b275ba196e756aa2973c6e5804aab869d1a610fde436750a457854e7d89588",
+    "modules/ai/TencentConversation.py": "a98289bc45d05195751bde00433cdb01763e8fd864270a1666449fab532bf47a",
+    "modules/ai/RealtimeMetrics.py": "5a1ce3bdeefba5bf3d7e0eb27c7a5c2c4131673656528ca8c70d8f22ad7f0475",
+    "modules/rtc/RTCClient.js": "6257da969de7bad9a90af7bc794c3b65844938732c9b2f1eead5f4d2326e72f8",
+    "modules/rtc/NativeProbe.cpp": "d17e253db51cd07ee884403ca96a70fc2c883e97f0c40df804f4406cad26bce8",
+    "modules/rtc/TencentProbe.cpp": "54889ebbd9473cd938ff892d442e4b3b881bf4f7a4d02c070be3fb77459a4e6a",
+    "tests/AlibabaBenchmark.py": "105c085c7a5760d5812719865c7db4ae20cdedb9d109371967849c36bf524151",
+    "tests/DoubaoBenchmark.py": "904f1f384616f2257bf941d6f2e08c8b06a68475b51465ab6bf9ea3979ca7caf",
+    "tests/TencentBenchmark.py": "2ea97d41e17b6bf85e8ac2c5507e77f38d328c0881c05420ab7f70e32151066b",
+    "tests/RunRealtime.py": "26c05060d118d7bc38cc46def59378792ab72355ceec0e0b42b9fa7078e89a3a",
+    "tests/CompareRealtime.py": "c42d2283e034a2940cfadcc58d93ec80c8c853f5f0adec0ae66b1fcea1bd59f2"
+  },
+  "real_media_attempts": {
+    "AlibabaMedia.json": 10,
+    "DoubaoMedia.json": 8,
+    "TencentMedia.json": 3,
+    "TencentDevelopment.json": 1
+  },
+  "cleanup": {
+    "AlibabaMedia.json": true,
+    "DoubaoMedia.json": true,
+    "TencentMedia.json": true,
+    "TencentDevelopment.json": true
+  },
+  "credential_scan": {
+    "files": 333,
+    "credential_value_matches": 0
+  },
+  "physical_devices_opened": false,
+  "actual_bill_verified": false,
+  "declared_paid_budget_rmb": 15,
+  "trial_quota_assurance": "Alibaba free-only guard and user-provided account declarations; not billing records",
+  "browser_attempt": {
+    "result": "trusted_Node_REPL_browser_service_unavailable",
+    "fallback": "official_native_SDKs_no_UI_or_devices"
+  }
+}

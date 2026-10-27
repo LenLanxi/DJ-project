@@ -2,6 +2,8 @@
 
 当前测试入口：仓库根目录执行 `uv run --frozen pytest -q`。真实容器项需显式设置 `RUN_DOCKER_TESTS=1`；RTC 服务端另运行 `npm --prefix modules/rtc test`。
 
+`Evidence/RealtimeComparison` 是本轮豆包 RTC、阿里实时多模态和腾讯 TRTC 的独立比较。Fixtures.json 固定同一批合成音频/红蓝帐篷图；*Media.json 保留开发与正式尝试、语义校验、真实媒体计时及清理结果；Summary.json 由 `tests/CompareRealtime.py` 离线生成。缺失、失败、仅控制面成功的路线不能被算成完整成功；未做真实耳机、图传或飞行验收。SDK/短期Token/原始输出PCM不入库，相关Setup.json记录来源与复现要求。
+
 `ScenarioTests.py` 仅转发当前 pytest，不再加载已删除的 Agent/Demo/Session/docs 生产路线，也不会把已知失败转换为通过。
 
 `Evidence/R3Integration` 保存本次三组集成回归、配置/图像/交接检查及其范围；`Evidence/Current` 保留前次 RTC 重构的检查、云语音诊断和费用记录。历史 `Cases.json`、`Evidence/History`、`Results` 保留其原始版本和发现；其中的文件名、行号和通过数量可能对应已删除实现，不代表当前状态。

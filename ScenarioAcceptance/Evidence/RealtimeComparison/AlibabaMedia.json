@@ -1,0 +1,3990 @@
+{
+  "schema_version": 1,
+  "provider": "AlibabaRealtime",
+  "samples": [
+    {
+      "provider": "AlibabaRealtime",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "phase": "development",
+      "started_at": "2026-10-27T06:10:25.663452+00:00",
+      "finished_at": "2026-10-27T06:10:32.245072+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1092.312,
+        "first_audio_ms": 1311.312,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1374.312,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 219.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 641.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 641.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 641.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 813.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 813.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 813.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1985.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2282.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2282.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2282.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2282.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2297.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2391.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2407.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3094.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3110.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 3844.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4704.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4704.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 4704.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4907.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 4907.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4922.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 4922.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4922.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4922.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4922.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4922.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4922.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5000.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 5000.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5141.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 5141.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5141.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 5157.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5188.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 5188.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 5204.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 5204.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5579.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 6594.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话。测试收到。"
+      ],
+      "replies": [
+        "测试收到。"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "required_phrase_present": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 3844.0,
+        "packet_overshoot_ms": 14.3125,
+        "speech_end_anchor_ms": 3829.6875,
+        "speech_end_seconds": 2.9856875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 641.0,
+          "session_ready_ms": 813.0,
+          "input_start_ms": 813.0,
+          "input_end_send_ms": 3844.0,
+          "input_end_packet_overshoot_ms": 14.3125,
+          "speech_end_anchor_ms": 3829.6875,
+          "committed_ms": 4704.0,
+          "asr_final_ms": 4907.0,
+          "response_created_ms": 4922.0,
+          "first_text_ms": 4922.0,
+          "first_audio_ms": 5141.0,
+          "response_done_ms": 5204.0,
+          "all_audio_sent_ms": 5579.0,
+          "input_end_to_first_text_ms": 1078.0,
+          "input_end_to_first_audio_ms": 1297.0,
+          "input_end_to_response_done_ms": 1360.0
+        }
+      },
+      "fixture": {
+        "audio": "Speech",
+        "image": null,
+        "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 766,
+          "input_tokens": 745,
+          "output_tokens": 21,
+          "input_tokens_details": {
+            "text_tokens": 717,
+            "audio_tokens": 28
+          },
+          "output_tokens_details": {
+            "text_tokens": 5,
+            "audio_tokens": 16
+          }
+        }
+      ],
+      "output_audio_bytes": 61440,
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 3.775,
+      "uploaded_audio_seconds": 4.775,
+      "audio_played": false,
+      "system_instructions": "你参加实时音频测试。遵照用户的自然语言要求，只简短回答一句“测试收到。”，不要补充解释。",
+      "first_audio_definition": "initial_nonempty_audio_delta_arrival_nonzero_threshold_not_evaluated",
+      "nonzero_audio_threshold_verified": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:21:54.993651+00:00",
+      "finished_at": "2026-10-27T06:22:01.188735+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "system_instructions": "你正在进行实时语音交互的软件测试。只根据本轮用户实际说的话，用中文简短回答。不主动发起问候，不执行设备动作，不输出推理过程。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1092.312,
+        "first_audio_ms": 1342.312,
+        "first_audio_chunk_ms": 1342.312,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1404.312,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 94.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 313.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 313.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 313.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 422.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 422.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 422.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1610.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1891.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1891.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1906.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2016.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2016.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2703.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2719.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 3438.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4281.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4281.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 4281.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4485.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4500.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 4500.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4516.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 4516.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4516.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4516.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4516.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4516.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4516.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4625.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4625.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4766.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4766.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 4781.0,
+          "first_window_received_ms": 4766.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 4766.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4813.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4813.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4813.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4813.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4828.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4828.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4828.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 4828.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5188.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 6188.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话。测试收到。"
+      ],
+      "replies": [
+        "测试收到"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "required_phrase_present": true,
+        "actual_asr_phrase_present": true,
+        "nonzero_audio_detected": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 3438.0,
+        "packet_overshoot_ms": 14.3125,
+        "speech_end_anchor_ms": 3423.6875,
+        "speech_end_seconds": 2.9856875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 313.0,
+          "session_ready_ms": 422.0,
+          "input_start_ms": 422.0,
+          "input_end_send_ms": 3438.0,
+          "input_end_packet_overshoot_ms": 14.3125,
+          "speech_end_anchor_ms": 3423.6875,
+          "committed_ms": 4281.0,
+          "asr_final_ms": 4500.0,
+          "response_created_ms": 4516.0,
+          "first_text_ms": 4516.0,
+          "first_audio_chunk_ms": 4766.0,
+          "first_nonzero_audio_ms": 4766.0,
+          "first_audio_ms": 4766.0,
+          "response_done_ms": 4828.0,
+          "all_audio_sent_ms": 5188.0,
+          "input_end_to_first_text_ms": 1078.0,
+          "input_end_to_first_audio_ms": 1328.0,
+          "input_end_to_response_done_ms": 1390.0
+        }
+      },
+      "fixture": {
+        "audio": "Speech",
+        "image": null,
+        "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 776,
+          "input_tokens": 755,
+          "output_tokens": 21,
+          "input_tokens_details": {
+            "text_tokens": 727,
+            "audio_tokens": 28
+          },
+          "output_tokens_details": {
+            "text_tokens": 4,
+            "audio_tokens": 17
+          }
+        }
+      ],
+      "output_audio_bytes": 65280,
+      "audio_activity": {
+        "first_window_received_ms": 4766.0,
+        "sample_offset": 2160,
+        "confirmed_received_ms": 4766.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 3.775,
+      "uploaded_audio_seconds": 4.775,
+      "audio_played": false,
+      "delivery_verified": true,
+      "delivery_evidence": {
+        "recomputed_from_existing_evidence": true,
+        "method": "existing_complete_asr_nonzero_pcm_transport_and_cleanup_v1",
+        "original_metrics_preserved": true,
+        "acoustic_proof": true
+      }
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:24:38.228379+00:00",
+      "finished_at": "2026-10-27T06:24:44.475803+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "answer_verified": true,
+      "delivery_verified": true,
+      "system_instructions": "你正在进行实时语音交互的软件测试。只根据本轮用户实际说的话，用中文简短回答。不主动发起问候，不执行设备动作，不输出推理过程。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1155.312,
+        "first_audio_ms": 1405.312,
+        "first_audio_chunk_ms": 1405.312,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1499.312,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 109.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 359.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 359.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 359.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 468.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 468.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1640.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1921.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1921.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1921.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1921.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1921.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2046.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 3468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4343.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4343.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 4343.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4562.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4562.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4578.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4578.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 4578.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 4609.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4609.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4687.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4687.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4859.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4859.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 4875.0,
+          "first_window_received_ms": 4859.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 4859.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4906.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4921.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4921.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4937.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4937.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4953.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4953.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 4953.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5234.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 6234.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话。测试收到。"
+      ],
+      "replies": [
+        "测试收到"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "required_phrase_present": true,
+        "actual_asr_phrase_present": true,
+        "nonzero_audio_detected": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 3468.0,
+        "packet_overshoot_ms": 14.3125,
+        "speech_end_anchor_ms": 3453.6875,
+        "speech_end_seconds": 2.9856875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 359.0,
+          "session_ready_ms": 468.0,
+          "input_start_ms": 468.0,
+          "input_end_send_ms": 3468.0,
+          "input_end_packet_overshoot_ms": 14.3125,
+          "speech_end_anchor_ms": 3453.6875,
+          "committed_ms": 4343.0,
+          "asr_final_ms": 4578.0,
+          "response_created_ms": 4609.0,
+          "first_text_ms": 4609.0,
+          "first_audio_chunk_ms": 4859.0,
+          "first_nonzero_audio_ms": 4859.0,
+          "first_audio_ms": 4859.0,
+          "response_done_ms": 4953.0,
+          "all_audio_sent_ms": 5234.0,
+          "input_end_to_first_text_ms": 1141.0,
+          "input_end_to_first_audio_ms": 1391.0,
+          "input_end_to_response_done_ms": 1485.0
+        }
+      },
+      "fixture": {
+        "audio": "Speech",
+        "image": null,
+        "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 776,
+          "input_tokens": 755,
+          "output_tokens": 21,
+          "input_tokens_details": {
+            "text_tokens": 727,
+            "audio_tokens": 28
+          },
+          "output_tokens_details": {
+            "text_tokens": 4,
+            "audio_tokens": 17
+          }
+        }
+      ],
+      "output_audio_bytes": 65280,
+      "audio_activity": {
+        "first_window_received_ms": 4859.0,
+        "sample_offset": 2160,
+        "confirmed_received_ms": 4859.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 3.775,
+      "uploaded_audio_seconds": 4.775,
+      "audio_played": false,
+      "delivery_evidence": {
+        "recomputed_from_existing_evidence": true,
+        "method": "existing_complete_asr_nonzero_pcm_transport_and_cleanup_v1",
+        "original_metrics_preserved": true,
+        "acoustic_proof": true
+      }
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:24:58.768222+00:00",
+      "finished_at": "2026-10-27T06:25:04.986872+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "answer_verified": true,
+      "delivery_verified": true,
+      "system_instructions": "你正在进行实时语音交互的软件测试。只根据本轮用户实际说的话，用中文简短回答。不主动发起问候，不执行设备动作，不输出推理过程。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1201.312,
+        "first_audio_ms": 1436.312,
+        "first_audio_chunk_ms": 1436.312,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1498.312,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 109.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 328.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 437.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 437.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 437.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1640.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1906.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1906.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1922.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1922.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1937.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2047.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2047.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 3422.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4359.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4359.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 4359.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4531.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4547.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4547.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4562.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 4562.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 4609.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4609.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4609.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4703.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 4703.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4844.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4844.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 4844.0,
+          "first_window_received_ms": 4844.0,
+          "sample_offset": 1920,
+          "confirmed_received_ms": 4844.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4890.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4890.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4890.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4890.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 4906.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4906.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 4906.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5203.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 6219.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话。测试收到。"
+      ],
+      "replies": [
+        "测试收到"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "required_phrase_present": true,
+        "actual_asr_phrase_present": true,
+        "nonzero_audio_detected": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 3422.0,
+        "packet_overshoot_ms": 14.3125,
+        "speech_end_anchor_ms": 3407.6875,
+        "speech_end_seconds": 2.9856875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 328.0,
+          "session_ready_ms": 437.0,
+          "input_start_ms": 437.0,
+          "input_end_send_ms": 3422.0,
+          "input_end_packet_overshoot_ms": 14.3125,
+          "speech_end_anchor_ms": 3407.6875,
+          "committed_ms": 4359.0,
+          "asr_final_ms": 4562.0,
+          "response_created_ms": 4609.0,
+          "first_text_ms": 4609.0,
+          "first_audio_chunk_ms": 4844.0,
+          "first_nonzero_audio_ms": 4844.0,
+          "first_audio_ms": 4844.0,
+          "response_done_ms": 4906.0,
+          "all_audio_sent_ms": 5203.0,
+          "input_end_to_first_text_ms": 1187.0,
+          "input_end_to_first_audio_ms": 1422.0,
+          "input_end_to_response_done_ms": 1484.0
+        }
+      },
+      "fixture": {
+        "audio": "Speech",
+        "image": null,
+        "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 775,
+          "input_tokens": 755,
+          "output_tokens": 20,
+          "input_tokens_details": {
+            "text_tokens": 727,
+            "audio_tokens": 28
+          },
+          "output_tokens_details": {
+            "text_tokens": 4,
+            "audio_tokens": 16
+          }
+        }
+      ],
+      "output_audio_bytes": 61440,
+      "audio_activity": {
+        "first_window_received_ms": 4844.0,
+        "sample_offset": 1920,
+        "confirmed_received_ms": 4844.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 3.775,
+      "uploaded_audio_seconds": 4.775,
+      "audio_played": false,
+      "delivery_evidence": {
+        "recomputed_from_existing_evidence": true,
+        "method": "existing_complete_asr_nonzero_pcm_transport_and_cleanup_v1",
+        "original_metrics_preserved": true,
+        "acoustic_proof": true
+      }
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "status",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:25:13.020663+00:00",
+      "finished_at": "2026-10-27T06:25:19.589401+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": false,
+      "answer_verified": false,
+      "delivery_verified": false,
+      "system_instructions": "你参加实时接口测试，连接的是simulated测试设备。用户查询电量时必须调用run_program，code为print(drone.get_status())。根据实际工具结果简短报告模拟电量，不得猜测，不得执行动作。",
+      "media_verified": false,
+      "latency": {
+        "first_text_ms": null,
+        "first_audio_ms": null,
+        "first_audio_chunk_ms": null,
+        "tool_call_ms": -900.438,
+        "tool_result_sent_ms": 287.562,
+        "completed_ms": null,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 109.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 344.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 344.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 344.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 469.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 469.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 469.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1656.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1875.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1875.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1890.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1890.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2015.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2015.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3719.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3719.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 3719.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3890.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3890.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 3906.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 3906.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4140.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 4140.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4140.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4140.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4187.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4219.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4265.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4265.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4281.0,
+          "type": "response.function_call_arguments.done"
+        },
+        {
+          "event": "tool_call",
+          "t_ms": 4281.0,
+          "call_id": "call_5865b9b475aa438687a07b27",
+          "name": "run_program"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4281.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4281.0,
+          "type": "response.done"
+        },
+        {
+          "event": "tool_execution_started",
+          "t_ms": 4281.0,
+          "call_id": "call_5865b9b475aa438687a07b27"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 5187.0
+        },
+        {
+          "event": "tool_result_sent",
+          "t_ms": 5469.0,
+          "call_id": "call_5865b9b475aa438687a07b27"
+        },
+        {
+          "event": "continuation_requested",
+          "t_ms": 5469.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5469.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5562.0,
+          "type": "error"
+        },
+        {
+          "event": "failed",
+          "t_ms": 6578.0,
+          "error_code": "provider_error"
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 6578.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请查询模拟无人机的电量。"
+      ],
+      "replies": [],
+      "cleanup": {
+        "query_runtime_stopped": true,
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "actual_tool_battery_80": true,
+        "reply_contains_80": false,
+        "container_rpc": true,
+        "battery_results": [
+          80
+        ]
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 5187.0,
+        "packet_overshoot_ms": 5.5625,
+        "speech_end_anchor_ms": 5181.4375,
+        "speech_end_seconds": 4.7144375,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 344.0,
+          "session_ready_ms": 469.0,
+          "input_start_ms": 469.0,
+          "committed_ms": 3719.0,
+          "asr_final_ms": 3906.0,
+          "response_created_ms": 4140.0,
+          "tool_call_ms": 4281.0,
+          "input_end_send_ms": 5187.0,
+          "input_end_packet_overshoot_ms": 5.5625,
+          "speech_end_anchor_ms": 5181.4375,
+          "result_sent_ms": 5469.0,
+          "input_end_to_tool_call_ms": -906.0
+        }
+      },
+      "fixture": {
+        "audio": "Status",
+        "image": null,
+        "sha256": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [
+        {
+          "call_id": "call_5865b9b475aa438687a07b27",
+          "name": "run_program",
+          "arguments": {
+            "code": "print(drone.get_status())"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "call_id": "call_5865b9b475aa438687a07b27",
+          "result": {
+            "ok": true,
+            "status": "completed",
+            "reason": "",
+            "simulated": true,
+            "journal": [
+              {
+                "method": "get_status",
+                "args": [],
+                "kwargs": {},
+                "result": {
+                  "battery": 80,
+                  "height_cm": 0,
+                  "connected": true,
+                  "flight_state": "landed",
+                  "control_owner": "none",
+                  "timestamp": 1793082318.158538,
+                  "control_epoch": 0,
+                  "command_epoch": 0,
+                  "simulated": true
+                }
+              }
+            ],
+            "follow_cleanup": {
+              "status": "no_control"
+            },
+            "debug": "{'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793082318.158538, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\n"
+          }
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 1163,
+          "input_tokens": 1131,
+          "output_tokens": 32,
+          "input_tokens_details": {
+            "text_tokens": 1103,
+            "audio_tokens": 28
+          },
+          "output_tokens_details": {
+            "text_tokens": 32
+          }
+        }
+      ],
+      "output_audio_bytes": 0,
+      "audio_activity": null,
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": false,
+      "error_code": "provider_error",
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.5,
+      "uploaded_audio_seconds": 6.5,
+      "audio_played": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "vision",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:25:40.285365+00:00",
+      "finished_at": "2026-10-27T06:25:48.227596+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": false,
+      "answer_verified": false,
+      "delivery_verified": true,
+      "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+      "media_verified": false,
+      "latency": {
+        "first_text_ms": 1147.125,
+        "first_audio_ms": 1397.125,
+        "first_audio_chunk_ms": 1397.125,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1459.125,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 109.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 344.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 344.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 453.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 453.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 453.0
+        },
+        {
+          "event": "image_sent",
+          "t_ms": 484.0,
+          "bytes": 9978
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 4906.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4969.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5281.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5281.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5281.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5297.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5406.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5406.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5812.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5812.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 5812.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5969.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 5969.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6047.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 6047.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6047.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6047.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6047.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6047.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 6047.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6297.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6297.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 6297.0,
+          "first_window_received_ms": 6297.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 6297.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6297.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6297.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6344.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6344.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6359.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6359.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 6359.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 6703.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 7703.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "只回答颜色。"
+      ],
+      "replies": [
+        "蓝色"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "expected_color": "红",
+        "correct_color_present": false,
+        "opposite_color_present": true,
+        "image_sent": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 4906.0,
+        "packet_overshoot_ms": 6.125,
+        "speech_end_anchor_ms": 4899.875,
+        "speech_end_seconds": 4.433875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 328.0,
+          "session_ready_ms": 453.0,
+          "input_start_ms": 453.0,
+          "image_sent_ms": 484.0,
+          "input_end_send_ms": 4906.0,
+          "input_end_packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 4899.875,
+          "committed_ms": 5812.0,
+          "asr_final_ms": 5969.0,
+          "response_created_ms": 6047.0,
+          "first_text_ms": 6047.0,
+          "first_audio_chunk_ms": 6297.0,
+          "first_nonzero_audio_ms": 6297.0,
+          "first_audio_ms": 6297.0,
+          "response_done_ms": 6359.0,
+          "all_audio_sent_ms": 6703.0,
+          "input_end_to_first_text_ms": 1141.0,
+          "input_end_to_first_audio_ms": 1391.0,
+          "input_end_to_response_done_ms": 1453.0
+        }
+      },
+      "fixture": {
+        "audio": "Vision",
+        "image": "RedTent",
+        "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 752,
+          "input_tokens": 736,
+          "output_tokens": 16,
+          "input_tokens_details": {
+            "text_tokens": 715,
+            "audio_tokens": 21
+          },
+          "output_tokens_details": {
+            "text_tokens": 3,
+            "audio_tokens": 13
+          }
+        }
+      ],
+      "output_audio_bytes": 49920,
+      "audio_activity": {
+        "first_window_received_ms": 6297.0,
+        "sample_offset": 2160,
+        "confirmed_received_ms": 6297.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.235,
+      "uploaded_audio_seconds": 6.235,
+      "audio_played": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "vision",
+      "turn_mode": "automatic",
+      "phase": "formal",
+      "started_at": "2026-10-27T06:26:02.443480+00:00",
+      "finished_at": "2026-10-27T06:26:10.345845+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": false,
+      "answer_verified": false,
+      "delivery_verified": true,
+      "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+      "media_verified": false,
+      "latency": {
+        "first_text_ms": 1147.125,
+        "first_audio_ms": 1381.125,
+        "first_audio_chunk_ms": 1381.125,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1428.125,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 94.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 329.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 329.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 329.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 438.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 438.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 438.0
+        },
+        {
+          "event": "image_sent",
+          "t_ms": 469.0,
+          "bytes": 9946
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 4891.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4891.0,
+          "type": "input_audio_buffer.speech_started"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5188.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5188.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5188.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5204.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5313.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5313.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5750.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5750.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5797.0,
+          "type": "input_audio_buffer.speech_stopped"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5797.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 5797.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5954.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 5954.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6032.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 6032.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6032.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6032.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6032.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6032.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 6032.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6266.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6266.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 6266.0,
+          "first_window_received_ms": 6266.0,
+          "sample_offset": 1920,
+          "confirmed_received_ms": 6266.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6313.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6313.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6313.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6313.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 6313.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 6672.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 7688.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "只回答颜色。"
+      ],
+      "replies": [
+        "红色"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "expected_color": "蓝",
+        "correct_color_present": false,
+        "opposite_color_present": true,
+        "image_sent": true
+      },
+      "vad_config": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800,
+        "extra_silence_seconds": 1.0
+      },
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 4891.0,
+        "packet_overshoot_ms": 6.125,
+        "speech_end_anchor_ms": 4884.875,
+        "speech_end_seconds": 4.433875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 329.0,
+          "session_ready_ms": 438.0,
+          "input_start_ms": 438.0,
+          "image_sent_ms": 469.0,
+          "input_end_send_ms": 4891.0,
+          "input_end_packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 4884.875,
+          "committed_ms": 5797.0,
+          "asr_final_ms": 5954.0,
+          "response_created_ms": 6032.0,
+          "first_text_ms": 6032.0,
+          "first_audio_chunk_ms": 6266.0,
+          "first_nonzero_audio_ms": 6266.0,
+          "first_audio_ms": 6266.0,
+          "response_done_ms": 6313.0,
+          "all_audio_sent_ms": 6672.0,
+          "input_end_to_first_text_ms": 1141.0,
+          "input_end_to_first_audio_ms": 1375.0,
+          "input_end_to_response_done_ms": 1422.0
+        }
+      },
+      "fixture": {
+        "audio": "Vision",
+        "image": "BlueTent",
+        "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 752,
+          "input_tokens": 736,
+          "output_tokens": 16,
+          "input_tokens_details": {
+            "text_tokens": 715,
+            "audio_tokens": 21
+          },
+          "output_tokens_details": {
+            "text_tokens": 3,
+            "audio_tokens": 13
+          }
+        }
+      ],
+      "output_audio_bytes": 49920,
+      "audio_activity": {
+        "first_window_received_ms": 6266.0,
+        "sample_offset": 1920,
+        "confirmed_received_ms": 6266.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.235,
+      "uploaded_audio_seconds": 6.235,
+      "audio_played": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "status",
+      "turn_mode": "manual",
+      "phase": "diagnostic",
+      "started_at": "2026-10-27T06:30:57.862129+00:00",
+      "finished_at": "2026-10-27T06:31:07.972078+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "answer_verified": true,
+      "delivery_verified": true,
+      "system_instructions": "你参加实时接口测试，连接的是simulated测试设备。用户查询电量时必须调用run_program，code为print(drone.get_status())。根据实际工具结果简短报告模拟电量，不得猜测，不得执行动作。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 3099.562,
+        "first_audio_ms": 3505.562,
+        "first_audio_chunk_ms": 3505.562,
+        "tool_call_ms": 1536.562,
+        "tool_result_sent_ms": 2693.562,
+        "completed_ms": 3927.562,
+        "post_result_first_text_ms": 3099.562,
+        "post_result_first_audio_ms": 3505.562
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 93.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 343.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 343.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 453.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 453.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 453.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1015.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1015.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1328.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1343.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4734.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4750.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4750.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 5187.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5968.0
+        },
+        {
+          "event": "commit_sent",
+          "t_ms": 5968.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6093.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 6093.0
+        },
+        {
+          "event": "response_requested",
+          "t_ms": 6093.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6312.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6312.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6328.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6328.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 6328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6515.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 6515.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6515.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6515.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6640.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6671.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6671.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6703.0,
+          "type": "response.function_call_arguments.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6718.0,
+          "type": "response.function_call_arguments.done"
+        },
+        {
+          "event": "tool_call",
+          "t_ms": 6718.0,
+          "call_id": "call_3c4a1583fa9e422a946a841b",
+          "name": "run_program"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6718.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6718.0,
+          "type": "response.done"
+        },
+        {
+          "event": "tool_execution_started",
+          "t_ms": 6718.0,
+          "call_id": "call_3c4a1583fa9e422a946a841b"
+        },
+        {
+          "event": "tool_result_sent",
+          "t_ms": 7875.0,
+          "call_id": "call_3c4a1583fa9e422a946a841b"
+        },
+        {
+          "event": "continuation_requested",
+          "t_ms": 7875.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 7953.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8281.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 8281.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8281.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8281.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8281.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8281.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8281.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8468.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8468.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8468.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8468.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8468.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 8468.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8687.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8687.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 8687.0,
+          "first_window_received_ms": 8687.0,
+          "sample_offset": 1920,
+          "confirmed_received_ms": 8687.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8687.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8687.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8734.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8734.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8781.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8781.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8828.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8828.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8875.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8875.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8937.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8937.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 8968.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 8968.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 9109.0,
+          "bytes": 7680
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 9109.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 9109.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 10109.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "请查询模拟无人机的电量，不要操作飞机。"
+      ],
+      "replies": [
+        "模拟无人机电量为80%。"
+      ],
+      "cleanup": {
+        "query_runtime_stopped": true,
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "actual_tool_battery_80": true,
+        "reply_contains_80": true,
+        "container_rpc": true,
+        "battery_results": [
+          80
+        ]
+      },
+      "vad_config": null,
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 5187.0,
+        "packet_overshoot_ms": 5.5625,
+        "speech_end_anchor_ms": 5181.4375,
+        "speech_end_seconds": 4.7144375,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 328.0,
+          "session_ready_ms": 453.0,
+          "input_start_ms": 453.0,
+          "input_end_send_ms": 5187.0,
+          "input_end_packet_overshoot_ms": 5.5625,
+          "speech_end_anchor_ms": 5181.4375,
+          "all_audio_sent_ms": 5968.0,
+          "commit_ms": 5968.0,
+          "committed_ms": 6093.0,
+          "response_requested_ms": 6093.0,
+          "asr_final_ms": 6328.0,
+          "response_created_ms": 6515.0,
+          "tool_call_ms": 6718.0,
+          "result_sent_ms": 7875.0,
+          "first_text_ms": 8281.0,
+          "post_result_first_text_ms": 8281.0,
+          "first_audio_chunk_ms": 8687.0,
+          "first_nonzero_audio_ms": 8687.0,
+          "first_audio_ms": 8687.0,
+          "post_result_first_audio_chunk_ms": 8687.0,
+          "post_result_first_audio_ms": 8687.0,
+          "response_done_ms": 9109.0,
+          "input_end_to_first_text_ms": 3094.0,
+          "input_end_to_first_audio_ms": 3500.0,
+          "input_end_to_tool_call_ms": 1531.0,
+          "input_end_to_response_done_ms": 3922.0,
+          "result_to_post_result_first_text_ms": 406.0,
+          "result_to_post_result_first_audio_ms": 812.0
+        }
+      },
+      "fixture": {
+        "audio": "Status",
+        "image": null,
+        "sha256": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138",
+        "image_sha256": null,
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [
+        {
+          "call_id": "call_3c4a1583fa9e422a946a841b",
+          "name": "run_program",
+          "arguments": {
+            "code": "print(drone.get_status())"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "call_id": "call_3c4a1583fa9e422a946a841b",
+          "result": {
+            "ok": true,
+            "status": "completed",
+            "reason": "",
+            "simulated": true,
+            "journal": [
+              {
+                "method": "get_status",
+                "args": [],
+                "kwargs": {},
+                "result": {
+                  "battery": 80,
+                  "height_cm": 0,
+                  "connected": true,
+                  "flight_state": "landed",
+                  "control_owner": "none",
+                  "timestamp": 1793082665.4734473,
+                  "control_epoch": 0,
+                  "command_epoch": 0,
+                  "simulated": true
+                }
+              }
+            ],
+            "follow_cleanup": {
+              "status": "no_control"
+            },
+            "debug": "{'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793082665.4734473, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\n"
+          }
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 1179,
+          "input_tokens": 1147,
+          "output_tokens": 32,
+          "input_tokens_details": {
+            "text_tokens": 1105,
+            "audio_tokens": 42
+          },
+          "output_tokens_details": {
+            "text_tokens": 32
+          }
+        },
+        {
+          "total_tokens": 1454,
+          "input_tokens": 1410,
+          "output_tokens": 44,
+          "input_tokens_details": {
+            "text_tokens": 1368,
+            "audio_tokens": 42
+          },
+          "output_tokens_details": {
+            "text_tokens": 10,
+            "audio_tokens": 34
+          }
+        }
+      ],
+      "output_audio_bytes": 130560,
+      "audio_activity": {
+        "first_window_received_ms": 8687.0,
+        "sample_offset": 1920,
+        "confirmed_received_ms": 8687.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "error_details": null,
+      "limitations": [
+        "single_input_fixture_not_continuous_multiturn_acceptance",
+        "new_speech_is_not_processed_while_awaiting_tool_handler"
+      ],
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.5,
+      "uploaded_audio_seconds": 5.5,
+      "audio_played": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "vision",
+      "turn_mode": "manual",
+      "phase": "diagnostic",
+      "started_at": "2026-10-27T06:31:18.447544+00:00",
+      "finished_at": "2026-10-27T06:31:26.147529+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "answer_verified": true,
+      "delivery_verified": true,
+      "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1225.125,
+        "first_audio_ms": 1522.125,
+        "first_audio_chunk_ms": 1522.125,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1569.125,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 94.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 329.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 329.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 329.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 469.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 469.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 469.0
+        },
+        {
+          "event": "image_sent",
+          "t_ms": 500.0,
+          "bytes": 9978
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1032.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1032.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1032.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1344.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1344.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1985.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1985.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1985.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2766.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2766.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4766.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4782.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4782.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4782.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4782.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 4922.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5704.0
+        },
+        {
+          "event": "commit_sent",
+          "t_ms": 5704.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5797.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 5797.0
+        },
+        {
+          "event": "response_requested",
+          "t_ms": 5797.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6000.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6000.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6000.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 6000.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6141.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 6141.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6141.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6141.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6141.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6141.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 6141.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6438.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6438.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 6438.0,
+          "first_window_received_ms": 6438.0,
+          "sample_offset": 1920,
+          "confirmed_received_ms": 6438.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6438.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6438.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6485.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6485.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6485.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 6485.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 7485.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "红色"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "expected_color": "红",
+        "correct_color_present": true,
+        "opposite_color_present": false,
+        "image_sent": true
+      },
+      "vad_config": null,
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 4922.0,
+        "packet_overshoot_ms": 6.125,
+        "speech_end_anchor_ms": 4915.875,
+        "speech_end_seconds": 4.433875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 329.0,
+          "session_ready_ms": 469.0,
+          "input_start_ms": 469.0,
+          "image_sent_ms": 500.0,
+          "input_end_send_ms": 4922.0,
+          "input_end_packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 4915.875,
+          "all_audio_sent_ms": 5704.0,
+          "commit_ms": 5704.0,
+          "committed_ms": 5797.0,
+          "response_requested_ms": 5797.0,
+          "asr_final_ms": 6000.0,
+          "response_created_ms": 6141.0,
+          "first_text_ms": 6141.0,
+          "first_audio_chunk_ms": 6438.0,
+          "first_nonzero_audio_ms": 6438.0,
+          "first_audio_ms": 6438.0,
+          "response_done_ms": 6485.0,
+          "input_end_to_first_text_ms": 1219.0,
+          "input_end_to_first_audio_ms": 1516.0,
+          "input_end_to_response_done_ms": 1563.0
+        }
+      },
+      "fixture": {
+        "audio": "Vision",
+        "image": "RedTent",
+        "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "image_sha256": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 997,
+          "input_tokens": 981,
+          "output_tokens": 16,
+          "input_tokens_details": {
+            "text_tokens": 719,
+            "audio_tokens": 42,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 3,
+            "audio_tokens": 13
+          }
+        }
+      ],
+      "output_audio_bytes": 49920,
+      "audio_activity": {
+        "first_window_received_ms": 6438.0,
+        "sample_offset": 1920,
+        "confirmed_received_ms": 6438.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "error_details": null,
+      "limitations": [
+        "single_input_fixture_not_continuous_multiturn_acceptance",
+        "new_speech_is_not_processed_while_awaiting_tool_handler"
+      ],
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.235,
+      "uploaded_audio_seconds": 5.235,
+      "audio_played": false
+    },
+    {
+      "provider": "AlibabaRealtime",
+      "task": "vision",
+      "turn_mode": "manual",
+      "phase": "diagnostic",
+      "started_at": "2026-10-27T06:31:32.277377+00:00",
+      "finished_at": "2026-10-27T06:31:39.961164+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "ok": true,
+      "answer_verified": true,
+      "delivery_verified": true,
+      "system_instructions": "观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。",
+      "media_verified": true,
+      "latency": {
+        "first_text_ms": 1256.125,
+        "first_audio_ms": 1506.125,
+        "first_audio_chunk_ms": 1506.125,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 1553.125,
+        "post_result_first_text_ms": null,
+        "post_result_first_audio_ms": null
+      },
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 93.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 328.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 343.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 343.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 468.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 468.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 468.0
+        },
+        {
+          "event": "image_sent",
+          "t_ms": 500.0,
+          "bytes": 9946
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1015.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1015.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1359.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1375.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2000.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2000.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2000.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2718.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2718.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4765.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 4781.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 4921.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5703.0
+        },
+        {
+          "event": "commit_sent",
+          "t_ms": 5703.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 5812.0,
+          "type": "input_audio_buffer.committed"
+        },
+        {
+          "event": "input_committed",
+          "t_ms": 5812.0
+        },
+        {
+          "event": "response_requested",
+          "t_ms": 5812.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6015.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6031.0,
+          "type": "conversation.item.input_audio_transcription.delta"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6031.0,
+          "type": "conversation.item.input_audio_transcription.completed"
+        },
+        {
+          "event": "asr_final",
+          "t_ms": 6031.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6171.0,
+          "type": "response.created"
+        },
+        {
+          "event": "response_created",
+          "t_ms": 6171.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6171.0,
+          "type": "response.output_item.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6171.0,
+          "type": "conversation.item.created"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6171.0,
+          "type": "response.content_part.added"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6171.0,
+          "type": "response.audio_transcript.delta"
+        },
+        {
+          "event": "model_text_received",
+          "t_ms": 6171.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6421.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6421.0,
+          "bytes": 15360
+        },
+        {
+          "event": "nonzero_audio_detected",
+          "t_ms": 6421.0,
+          "first_window_received_ms": 6421.0,
+          "sample_offset": 2160,
+          "confirmed_received_ms": 6421.0,
+          "rms_threshold": 64,
+          "window_ms": 10,
+          "consecutive_windows": 2
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6421.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6421.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6468.0,
+          "bytes": 15360
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.audio.delta"
+        },
+        {
+          "event": "model_audio_received",
+          "t_ms": 6468.0,
+          "bytes": 3840
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.audio_transcript.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.audio.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.content_part.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.output_item.done"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 6468.0,
+          "type": "response.done"
+        },
+        {
+          "event": "response_done",
+          "t_ms": 6468.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 7468.0,
+          "confirmed": true
+        }
+      ],
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "蓝色"
+      ],
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "semantic_evidence": {
+        "expected_color": "蓝",
+        "correct_color_present": true,
+        "opposite_color_present": false,
+        "image_sent": true
+      },
+      "vad_config": null,
+      "timing": {
+        "origin": "actual_last_voiced_packet_send_minus_packet_overshoot",
+        "input_end_send_ms": 4921.0,
+        "packet_overshoot_ms": 6.125,
+        "speech_end_anchor_ms": 4914.875,
+        "speech_end_seconds": 4.433875,
+        "speech_end_threshold": 300,
+        "raw_metrics": {
+          "connected_ms": 328.0,
+          "session_ready_ms": 468.0,
+          "input_start_ms": 468.0,
+          "image_sent_ms": 500.0,
+          "input_end_send_ms": 4921.0,
+          "input_end_packet_overshoot_ms": 6.125,
+          "speech_end_anchor_ms": 4914.875,
+          "all_audio_sent_ms": 5703.0,
+          "commit_ms": 5703.0,
+          "committed_ms": 5812.0,
+          "response_requested_ms": 5812.0,
+          "asr_final_ms": 6031.0,
+          "response_created_ms": 6171.0,
+          "first_text_ms": 6171.0,
+          "first_audio_chunk_ms": 6421.0,
+          "first_nonzero_audio_ms": 6421.0,
+          "first_audio_ms": 6421.0,
+          "response_done_ms": 6468.0,
+          "input_end_to_first_text_ms": 1250.0,
+          "input_end_to_first_audio_ms": 1500.0,
+          "input_end_to_response_done_ms": 1547.0
+        }
+      },
+      "fixture": {
+        "audio": "Vision",
+        "image": "BlueTent",
+        "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "image_sha256": "fbff70c0723ea7f2046da26bdb267642188e3a5fbee50abb4c1b6392e7f43360",
+        "synthetic": true,
+        "physical_devices": false
+      },
+      "tool_calls": [],
+      "tool_results": [],
+      "usage": [
+        {
+          "total_tokens": 997,
+          "input_tokens": 981,
+          "output_tokens": 16,
+          "input_tokens_details": {
+            "text_tokens": 719,
+            "audio_tokens": 42,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 3,
+            "audio_tokens": 13
+          }
+        }
+      ],
+      "output_audio_bytes": 49920,
+      "audio_activity": {
+        "first_window_received_ms": 6421.0,
+        "sample_offset": 2160,
+        "confirmed_received_ms": 6421.0,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_audio_definition": "first_received_window_RMS64_two_consecutive_10ms_not_playback",
+      "transport_ok": true,
+      "error_code": null,
+      "error_details": null,
+      "limitations": [
+        "single_input_fixture_not_continuous_multiturn_acceptance",
+        "new_speech_is_not_processed_while_awaiting_tool_handler"
+      ],
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "audio_input_seconds": 5.235,
+      "uploaded_audio_seconds": 5.235,
+      "audio_played": false
+    }
+  ],
+  "scope": "synthetic_prerecorded_media_no_hardware_no_playback",
+  "pricing_assurance": "declared_free_quota_and_stop_when_exhausted_not_a_billing_receipt",
+  "real_api_attempts": 10,
+  "successful_sessions": 7,
+  "updated_at": "2026-10-27T06:31:39.967996+00:00"
+}

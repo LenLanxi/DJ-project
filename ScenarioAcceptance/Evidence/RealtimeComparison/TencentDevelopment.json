@@ -1,0 +1,5088 @@
+{
+  "schema_version": 1,
+  "provider": "TencentTRTC",
+  "task": "speech",
+  "samples": [
+    {
+      "provider": "TencentTRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "phase": "development",
+      "model": "doubao-seed-2-1-lite-260915",
+      "thinking": {
+        "requested": "disabled",
+        "confirmed": false,
+        "method": "LLMConfig.ExtraBody",
+        "note": "No LLM request inspection; provider forwarding is unverified"
+      },
+      "client": "official_windows_native",
+      "media_verified": true,
+      "ok": true,
+      "physical_devices": false,
+      "full_input_fixture": {
+        "text": "请只回答一句话：测试收到。",
+        "sample_rate": 16000,
+        "channels": 1,
+        "bits": 16,
+        "samples": 60400,
+        "speech_end_samples": 47771,
+        "speech_end_seconds": 2.9856875,
+        "seconds": 3.775,
+        "speech_end_threshold": 300,
+        "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8"
+      },
+      "video_understanding_verified": false,
+      "client_tools_verified": false,
+      "latency": {
+        "first_text_ms": 1786.4740999999995,
+        "first_audio_ms": 2003.6822000000002,
+        "completed_ms": 2701.0256
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_windows_native",
+          "event": "probe_start",
+          "hardware": false,
+          "monotonic_ms": 152.0446,
+          "route": "TencentTRTC",
+          "sdk_version": "13.4.0.18168",
+          "video_understanding_verified": false
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 152.3732
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 708.3915,
+          "state": 475
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 709.4535,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 0,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 722.6132,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 738.6583,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 1920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 768.6098,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 2880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 783.2965,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 3840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 798.4694,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 4800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 829.4738,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 5760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 845.7934,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 6720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 861.2106,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 7680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 877.4381,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 8640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 908.0698,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 9600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 922.655,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 10560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 938.1378,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 11520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 969.5502,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 12480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 984.4609,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 13440,
+          "samples": 960
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 999.9705
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1000.0345,
+          "published": true
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 1000.094,
+          "payload": {
+            "payload": {
+              "status": "session_ready"
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10003
+          },
+          "sequence": 1179631367
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 1000.1392,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 20,
+              "roundid": "",
+              "state": 1,
+              "timestamp": 1793081467922
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631368
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1000.4604,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 14400,
+          "samples": 960
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1013.9969,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "enqueued_ms": 1014.2519,
+          "event": "audio_chunk",
+          "last_sample": 320,
+          "monotonic_ms": 1014.2584,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1014.5416,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 15360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1044.5028,
+          "event": "audio_chunk",
+          "last_sample": 640,
+          "monotonic_ms": 1044.5147,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1044.7963,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 16320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1064.646,
+          "event": "audio_chunk",
+          "last_sample": 960,
+          "monotonic_ms": 1064.6588,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1065.3898,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 17280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1075.2008,
+          "event": "audio_chunk",
+          "last_sample": 1280,
+          "monotonic_ms": 1075.2121,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1075.5152,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 18240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1105.157,
+          "event": "audio_chunk",
+          "last_sample": 1600,
+          "monotonic_ms": 1105.1752,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1105.8929,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 19200,
+          "samples": 960
+        },
+        {
+          "event": "remote_audio_first_frame_callback",
+          "monotonic_ms": 1120.1482
+        },
+        {
+          "enqueued_ms": 1120.2772,
+          "event": "audio_chunk",
+          "last_sample": 1920,
+          "monotonic_ms": 1120.2863,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1120.8103,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 20160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1135.6065,
+          "event": "audio_chunk",
+          "last_sample": 2240,
+          "monotonic_ms": 1135.6226,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1136.134,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 21120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1167.2399,
+          "event": "audio_chunk",
+          "last_sample": 2560,
+          "monotonic_ms": 1167.2587,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 1167.9107
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1168.221,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 22080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1182.327,
+          "event": "audio_chunk",
+          "last_sample": 2880,
+          "monotonic_ms": 1182.3404,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1182.7373,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 23040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1196.3011,
+          "event": "audio_chunk",
+          "last_sample": 3200,
+          "monotonic_ms": 1196.7933,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1197.1054,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 24000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1226.5335,
+          "event": "audio_chunk",
+          "last_sample": 3520,
+          "monotonic_ms": 1226.5464,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1226.8976,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 24960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1243.213,
+          "event": "audio_chunk",
+          "last_sample": 3840,
+          "monotonic_ms": 1243.2358,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1243.7077,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 25920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1258.1571,
+          "event": "audio_chunk",
+          "last_sample": 4160,
+          "monotonic_ms": 1258.1806,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1258.5294,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 26880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1288.4315,
+          "event": "audio_chunk",
+          "last_sample": 4480,
+          "monotonic_ms": 1288.4513,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1288.7886,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 27840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1303.5569,
+          "event": "audio_chunk",
+          "last_sample": 4800,
+          "monotonic_ms": 1303.5771,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1304.098,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 28800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1319.5612,
+          "event": "audio_chunk",
+          "last_sample": 5120,
+          "monotonic_ms": 1319.5799,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1319.8414,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 29760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1333.8218,
+          "event": "audio_chunk",
+          "last_sample": 5440,
+          "monotonic_ms": 1334.1045,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1334.5892,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 30720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1364.1335,
+          "event": "audio_chunk",
+          "last_sample": 5760,
+          "monotonic_ms": 1364.1572,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1364.784,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 31680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1380.2747,
+          "event": "audio_chunk",
+          "last_sample": 6080,
+          "monotonic_ms": 1380.2865,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1380.71,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 32640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1394.4248,
+          "event": "audio_chunk",
+          "last_sample": 6400,
+          "monotonic_ms": 1394.5339,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1395.1969,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 33600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1425.1539,
+          "event": "audio_chunk",
+          "last_sample": 6720,
+          "monotonic_ms": 1425.1668,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1425.6,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 34560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1439.5505,
+          "event": "audio_chunk",
+          "last_sample": 7040,
+          "monotonic_ms": 1439.5653,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1440.0343,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 35520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1455.4758,
+          "event": "audio_chunk",
+          "last_sample": 7360,
+          "monotonic_ms": 1455.4916,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1456.0338,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 36480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1486.6918,
+          "event": "audio_chunk",
+          "last_sample": 7680,
+          "monotonic_ms": 1486.7096,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1487.0699,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 37440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1502.498,
+          "event": "audio_chunk",
+          "last_sample": 8000,
+          "monotonic_ms": 1502.5153,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1503.0229,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 38400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1517.3869,
+          "event": "audio_chunk",
+          "last_sample": 8320,
+          "monotonic_ms": 1517.4025,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1517.7869,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 39360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1548.2437,
+          "event": "audio_chunk",
+          "last_sample": 8640,
+          "monotonic_ms": 1548.2625,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1548.7538,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 40320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1563.9881,
+          "event": "audio_chunk",
+          "last_sample": 8960,
+          "monotonic_ms": 1564.0048,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1564.4984,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 41280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1579.3884,
+          "event": "audio_chunk",
+          "last_sample": 9280,
+          "monotonic_ms": 1579.4033,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1579.689,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 42240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1595.5213,
+          "event": "audio_chunk",
+          "last_sample": 9600,
+          "monotonic_ms": 1595.5368,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1596.1299,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 43200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1627.0904,
+          "event": "audio_chunk",
+          "last_sample": 9920,
+          "monotonic_ms": 1627.1091,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1627.4966,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 44160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1643.0955,
+          "event": "audio_chunk",
+          "last_sample": 10240,
+          "monotonic_ms": 1643.1116,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1643.4435,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 45120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1659.3086,
+          "event": "audio_chunk",
+          "last_sample": 10560,
+          "monotonic_ms": 1659.3738,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 1,
+          "monotonic_ms": 1660.2312
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1660.6013,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 46080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1675.7754,
+          "event": "audio_chunk",
+          "last_sample": 10880,
+          "monotonic_ms": 1675.7885,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1676.7364,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 47040,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 1704.0362,
+          "payload": {
+            "end_ms_ts": 1793081468625,
+            "payload": {
+              "end": false,
+              "end_time": "00:00:00",
+              "end_time_ms": 761,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "start_time": "00:00:00",
+              "start_time_ms": 241,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "请"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081468105,
+            "type": 10000
+          },
+          "sequence": 1179631369
+        },
+        {
+          "enqueued_ms": 1704.209,
+          "event": "audio_chunk",
+          "last_sample": 11200,
+          "monotonic_ms": 1704.2144,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1704.5656,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 48000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1719.2149,
+          "event": "audio_chunk",
+          "last_sample": 11520,
+          "monotonic_ms": 1719.4791,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1719.7029,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 48960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1734.4209,
+          "event": "audio_chunk",
+          "last_sample": 11840,
+          "monotonic_ms": 1734.4397,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1735.0724,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 49920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1765.9039,
+          "event": "audio_chunk",
+          "last_sample": 12160,
+          "monotonic_ms": 1765.9169,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1766.6095,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 50880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1781.4826,
+          "event": "audio_chunk",
+          "last_sample": 12480,
+          "monotonic_ms": 1781.4943,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1781.7806,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 51840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1796.6753,
+          "event": "audio_chunk",
+          "last_sample": 12800,
+          "monotonic_ms": 1796.6906,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1797.1501,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 52800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1827.5647,
+          "event": "audio_chunk",
+          "last_sample": 13120,
+          "monotonic_ms": 1827.5826,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1827.9561,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 53760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1841.9899,
+          "event": "audio_chunk",
+          "last_sample": 13440,
+          "monotonic_ms": 1842.0045,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1842.5625,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 54720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1856.5914,
+          "event": "audio_chunk",
+          "last_sample": 13760,
+          "monotonic_ms": 1856.6037,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1856.9367,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 55680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1886.933,
+          "event": "audio_chunk",
+          "last_sample": 14080,
+          "monotonic_ms": 1886.9446,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1887.3707,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 56640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1901.6687,
+          "event": "audio_chunk",
+          "last_sample": 14400,
+          "monotonic_ms": 1901.6906,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1901.9233,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 57600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1918.1833,
+          "event": "audio_chunk",
+          "last_sample": 14720,
+          "monotonic_ms": 1918.1966,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1918.5328,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 58560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1948.0296,
+          "event": "audio_chunk",
+          "last_sample": 15040,
+          "monotonic_ms": 1948.2376,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1948.5113,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 59520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1962.8591,
+          "event": "audio_chunk",
+          "last_sample": 15360,
+          "monotonic_ms": 1962.8713,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1963.104,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 60480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 1978.8874,
+          "event": "audio_chunk",
+          "last_sample": 15680,
+          "monotonic_ms": 1978.9019,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 1979.2727,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 61440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2008.4198,
+          "event": "audio_chunk",
+          "last_sample": 16000,
+          "monotonic_ms": 2008.5481,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2008.9346,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 62400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2024.2233,
+          "event": "audio_chunk",
+          "last_sample": 16320,
+          "monotonic_ms": 2024.2397,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2024.9739,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 63360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2040.4415,
+          "event": "audio_chunk",
+          "last_sample": 16640,
+          "monotonic_ms": 2040.4618,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2041.0464,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 64320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2055.5485,
+          "event": "audio_chunk",
+          "last_sample": 16960,
+          "monotonic_ms": 2055.5638,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2056.7824,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 65280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2087.1842,
+          "event": "audio_chunk",
+          "last_sample": 17280,
+          "monotonic_ms": 2087.198,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2087.7668,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 66240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2101.5057,
+          "event": "audio_chunk",
+          "last_sample": 17600,
+          "monotonic_ms": 2101.5218,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2102.0014,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 67200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2117.4649,
+          "event": "audio_chunk",
+          "last_sample": 17920,
+          "monotonic_ms": 2117.4859,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2118.2134,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 68160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2150.1626,
+          "event": "audio_chunk",
+          "last_sample": 18240,
+          "monotonic_ms": 2150.1758,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2150.533,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 69120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2164.1763,
+          "event": "audio_chunk",
+          "last_sample": 18560,
+          "monotonic_ms": 2164.1946,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 2,
+          "monotonic_ms": 2165.2296
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2166.6789,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 70080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2179.7753,
+          "event": "audio_chunk",
+          "last_sample": 18880,
+          "monotonic_ms": 2179.81,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2180.1354,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 71040,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 2194.8926,
+          "payload": {
+            "end_ms_ts": 1793081469123,
+            "payload": {
+              "end": false,
+              "end_time": "00:00:01",
+              "end_time_ms": 1259,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "start_time": "00:00:00",
+              "start_time_ms": 259,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "请只回答"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081468123,
+            "type": 10000
+          },
+          "sequence": 1179631370
+        },
+        {
+          "enqueued_ms": 2195.1834,
+          "event": "audio_chunk",
+          "last_sample": 19200,
+          "monotonic_ms": 2195.2027,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2195.545,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 72000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2225.278,
+          "event": "audio_chunk",
+          "last_sample": 19520,
+          "monotonic_ms": 2225.2963,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2225.8658,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 72960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2240.441,
+          "event": "audio_chunk",
+          "last_sample": 19840,
+          "monotonic_ms": 2240.4574,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2241.1917,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 73920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2256.6762,
+          "event": "audio_chunk",
+          "last_sample": 20160,
+          "monotonic_ms": 2256.694,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2257.1392,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 74880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2287.5235,
+          "event": "audio_chunk",
+          "last_sample": 20480,
+          "monotonic_ms": 2287.5408,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2288.1103,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 75840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2302.5055,
+          "event": "audio_chunk",
+          "last_sample": 20800,
+          "monotonic_ms": 2302.5249,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2303.1538,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 76800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2318.3324,
+          "event": "audio_chunk",
+          "last_sample": 21120,
+          "monotonic_ms": 2318.3514,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2319.0321,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 77760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2333.759,
+          "event": "audio_chunk",
+          "last_sample": 21440,
+          "monotonic_ms": 2333.7812,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2334.3123,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 78720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2364.8587,
+          "event": "audio_chunk",
+          "last_sample": 21760,
+          "monotonic_ms": 2364.8769,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2365.2661,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 79680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2380.3745,
+          "event": "audio_chunk",
+          "last_sample": 22080,
+          "monotonic_ms": 2380.3921,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2380.8676,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 80640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2395.7987,
+          "event": "audio_chunk",
+          "last_sample": 22400,
+          "monotonic_ms": 2395.8163,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2396.6756,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 81600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2426.7449,
+          "event": "audio_chunk",
+          "last_sample": 22720,
+          "monotonic_ms": 2426.7641,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2427.1753,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 82560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2442.0313,
+          "event": "audio_chunk",
+          "last_sample": 23040,
+          "monotonic_ms": 2442.0497,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2442.5621,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 83520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2458.3812,
+          "event": "audio_chunk",
+          "last_sample": 23360,
+          "monotonic_ms": 2458.4207,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2458.7145,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 84480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2473.8707,
+          "event": "audio_chunk",
+          "last_sample": 23680,
+          "monotonic_ms": 2473.8863,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2474.3911,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 85440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2505.6973,
+          "event": "audio_chunk",
+          "last_sample": 24000,
+          "monotonic_ms": 2505.7163,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2506.2417,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 86400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2521.5493,
+          "event": "audio_chunk",
+          "last_sample": 24320,
+          "monotonic_ms": 2521.567,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2522.044,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 87360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2536.9795,
+          "event": "audio_chunk",
+          "last_sample": 24640,
+          "monotonic_ms": 2536.9975,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2537.4734,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 88320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2567.5579,
+          "event": "audio_chunk",
+          "last_sample": 24960,
+          "monotonic_ms": 2567.5788,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2568.3232,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 89280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2584.0048,
+          "event": "audio_chunk",
+          "last_sample": 25280,
+          "monotonic_ms": 2584.0323,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2584.5624,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 90240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2600.3583,
+          "event": "audio_chunk",
+          "last_sample": 25600,
+          "monotonic_ms": 2600.3855,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2601.0682,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 91200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2616.1164,
+          "event": "audio_chunk",
+          "last_sample": 25920,
+          "monotonic_ms": 2616.1365,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2617.0961,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 92160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2647.1006,
+          "event": "audio_chunk",
+          "last_sample": 26240,
+          "monotonic_ms": 2647.1353,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2647.7173,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 93120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2662.3466,
+          "event": "audio_chunk",
+          "last_sample": 26560,
+          "monotonic_ms": 2662.4255,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 3,
+          "monotonic_ms": 2662.6125
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2663.0723,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 94080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2677.8602,
+          "event": "audio_chunk",
+          "last_sample": 26880,
+          "monotonic_ms": 2677.9958,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2678.4194,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 95040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2709.3223,
+          "event": "audio_chunk",
+          "last_sample": 27200,
+          "monotonic_ms": 2709.3356,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2709.6306,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 96000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2723.9178,
+          "event": "audio_chunk",
+          "last_sample": 27520,
+          "monotonic_ms": 2723.93,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2724.3135,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 96960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2740.0425,
+          "event": "audio_chunk",
+          "last_sample": 27840,
+          "monotonic_ms": 2740.0578,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2740.5969,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 97920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2755.3746,
+          "event": "audio_chunk",
+          "last_sample": 28160,
+          "monotonic_ms": 2755.3872,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2755.9474,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 98880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2786.0783,
+          "event": "audio_chunk",
+          "last_sample": 28480,
+          "monotonic_ms": 2786.0926,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2786.6071,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 99840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2801.3566,
+          "event": "audio_chunk",
+          "last_sample": 28800,
+          "monotonic_ms": 2801.3758,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2801.7989,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 100800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2816.8849,
+          "event": "audio_chunk",
+          "last_sample": 29120,
+          "monotonic_ms": 2816.9007,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2817.6248,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 101760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2847.7368,
+          "event": "audio_chunk",
+          "last_sample": 29440,
+          "monotonic_ms": 2847.7573,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2848.1349,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 102720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2863.3976,
+          "event": "audio_chunk",
+          "last_sample": 29760,
+          "monotonic_ms": 2863.4132,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2863.7597,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 103680,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 2878.7559,
+          "payload": {
+            "end_ms_ts": 1793081469817,
+            "payload": {
+              "end": false,
+              "end_time": "00:00:01",
+              "end_time_ms": 1954,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "start_time": "00:00:00",
+              "start_time_ms": 274,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "请只回答一句话"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081468137,
+            "type": 10000
+          },
+          "sequence": 1179631371
+        },
+        {
+          "enqueued_ms": 2879.0591,
+          "event": "audio_chunk",
+          "last_sample": 30080,
+          "monotonic_ms": 2879.0706,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2879.3948,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 104640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2909.1782,
+          "event": "audio_chunk",
+          "last_sample": 30400,
+          "monotonic_ms": 2909.2741,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2909.6236,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 105600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2924.9986,
+          "event": "audio_chunk",
+          "last_sample": 30720,
+          "monotonic_ms": 2925.0201,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2925.4239,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 106560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2940.0063,
+          "event": "audio_chunk",
+          "last_sample": 31040,
+          "monotonic_ms": 2940.0258,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2940.5173,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 107520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2955.3056,
+          "event": "audio_chunk",
+          "last_sample": 31360,
+          "monotonic_ms": 2955.3216,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2955.5899,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 108480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 2986.1731,
+          "event": "audio_chunk",
+          "last_sample": 31680,
+          "monotonic_ms": 2986.1917,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 2987.0966,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 109440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3002.2683,
+          "event": "audio_chunk",
+          "last_sample": 32000,
+          "monotonic_ms": 3002.3414,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3003.9762,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 110400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3017.8395,
+          "event": "audio_chunk",
+          "last_sample": 32320,
+          "monotonic_ms": 3017.867,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3019.3027,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 111360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3048.2975,
+          "event": "audio_chunk",
+          "last_sample": 32640,
+          "monotonic_ms": 3048.4238,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3049.389,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 112320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3063.3465,
+          "event": "audio_chunk",
+          "last_sample": 32960,
+          "monotonic_ms": 3063.4032,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3064.1445,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 113280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3078.0281,
+          "event": "audio_chunk",
+          "last_sample": 33280,
+          "monotonic_ms": 3078.0486,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3078.3933,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 114240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3094.528,
+          "event": "audio_chunk",
+          "last_sample": 33600,
+          "monotonic_ms": 3094.5443,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3094.8467,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 115200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3125.4919,
+          "event": "audio_chunk",
+          "last_sample": 33920,
+          "monotonic_ms": 3125.5083,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3125.8174,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 116160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3141.511,
+          "event": "audio_chunk",
+          "last_sample": 34240,
+          "monotonic_ms": 3141.5294,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3141.8246,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 117120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3157.0714,
+          "event": "audio_chunk",
+          "last_sample": 34560,
+          "monotonic_ms": 3157.2722,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 4,
+          "monotonic_ms": 3157.8162
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3158.4641,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 118080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3187.4334,
+          "event": "audio_chunk",
+          "last_sample": 34880,
+          "monotonic_ms": 3187.4525,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3187.8017,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 119040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3207.5324,
+          "event": "audio_chunk",
+          "last_sample": 35200,
+          "monotonic_ms": 3207.5759,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3208.472,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 120000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3218.8747,
+          "event": "audio_chunk",
+          "last_sample": 35520,
+          "monotonic_ms": 3218.9654,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3220.1386,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 120960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3234.307,
+          "event": "audio_chunk",
+          "last_sample": 35840,
+          "monotonic_ms": 3234.3287,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3234.9295,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 121920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3264.1344,
+          "event": "audio_chunk",
+          "last_sample": 36160,
+          "monotonic_ms": 3264.1544,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3265.1807,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 122880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3279.3447,
+          "event": "audio_chunk",
+          "last_sample": 36480,
+          "monotonic_ms": 3279.3627,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3279.7098,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 123840,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3294.6037,
+          "payload": {
+            "end_ms_ts": 1793081470058,
+            "payload": {
+              "end": true,
+              "end_time": "00:00:02",
+              "end_time_ms": 2194,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "start_time": "00:00:00",
+              "start_time_ms": 134,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "请只回答一句话"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081467998,
+            "type": 10000
+          },
+          "sequence": 1179631372
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3295.0835,
+          "payload": {
+            "payload": {
+              "metric": "asr_latency",
+              "tag": {
+                "roundid": "02618c70-3da1-40b7-8f14-db66d579268e"
+              },
+              "value": 160
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631373
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3295.168,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 2300,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "state": 2,
+              "timestamp": 1793081470221
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631374
+        },
+        {
+          "enqueued_ms": 3295.264,
+          "event": "audio_chunk",
+          "last_sample": 36800,
+          "monotonic_ms": 3295.2697,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3295.4679,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 124800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3325.327,
+          "event": "audio_chunk",
+          "last_sample": 37120,
+          "monotonic_ms": 3325.3433,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3325.5477,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 125760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3341.2041,
+          "event": "audio_chunk",
+          "last_sample": 37440,
+          "monotonic_ms": 3341.2211,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3343.2135,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 126720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3356.9307,
+          "event": "audio_chunk",
+          "last_sample": 37760,
+          "monotonic_ms": 3356.9508,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3357.5598,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 127680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3388.9839,
+          "event": "audio_chunk",
+          "last_sample": 38080,
+          "monotonic_ms": 3389.0036,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3389.4647,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 128640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3404.3612,
+          "event": "audio_chunk",
+          "last_sample": 38400,
+          "monotonic_ms": 3404.3772,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3405.4515,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 129600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3420.3834,
+          "event": "audio_chunk",
+          "last_sample": 38720,
+          "monotonic_ms": 3420.4027,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3420.8604,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 130560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3436.1391,
+          "event": "audio_chunk",
+          "last_sample": 39040,
+          "monotonic_ms": 3436.1588,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3437.1464,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 131520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3467.8387,
+          "event": "audio_chunk",
+          "last_sample": 39360,
+          "monotonic_ms": 3467.8643,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3468.6118,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 132480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3483.3635,
+          "event": "audio_chunk",
+          "last_sample": 39680,
+          "monotonic_ms": 3483.3834,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3484.3534,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 133440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3499.3134,
+          "event": "audio_chunk",
+          "last_sample": 40000,
+          "monotonic_ms": 3499.3903,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3499.9824,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 134400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3516.2877,
+          "event": "audio_chunk",
+          "last_sample": 40320,
+          "monotonic_ms": 3516.5864,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3517.063,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 135360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3546.8881,
+          "event": "audio_chunk",
+          "last_sample": 40640,
+          "monotonic_ms": 3546.9044,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3547.179,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 136320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3562.5861,
+          "event": "audio_chunk",
+          "last_sample": 40960,
+          "monotonic_ms": 3562.6043,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3563.2944,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 137280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3578.2537,
+          "event": "audio_chunk",
+          "last_sample": 41280,
+          "monotonic_ms": 3578.2717,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3578.7981,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 138240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3593.4926,
+          "event": "audio_chunk",
+          "last_sample": 41600,
+          "monotonic_ms": 3593.5111,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3594.2166,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 139200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3625.2211,
+          "event": "audio_chunk",
+          "last_sample": 41920,
+          "monotonic_ms": 3625.6271,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3626.1303,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 140160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3640.1864,
+          "event": "audio_chunk",
+          "last_sample": 42240,
+          "monotonic_ms": 3640.2038,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3640.5126,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 141120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3655.6427,
+          "event": "audio_chunk",
+          "last_sample": 42560,
+          "monotonic_ms": 3655.6591,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 5,
+          "monotonic_ms": 3655.8536
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3656.1981,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 142080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3689.1658,
+          "event": "audio_chunk",
+          "last_sample": 42880,
+          "monotonic_ms": 3689.1898,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3689.8914,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 143040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3704.09,
+          "event": "audio_chunk",
+          "last_sample": 43200,
+          "monotonic_ms": 3704.1045,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3704.5418,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 144000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3718.8848,
+          "event": "audio_chunk",
+          "last_sample": 43520,
+          "monotonic_ms": 3718.8981,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3719.4387,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 144960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3751.3371,
+          "event": "audio_chunk",
+          "last_sample": 43840,
+          "monotonic_ms": 3751.352,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3751.7988,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 145920,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3767.7822,
+          "payload": {
+            "end_ms_ts": 1793081470693,
+            "payload": {
+              "end": false,
+              "end_time": "00:00:02",
+              "end_time_ms": 2829,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "start_time": "00:00:02",
+              "start_time_ms": 2309,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "测试"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081470173,
+            "type": 10000
+          },
+          "sequence": 1179631375
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3768.0815,
+          "payload": {
+            "payload": {
+              "metric": "interruption",
+              "tag": {
+                "roundid": "02618c70-3da1-40b7-8f14-db66d579268e"
+              },
+              "value": 1
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631376
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3768.2206,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 2780,
+              "roundid": "02618c70-3da1-40b7-8f14-db66d579268e",
+              "state": 4,
+              "timestamp": 1793081470696
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631377
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 3768.3412,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 2780,
+              "roundid": "",
+              "state": 1,
+              "timestamp": 1793081470696
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631378
+        },
+        {
+          "enqueued_ms": 3769.1159,
+          "event": "audio_chunk",
+          "last_sample": 44160,
+          "monotonic_ms": 3769.1249,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3769.5179,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 146880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3778.9931,
+          "event": "audio_chunk",
+          "last_sample": 44480,
+          "monotonic_ms": 3779.0105,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3779.2794,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 147840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3794.9975,
+          "event": "audio_chunk",
+          "last_sample": 44800,
+          "monotonic_ms": 3795.0115,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3795.5047,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 148800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3826.1181,
+          "event": "audio_chunk",
+          "last_sample": 45120,
+          "monotonic_ms": 3826.131,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3826.5542,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 149760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3841.2444,
+          "event": "audio_chunk",
+          "last_sample": 45440,
+          "monotonic_ms": 3841.2623,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3842.265,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 150720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3856.6388,
+          "event": "audio_chunk",
+          "last_sample": 45760,
+          "monotonic_ms": 3856.6504,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3856.8214,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 151680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3887.935,
+          "event": "audio_chunk",
+          "last_sample": 46080,
+          "monotonic_ms": 3887.9551,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3888.7958,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 152640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3903.0079,
+          "event": "audio_chunk",
+          "last_sample": 46400,
+          "monotonic_ms": 3903.0199,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3903.2235,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 153600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3918.8512,
+          "event": "audio_chunk",
+          "last_sample": 46720,
+          "monotonic_ms": 3918.8658,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3919.3758,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 154560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3950.4328,
+          "event": "audio_chunk",
+          "last_sample": 47040,
+          "monotonic_ms": 3950.4484,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3952.0609,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 155520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3964.8963,
+          "event": "audio_chunk",
+          "last_sample": 47360,
+          "monotonic_ms": 3964.9108,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3968.2693,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 156480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3980.954,
+          "event": "audio_chunk",
+          "last_sample": 47680,
+          "monotonic_ms": 3980.9657,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3981.2054,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 157440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 3998.3738,
+          "event": "audio_chunk",
+          "last_sample": 48000,
+          "monotonic_ms": 3998.3881,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 3998.6955,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 158400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4027.6503,
+          "event": "audio_chunk",
+          "last_sample": 48320,
+          "monotonic_ms": 4027.6646,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4028.0026,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 159360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4041.7487,
+          "event": "audio_chunk",
+          "last_sample": 48640,
+          "monotonic_ms": 4041.7736,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4042.0663,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 160320,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4057.563,
+          "event": "audio_chunk",
+          "last_sample": 48960,
+          "monotonic_ms": 4057.5766,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4057.8072,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 161280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4089.0798,
+          "event": "audio_chunk",
+          "last_sample": 49280,
+          "monotonic_ms": 4089.0941,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4089.3724,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 162240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4104.2679,
+          "event": "audio_chunk",
+          "last_sample": 49600,
+          "monotonic_ms": 4104.2818,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4104.5079,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 163200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4119.2927,
+          "event": "audio_chunk",
+          "last_sample": 49920,
+          "monotonic_ms": 4119.3083,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4119.7648,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 164160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4135.7501,
+          "event": "audio_chunk",
+          "last_sample": 50240,
+          "monotonic_ms": 4135.7625,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4136.1047,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 165120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4166.8688,
+          "event": "audio_chunk",
+          "last_sample": 50560,
+          "monotonic_ms": 4166.8847,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 6,
+          "monotonic_ms": 4167.4049
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4167.761,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 166080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4182.6684,
+          "event": "audio_chunk",
+          "last_sample": 50880,
+          "monotonic_ms": 4182.6834,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4183.2025,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 167040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4197.3677,
+          "event": "audio_chunk",
+          "last_sample": 51200,
+          "monotonic_ms": 4197.3911,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4198.2423,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 168000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4227.9982,
+          "event": "audio_chunk",
+          "last_sample": 51520,
+          "monotonic_ms": 4228.015,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4228.4444,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 168960,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 4243.6956,
+          "payload": {
+            "end_ms_ts": 1793081471177,
+            "payload": {
+              "end": false,
+              "end_time": "00:00:03",
+              "end_time_ms": 3313,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "start_time": "00:00:02",
+              "start_time_ms": 2313,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "测试收到"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081470177,
+            "type": 10000
+          },
+          "sequence": 1179631379
+        },
+        {
+          "enqueued_ms": 4243.9239,
+          "event": "audio_chunk",
+          "last_sample": 51840,
+          "monotonic_ms": 4243.9324,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4244.306,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 169920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4258.4784,
+          "event": "audio_chunk",
+          "last_sample": 52160,
+          "monotonic_ms": 4258.4918,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4258.8813,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 170880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4273.4805,
+          "event": "audio_chunk",
+          "last_sample": 52480,
+          "monotonic_ms": 4273.4921,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4273.7386,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 171840,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4303.847,
+          "event": "audio_chunk",
+          "last_sample": 52800,
+          "monotonic_ms": 4303.8624,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4304.6744,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 172800,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4319.4386,
+          "event": "audio_chunk",
+          "last_sample": 53120,
+          "monotonic_ms": 4319.4491,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4320.6664,
+          "peak": 1,
+          "rms": 0.125,
+          "sample_offset": 173760,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4335.313,
+          "event": "audio_chunk",
+          "last_sample": 53440,
+          "monotonic_ms": 4335.3276,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4335.6228,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 174720,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4367.0127,
+          "event": "audio_chunk",
+          "last_sample": 53760,
+          "monotonic_ms": 4367.0286,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4367.5543,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 175680,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4380.9935,
+          "event": "audio_chunk",
+          "last_sample": 54080,
+          "monotonic_ms": 4381.0086,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4381.3167,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 176640,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4397.199,
+          "event": "audio_chunk",
+          "last_sample": 54400,
+          "monotonic_ms": 4397.215,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4397.997,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 177600,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4427.1791,
+          "event": "audio_chunk",
+          "last_sample": 54720,
+          "monotonic_ms": 4427.1921,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4427.3805,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 178560,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4442.1911,
+          "event": "audio_chunk",
+          "last_sample": 55040,
+          "monotonic_ms": 4442.2117,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4442.884,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 179520,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4457.2415,
+          "event": "audio_chunk",
+          "last_sample": 55360,
+          "monotonic_ms": 4457.2583,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4457.6726,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 180480,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4486.7881,
+          "event": "audio_chunk",
+          "last_sample": 55680,
+          "monotonic_ms": 4486.8026,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4487.8631,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 181440,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4502.8311,
+          "event": "audio_chunk",
+          "last_sample": 56000,
+          "monotonic_ms": 4502.8472,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4503.3269,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 182400,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4518.1217,
+          "event": "audio_chunk",
+          "last_sample": 56320,
+          "monotonic_ms": 4518.1427,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4518.4259,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 183360,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4534.8038,
+          "event": "audio_chunk",
+          "last_sample": 56640,
+          "monotonic_ms": 4534.821,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4535.425,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 184320,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 4566.5903,
+          "payload": {
+            "end_ms_ts": 1793081471320,
+            "payload": {
+              "end": true,
+              "end_time": "00:00:03",
+              "end_time_ms": 3457,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "start_time": "00:00:02",
+              "start_time_ms": 2197,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "测试收到"
+            },
+            "sender": "User396f8d6ce19244749c753ed0",
+            "start_ms_ts": 1793081470060,
+            "type": 10000
+          },
+          "sequence": 1179631380
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 4566.9047,
+          "payload": {
+            "payload": {
+              "metric": "asr_latency",
+              "tag": {
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 160
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631381
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 4567.0845,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 3560,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "state": 2,
+              "timestamp": 1793081471484
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631382
+        },
+        {
+          "enqueued_ms": 4567.3134,
+          "event": "audio_chunk",
+          "last_sample": 56960,
+          "monotonic_ms": 4567.3339,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4567.9004,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 185280,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4580.633,
+          "event": "audio_chunk",
+          "last_sample": 57280,
+          "monotonic_ms": 4580.6512,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4580.8936,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 186240,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4595.8999,
+          "event": "audio_chunk",
+          "last_sample": 57600,
+          "monotonic_ms": 4595.9187,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4597.0851,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 187200,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4626.856,
+          "event": "audio_chunk",
+          "last_sample": 57920,
+          "monotonic_ms": 4626.8732,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4627.4012,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 188160,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4641.4666,
+          "event": "audio_chunk",
+          "last_sample": 58240,
+          "monotonic_ms": 4641.4867,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4642.1321,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 189120,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4657.0864,
+          "event": "audio_chunk",
+          "last_sample": 58560,
+          "monotonic_ms": 4657.1583,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 7,
+          "monotonic_ms": 4657.3782
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4658.8491,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 190080,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4687.3481,
+          "event": "audio_chunk",
+          "last_sample": 58880,
+          "monotonic_ms": 4687.3645,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4687.6202,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 191040,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4704.9111,
+          "event": "audio_chunk",
+          "last_sample": 59200,
+          "monotonic_ms": 4704.9261,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4705.4705,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 192000,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4717.827,
+          "event": "audio_chunk",
+          "last_sample": 59520,
+          "monotonic_ms": 4717.8405,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4718.2472,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 192960,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4748.2153,
+          "event": "audio_chunk",
+          "last_sample": 59840,
+          "monotonic_ms": 4748.2386,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4748.7367,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 193920,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4768.1529,
+          "event": "audio_chunk",
+          "last_sample": 60160,
+          "monotonic_ms": 4768.1805,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4768.802,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 194880,
+          "samples": 960
+        },
+        {
+          "enqueued_ms": 4779.2373,
+          "event": "audio_chunk",
+          "last_sample": 60400,
+          "monotonic_ms": 4779.2514,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "elapsed_from_play_ms": 3765.3028999999997,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 4779.3026,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 3999.6777
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4780.5721,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 195840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4794.2579,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 196800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4825.4603,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 197760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4839.3057,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 198720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4854.5173,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 199680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4886.1443,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 200640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4901.1989,
+          "peak": 1,
+          "rms": 0.125,
+          "sample_offset": 201600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4916.7676,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 202560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4949.2612,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 203520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4964.3014,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 204480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4979.898,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 205440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 4996.1099,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 206400,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5026.9653,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 207360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5042.6118,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 208320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5057.7777,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 209280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5089.0608,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 210240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5104.2365,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 211200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5120.1448,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 212160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5136.1512,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 213120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 8,
+          "monotonic_ms": 5167.2196
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5168.2509,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 214080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5182.8834,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 215040,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5198.4438,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 216000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5214.0345,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 216960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5245.4115,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 217920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5260.4912,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 218880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5276.7626,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 219840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5307.6468,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 220800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5322.414,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 221760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5337.6029,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 222720,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5352.9687,
+          "payload": {
+            "payload": {
+              "metric": "llm_network_latency",
+              "tag": {
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 670
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631383
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5353.1771,
+          "payload": {
+            "payload": {
+              "metric": "llm_first_token",
+              "tag": {
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 671
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631384
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5353.4358,
+          "payload": {
+            "payload": {
+              "metric": "llm_first_sentence_generate_cost",
+              "tag": {
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 800
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631385
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5353.657,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 223680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5383.6431,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 224640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5398.6428,
+          "peak": 1,
+          "rms": 0.125,
+          "sample_offset": 225600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5429.2122,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 226560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5444.1249,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 227520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5459.416,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 228480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5476.9068,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 229440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5506.1835,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 230400,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5521.0763,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 231360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5537.9297,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 232320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5568.0901,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 233280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5584.6608,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 234240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5600.1415,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 235200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5616.825,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 236160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5647.2323,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 237120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 9,
+          "monotonic_ms": 5662.2687
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5662.4304,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 238080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5677.6034,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 239040,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5708.4097,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 240000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5725.3394,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 240960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5739.557,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 241920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5756.3129,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 242880,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5785.7776,
+          "payload": {
+            "payload": {
+              "metric": "tts_network_latency",
+              "tag": {
+                "api_type": "flow",
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 51
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631386
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5785.8809,
+          "payload": {
+            "payload": {
+              "metric": "tts_first_frame_latency",
+              "tag": {
+                "api_type": "flow",
+                "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c"
+              },
+              "value": 398
+            },
+            "receiver": "User396f8d6ce19244749c753ed0",
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10020
+          },
+          "sequence": 1179631387
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5786.0986,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 4760,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "state": 3,
+              "timestamp": 1793081472687
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631388
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 5786.1585,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 4760,
+              "end": false,
+              "end_time": "00:00:03",
+              "end_time_ms": 3753,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "start_time": "00:00:03",
+              "start_time_ms": 3459,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": "测试收到"
+            },
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10000
+          },
+          "sequence": 1179631389
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5786.6572,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 243840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5800.7666,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 244800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5816.749,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 245760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5848.009,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 246720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5863.21,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 247680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5878.6904,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 248640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5893.3201,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 249600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5924.1405,
+          "peak": 1,
+          "rms": 0.24790791301072526,
+          "sample_offset": 250560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5939.3475,
+          "peak": 2,
+          "rms": 0.5764474535173754,
+          "sample_offset": 251520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5954.6765,
+          "peak": 15,
+          "rms": 2.6645825188948455,
+          "sample_offset": 252480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 5986.8126,
+          "peak": 146,
+          "rms": 41.3273391150862,
+          "sample_offset": 253440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6003.3804,
+          "peak": 252,
+          "rms": 93.78730924277549,
+          "sample_offset": 254400,
+          "samples": 960
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 6003.3599,
+          "from_voiced_endpoint_ms": 2003.6822000000002,
+          "monotonic_ms": 6016.6995,
+          "rms_threshold": 64.0
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6016.738,
+          "peak": 575,
+          "rms": 157.94258252605596,
+          "sample_offset": 255360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6048.887,
+          "peak": 1005,
+          "rms": 325.8129655825051,
+          "sample_offset": 256320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6065.1202,
+          "peak": 1000,
+          "rms": 285.79472346132167,
+          "sample_offset": 257280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6078.5619,
+          "peak": 676,
+          "rms": 217.9182090448922,
+          "sample_offset": 258240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6094.5427,
+          "peak": 607,
+          "rms": 211.3914713669089,
+          "sample_offset": 259200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6126.5914,
+          "peak": 5153,
+          "rms": 1457.325515213285,
+          "sample_offset": 260160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6141.2104,
+          "peak": 8515,
+          "rms": 2931.062020447253,
+          "sample_offset": 261120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 10,
+          "monotonic_ms": 6156.8091
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6157.9876,
+          "peak": 9726,
+          "rms": 3372.5917902013184,
+          "sample_offset": 262080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6188.5711,
+          "peak": 8563,
+          "rms": 2869.938661692093,
+          "sample_offset": 263040,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6202.8373,
+          "peak": 4681,
+          "rms": 1868.6536168009663,
+          "sample_offset": 264000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6219.2326,
+          "peak": 3396,
+          "rms": 882.6243379122287,
+          "sample_offset": 264960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6249.7248,
+          "peak": 4634,
+          "rms": 1165.596718155555,
+          "sample_offset": 265920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6264.3896,
+          "peak": 5207,
+          "rms": 1046.714190634196,
+          "sample_offset": 266880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6279.5517,
+          "peak": 2720,
+          "rms": 866.9608885593782,
+          "sample_offset": 267840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6294.8393,
+          "peak": 3025,
+          "rms": 1341.8087120717569,
+          "sample_offset": 268800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6325.1984,
+          "peak": 2826,
+          "rms": 1634.2730439836748,
+          "sample_offset": 269760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6340.9389,
+          "peak": 2899,
+          "rms": 1263.6202826601036,
+          "sample_offset": 270720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6357.5302,
+          "peak": 3198,
+          "rms": 829.1311629752356,
+          "sample_offset": 271680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6388.648,
+          "peak": 2877,
+          "rms": 878.129939487887,
+          "sample_offset": 272640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6404.0721,
+          "peak": 3713,
+          "rms": 1086.9774065230918,
+          "sample_offset": 273600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6419.6443,
+          "peak": 2302,
+          "rms": 577.3363855529403,
+          "sample_offset": 274560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6435.8864,
+          "peak": 5880,
+          "rms": 2456.7872378966126,
+          "sample_offset": 275520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6467.0494,
+          "peak": 6161,
+          "rms": 2638.7626103046227,
+          "sample_offset": 276480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6481.688,
+          "peak": 5925,
+          "rms": 2578.727893547191,
+          "sample_offset": 277440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6497.0118,
+          "peak": 5998,
+          "rms": 2737.293735950711,
+          "sample_offset": 278400,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6527.3757,
+          "peak": 5607,
+          "rms": 1919.8627020679544,
+          "sample_offset": 279360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6543.509,
+          "peak": 652,
+          "rms": 215.78178599378276,
+          "sample_offset": 280320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6559.6113,
+          "peak": 181,
+          "rms": 66.67608266837517,
+          "sample_offset": 281280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6574.3365,
+          "peak": 2389,
+          "rms": 521.4271571450162,
+          "sample_offset": 282240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6610.3111,
+          "peak": 6117,
+          "rms": 2926.4421065732704,
+          "sample_offset": 283200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6621.4693,
+          "peak": 6217,
+          "rms": 2572.0507999859437,
+          "sample_offset": 284160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6637.1975,
+          "peak": 4959,
+          "rms": 2219.9745768533026,
+          "sample_offset": 285120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 11,
+          "monotonic_ms": 6667.9081
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6668.7866,
+          "peak": 4367,
+          "rms": 1869.0308565425914,
+          "sample_offset": 286080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6683.4337,
+          "peak": 3930,
+          "rms": 1678.8902758469158,
+          "sample_offset": 287040,
+          "samples": 960
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 6700.3951,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 5700,
+              "end": true,
+              "end_time": "00:00:04",
+              "end_time_ms": 4417,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "start_time": "00:00:04",
+              "start_time_ms": 4417,
+              "taskid": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+              "text": ""
+            },
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10000
+          },
+          "sequence": 1179631390
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 6700.71,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 5700,
+              "roundid": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+              "state": 5,
+              "timestamp": 1793081473632
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631391
+        },
+        {
+          "cmd_id": 1,
+          "event": "custom_message",
+          "monotonic_ms": 6700.854,
+          "payload": {
+            "payload": {
+              "audio_timestamp": 5700,
+              "roundid": "",
+              "state": 1,
+              "timestamp": 1793081473632
+            },
+            "receiver": [
+              "User396f8d6ce19244749c753ed0"
+            ],
+            "sender": "Botad0cba9278f24086bb21ab3e",
+            "type": 10001
+          },
+          "sequence": 1179631392
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6701.7042,
+          "peak": 3680,
+          "rms": 1500.5757308307814,
+          "sample_offset": 288000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6714.2947,
+          "peak": 3084,
+          "rms": 1216.1963824255522,
+          "sample_offset": 288960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6745.5818,
+          "peak": 1839,
+          "rms": 853.5745024600958,
+          "sample_offset": 289920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6760.5729,
+          "peak": 1261,
+          "rms": 462.63796140538807,
+          "sample_offset": 290880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6777.0885,
+          "peak": 413,
+          "rms": 99.57845001973737,
+          "sample_offset": 291840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6808.9039,
+          "peak": 91,
+          "rms": 32.142683200587555,
+          "sample_offset": 292800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6823.2657,
+          "peak": 21,
+          "rms": 5.130281831114804,
+          "sample_offset": 293760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6839.3938,
+          "peak": 2,
+          "rms": 0.6012140495142585,
+          "sample_offset": 294720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6854.1648,
+          "peak": 1,
+          "rms": 0.4389855730355308,
+          "sample_offset": 295680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6886.6869,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 296640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6901.6579,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 297600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6917.4235,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 298560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6947.7035,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 299520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6963.0836,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 300480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 6978.4356,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 301440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7009.3262,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 302400,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7026.858,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 303360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7041.3958,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 304320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7056.8945,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 305280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7089.0116,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 306240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7105.1735,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 307200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7120.3824,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 308160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7136.0084,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 309120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 12,
+          "monotonic_ms": 7167.0072
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7167.6145,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 310080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7180.5157,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 311040,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7196.484,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 312000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7227.5431,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 312960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7242.2288,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 313920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7257.8935,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 314880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7289.4791,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 315840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7303.9527,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 316800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7319.8228,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 317760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7336.3873,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 318720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7366.6795,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 319680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7382.7614,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 320640,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7397.7643,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 321600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7413.4906,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 322560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7444.5102,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 323520,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7459.1861,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 324480,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7474.5327,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 325440,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7505.8773,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 326400,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7522.3853,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 327360,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7538.8151,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 328320,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7554.622,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 329280,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7584.1007,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 330240,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7599.5315,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 331200,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7615.0324,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 332160,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7646.5154,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 333120,
+          "samples": 960
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 13,
+          "monotonic_ms": 7660.9909
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7661.2063,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 334080,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7677.8864,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 335040,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7707.5572,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 336000,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7723.2092,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 336960,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7739.1331,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 337920,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7755.4691,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 338880,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7788.9809,
+          "peak": 1,
+          "rms": 0.09682458365518543,
+          "sample_offset": 339840,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7802.3689,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 340800,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7817.9781,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 341760,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7849.6275,
+          "peak": 1,
+          "rms": 0.07905694150420949,
+          "sample_offset": 342720,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7864.2434,
+          "peak": 1,
+          "rms": 0.11180339887498948,
+          "sample_offset": 343680,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7879.1042,
+          "peak": 1,
+          "rms": 0.05590169943749474,
+          "sample_offset": 344640,
+          "samples": 960
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 7909.0648,
+          "published": false
+        },
+        {
+          "event": "bot_left",
+          "monotonic_ms": 7909.1553,
+          "reason": 0
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7909.368,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 345600,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7923.7593,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 346560,
+          "samples": 960
+        },
+        {
+          "event": "output_audio_frame",
+          "monotonic_ms": 7938.8851,
+          "peak": 0,
+          "rms": 0.0,
+          "sample_offset": 347520,
+          "samples": 960
+        },
+        {
+          "audio_file_completed": true,
+          "event": "probe_finished",
+          "first_output_detected": true,
+          "monotonic_ms": 7954.9875,
+          "output_samples": 348480,
+          "reason": "stop_or_stdin_closed",
+          "video_frames": 14
+        },
+        {
+          "event": "room_exited",
+          "monotonic_ms": 7971.1354,
+          "reason": 0
+        },
+        {
+          "confirmed": true,
+          "event": "room_exit_confirmation",
+          "monotonic_ms": 7984.3244
+        },
+        {
+          "event": "process_eof"
+        }
+      ],
+      "transcripts": [
+        {
+          "role": "user",
+          "text": "请",
+          "final": false,
+          "round_id": "02618c70-3da1-40b7-8f14-db66d579268e",
+          "monotonic_ms": 1704.0362
+        },
+        {
+          "role": "user",
+          "text": "请只回答",
+          "final": false,
+          "round_id": "02618c70-3da1-40b7-8f14-db66d579268e",
+          "monotonic_ms": 2194.8926
+        },
+        {
+          "role": "user",
+          "text": "请只回答一句话",
+          "final": false,
+          "round_id": "02618c70-3da1-40b7-8f14-db66d579268e",
+          "monotonic_ms": 2878.7559
+        },
+        {
+          "role": "user",
+          "text": "请只回答一句话",
+          "final": true,
+          "round_id": "02618c70-3da1-40b7-8f14-db66d579268e",
+          "monotonic_ms": 3294.6037
+        },
+        {
+          "role": "user",
+          "text": "测试",
+          "final": false,
+          "round_id": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+          "monotonic_ms": 3767.7822
+        },
+        {
+          "role": "user",
+          "text": "测试收到",
+          "final": false,
+          "round_id": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+          "monotonic_ms": 4243.6956
+        },
+        {
+          "role": "user",
+          "text": "测试收到",
+          "final": true,
+          "round_id": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+          "monotonic_ms": 4566.5903
+        }
+      ],
+      "replies": [
+        {
+          "role": "assistant",
+          "text": "测试收到",
+          "final": false,
+          "round_id": "955af4aa-2449-4286-802f-c1eadde8fa5c",
+          "monotonic_ms": 5786.1585
+        }
+      ],
+      "control_events": [
+        {
+          "event": "tencent_api_start",
+          "action": "StartAIConversation",
+          "attempt": 1,
+          "retried": false,
+          "timestamp": 1793081467.2843425,
+          "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+          "measured_scope": "control_plane_only",
+          "billed_cost_verified": false
+        },
+        {
+          "event": "tencent_api_end",
+          "action": "StartAIConversation",
+          "ok": true,
+          "request_id": "3aee39b3-5d43-4923-a63a-0c4a858e6dfa",
+          "control_plane_ms": 266.0,
+          "timestamp": 1793081467.5508537,
+          "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+          "measured_scope": "control_plane_only",
+          "billed_cost_verified": false
+        },
+        {
+          "event": "tencent_api_start",
+          "action": "StopAIConversation",
+          "attempt": 1,
+          "retried": false,
+          "timestamp": 1793081474.3651228,
+          "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+          "measured_scope": "control_plane_only",
+          "billed_cost_verified": false
+        },
+        {
+          "event": "tencent_api_end",
+          "action": "StopAIConversation",
+          "ok": true,
+          "request_id": "cd1bee1f-7727-440f-a3ea-a6d048ac41ab",
+          "control_plane_ms": 171.0,
+          "timestamp": 1793081474.5303345,
+          "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+          "measured_scope": "control_plane_only",
+          "billed_cost_verified": false
+        }
+      ],
+      "output_pcm_path": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\modules\\rtc\\Build\\TencentNative\\Rune3b7b5d0e667.pcm",
+      "billing_verified": false,
+      "start": {
+        "ok": true,
+        "status": "submitted",
+        "task_id": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+        "request_id": "3aee39b3-5d43-4923-a63a-0c4a858e6dfa",
+        "ready": false,
+        "voice_rtc": true,
+        "client_tools_verified": false,
+        "video_understanding_verified": false,
+        "full_media_round_trip_verified": false,
+        "public_api_configuration": "voice_cascade",
+        "hardware_verified": false
+      },
+      "voiced_endpoint_ms": 3999.6844,
+      "completion_scope": "provider_state_finished",
+      "reply_text": "测试收到",
+      "answer_verified": true,
+      "input_completed": true,
+      "cleanup": {
+        "ok": true,
+        "status": "stopped",
+        "task_id": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+        "request_id": "cd1bee1f-7727-440f-a3ea-a6d048ac41ab",
+        "cloud_stop_confirmed": true,
+        "billing_stopped_verified": false
+      },
+      "native_returncode": 0,
+      "room_exit_confirmed": true,
+      "short_token_config_removed": true,
+      "unstructured_sdk_lines_discarded": 0,
+      "host_duration_ms": 8188.0,
+      "trial": 1,
+      "completion_parser_corrected_from_recorded_events": true,
+      "answer_verification": "exact_normalized_official_bot_subtitle",
+      "asr_rounds": 2,
+      "automatic_interruption_events": 1,
+      "vad_silence_ms": 500,
+      "asr_full_utterance_single_round_verified": false,
+      "eligible_for_formal_criteria": false,
+      "development_note": "Historical smoke result with two ASR fragments and one barge-in; full-utterance same-round criteria and1000ms VAD were added afterward, no new paid call."
+    }
+  ],
+  "ranking_eligible": false,
+  "media_path": "official_windows_native_rtc",
+  "vision_tool_comparison_supported": false,
+  "billing_verified": false
+}

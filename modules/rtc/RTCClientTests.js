@@ -16,6 +16,14 @@ function client() {
   return { value, sent };
 }
 const subtitle = item => ({ type: 'subv', value: { data: [item] } });
+// Minimal anonymized shape from DoubaoMedia.json development capture. User IDs
+// are replaced by the local fixture; sequence/roundId/boolean flags preserve
+// the real wire types. Official reference:
+// https://docs.volcengine.com/docs/real_time_communication/Real-timesubtitlesconversationrecords?lang=zh
+const capturedUserSubtitles = [
+  { text: '请', sequence: 0, definite: false, paragraph: false, roundId: 1 },
+  { text: '请只回答一句话，测试收到。', sequence: 11, definite: true, paragraph: true, roundId: 1 }
+];
 
 test('reference adjustment feedback requires confirmed follow cleanup', () => {
   const accepted = toolReply('id', { ok: true, status: 'completed',
@@ -50,13 +58,13 @@ test('tool without completed user turn is rejected rather than queued for later'
 });
 test('partial speech does not authorize a program', () => {
   const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, paragraph: 1, text: '起', definite: false }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: false, text: '起', definite: false }));
   assert.equal(sent.length, 0);
   assert.equal(value.epoch, null);
 });
 test('completed human subtitle sends identity and waits for the exact host turn acknowledgement', async () => {
   const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, paragraph: 1, text: '起飞', definite: true }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: true, text: '起飞', definite: true }));
   assert.equal(sent[0].type, 'user_turn');
   assert.equal(sent[0].completed, true);
   assert.equal(sent[0].taskId, identity.taskId);
@@ -83,10 +91,95 @@ test('identical duplicate tool is not forwarded twice; changed payload is reject
 });
 test('new speech while the old model is still planning interrupts before any tool arrives', () => {
   const { value, sent } = client();
-  value.turnOpen = true; value.paragraphs.add('old'); value.epoch = 2;
-  value.rtcMessage(subtitle({ userId: identity.userId, paragraph: 'new', text: '停', definite: false }));
+  value.turnOpen = true; value.completedRounds.add('1'); value.epoch = 2;
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: false, text: '停', definite: false }));
   assert.equal(sent[0].type, 'interrupt');
   assert.equal(value.epoch, null);
+});
+
+test('real cloud boolean paragraph ends a round instead of becoming its identity', () => {
+  const { value, sent } = client();
+  for (const item of capturedUserSubtitles) value.rtcMessage(subtitle({ ...item, userId: identity.userId }));
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].type, 'user_turn');
+  assert.equal(sent[0].id, '1');
+  assert.equal(sent[0].text, '请只回答一句话，测试收到。');
+});
+
+test('a completed clause with paragraph false does not authorize a program', () => {
+  const { value, sent } = client();
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, definite: true,
+    paragraph: false, text: '起飞以后，' }));
+  assert.equal(sent.length, 0);
+  assert.equal(value.pendingTurn, null);
+  assert.equal(value.epoch, null);
+  assert.throws(() => value.rtcMessage({ type: 'tool', value: { tool_calls: [call()] } }), /有效用户轮次/);
+});
+
+test('two different completed rounds both using paragraph true are submitted once each', async () => {
+  const { value, sent } = client();
+  const final = roundId => subtitle({ userId: identity.userId, roundId, paragraph: true,
+    definite: true, text: '查询状态' });
+  value.rtcMessage(final(1)); value.rtcMessage(final(1));
+  await value.bridgeMessage({ type: 'turn', epoch: 4, id: '1' });
+  value.rtcMessage({ type: 'conv', value: { Stage: { Code: 5 } } });
+  value.rtcMessage(final(2)); value.rtcMessage(final(2));
+  assert.deepEqual(sent.filter(item => item.type === 'user_turn').map(item => item.id), ['1', '2']);
+  assert.equal(value.pendingTurn, '2');
+  assert.equal(value.epoch, null);
+});
+
+test('empty quick-subtitle ending uses the same-round cumulative text and only grants once', () => {
+  const { value, sent } = client();
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 8, paragraph: false,
+    definite: false, text: '查询电量' }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 8, paragraph: false,
+    definite: true, text: '查询当前电量' }));
+  const ending = subtitle({ userId: identity.userId, roundId: 8, paragraph: true, definite: true, text: '' });
+  value.rtcMessage(ending); value.rtcMessage(ending);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].id, '8');
+  assert.equal(sent[0].text, '查询当前电量');
+});
+
+test('missing negative boolean string and fractional round IDs never authorize', () => {
+  for (const roundId of [undefined, null, -1, true, false, '1', 1.5, Infinity]) {
+    const { value, sent } = client();
+    value.rtcMessage(subtitle({ userId: identity.userId, roundId, paragraph: true,
+      definite: true, text: '起飞' }));
+    assert.equal(sent.length, 0);
+    assert.equal(value.pendingTurn, null);
+  }
+});
+
+test('numeric paragraph fixture cannot silently regain the old invented identity semantics', () => {
+  const { value, sent } = client();
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: 1,
+    definite: true, text: '起飞' }));
+  assert.equal(sent.length, 0);
+});
+
+test('a new round empty ending cannot borrow the prior round text', () => {
+  const { value, sent } = client();
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: false,
+    definite: false, text: '起飞' }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: true,
+    definite: true, text: '' }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: true,
+    definite: true, text: '起飞' }));
+  assert.equal(sent.length, 0);
+});
+
+test('new round partial revokes immediately and its final cannot restore the old session grant', () => {
+  const { value, sent } = client();
+  value.turnOpen = true; value.completedRounds.add('1'); value.epoch = 2;
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: false,
+    definite: false, text: '停' }));
+  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: true,
+    definite: true, text: '停止' }));
+  assert.deepEqual(sent, [{ type: 'interrupt', land: false }]);
+  assert.equal(value.epoch, null);
+  assert.equal(value.pendingTurn, null);
 });
 test('cloud interruption state reaches local cancellation before final subtitles', () => {
   const { value, sent } = client(); value.epoch = 2;

@@ -1,0 +1,5295 @@
+{
+  "scope": "real_cloud_native_rtc_prerecorded_audio_synthetic_images_fake_device",
+  "no_physical_devices": true,
+  "samples": [
+    {
+      "provider": "DoubaoRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "ok": false,
+      "media_verified": false,
+      "image": null,
+      "attempt": 1,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 2693.9442329999993,
+        "first_audio_ms": null,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 4164.120757999999
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 33.84208,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 123.195257
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 786.59113,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 1125.892638
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1693.688246,
+          "source": "user_joined"
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1761.509079,
+          "published": true
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 2083.892265,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3059.821299,
+          "payload": {
+            "EventTime": 1793081418151,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3059.866882
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3059.88605,
+          "payload": {
+            "EventTime": 1793081418151,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3059.892852
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3059.932467,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793081418152,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3059.955537,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793081418152,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3349.295878,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793081418449,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3349.350255,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793081418449,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3618.825809,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793081418720,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3618.907369,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793081418720,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3984.153144,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793081419098,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3984.20135,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793081419098,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4309.765454,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793081419432,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4309.832364,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793081419432,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4381.776685,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793081419505,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4381.834382,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793081419505,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 5059.596728
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5099.132971,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793081420240,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5099.187939,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793081420240,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5491.695091,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081420642,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5491.742101,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081420642,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5580.935383,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081420733,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5580.993004,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081420733,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5647.08527,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081420801,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5647.148051,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081420801,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 3770.0984280000002,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 5853.988541,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 5069.573977
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6393.417348,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081421564,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6393.46895,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081421564,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6399.691745,
+          "payload": {
+            "EventTime": 1793081421569,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6399.73469,
+          "payload": {
+            "EventTime": 1793081421569,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6399.756616,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081421570,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6399.771167,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081421570,
+                "userId": "Usere8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7753.540961,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 3,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "测试收到",
+                "timestamp": 1793081422953,
+                "userId": "Bote8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7753.595939,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 3,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "测试收到",
+                "timestamp": 1793081422953,
+                "userId": "Bote8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7753.624542,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 3,
+                "language": "zh",
+                "lastCharPos": 3,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793081422953,
+                "userId": "Bote8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7753.641714,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 3,
+                "language": "zh",
+                "lastCharPos": 3,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793081422953,
+                "userId": "Bote8a4d6a3e39d"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8058.841414,
+          "payload": {
+            "EventTime": 1793081423266,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8058.905855,
+          "payload": {
+            "EventTime": 1793081423266,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9223.657061,
+          "payload": {
+            "EventTime": 1793081424456,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9223.717486,
+          "payload": {
+            "EventTime": 1793081424456,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Taske8a4d6a3e39d",
+            "UserID": "Usere8a4d6a3e39d"
+          },
+          "type": "conv"
+        },
+        {
+          "audio_file_completed": true,
+          "event": "probe_finished",
+          "first_output_detected": false,
+          "monotonic_ms": 45123.805115,
+          "output_samples": 2127840,
+          "reason": "deadline",
+          "video_frames": 88
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话，测试收到。",
+        "请只回答一句话，测试收到。"
+      ],
+      "replies": [
+        "测试收到",
+        "测试收到"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "20261027141102E1669DE316F7879660E8",
+          "control_ms": 285.1903999999995,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "202610271410162F30F2F7CE28F81CFCBB",
+        "control_ms": 379.55449999999973,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 5059.596728,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 47771,
+        "covering_chunk": {
+          "enqueued_ms": 5063.909228,
+          "event": "audio_chunk",
+          "last_sample": 47840,
+          "monotonic_ms": 5063.917077,
+          "voiced_endpoint_ms": 5069.573977
+        }
+      },
+      "failure": "TimeoutError: ",
+      "elapsed_seconds": 48.836434999946505,
+      "media": {
+        "audio_chunks": 378,
+        "video_frames": 88,
+        "decoded_audio_frames": 4433,
+        "nonzero_audio_frames": 0,
+        "maximum_output_rms": 0.0,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "expected_answer": "测试收到",
+      "answer_correct": true,
+      "phase": "development",
+      "delivery_verified": false
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "ok": false,
+      "media_verified": true,
+      "image": null,
+      "attempt": 2,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 2246.0525509999998,
+        "first_audio_ms": 2629.0012159999997,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 4010.6115339999997
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 46.574061,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 80.159453
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 565.197518,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 582.75937
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1426.597383,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1479.478927
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1479.548214,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1498.113798,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1631.055287,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1635.192675,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1635.260746
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1810.439857,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2785.493938,
+          "payload": {
+            "EventTime": 1793081661924,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task7cb4e7778617",
+            "UserID": "User7cb4e7778617"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2785.519265
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2785.548289
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2785.80696,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793081661925,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3055.793027,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793081662204,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3293.825676,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793081662447,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3803.793747,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793081662970,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4049.060679,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793081663219,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4173.504287,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793081663346,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 4786.246604
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4805.709083,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793081663995,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5122.055984,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081664313,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5335.495413,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081664539,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5404.236318,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793081664608,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 3770.143758,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 5580.582142,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 4796.122635
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6069.177918,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081665288,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6073.227751,
+          "payload": {
+            "EventTime": 1793081665292,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task7cb4e7778617",
+            "UserID": "User7cb4e7778617"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6073.311484,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793081665294,
+                "userId": "User7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7032.299155,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "收到，测试正常。",
+                "timestamp": 1793081666272,
+                "userId": "Bot7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7034.709645,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793081666273,
+                "userId": "Bot7cb4e7778617"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7034.966364,
+          "payload": {
+            "EventTime": 1793081666275,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task7cb4e7778617",
+            "UserID": "User7cb4e7778617"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 7415.24782,
+          "monotonic_ms": 7424.447835,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8796.858138,
+          "payload": {
+            "EventTime": 1793081668075,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task7cb4e7778617",
+            "UserID": "User7cb4e7778617"
+          },
+          "type": "conv"
+        },
+        {
+          "audio_file_completed": true,
+          "event": "probe_finished",
+          "first_output_detected": false,
+          "monotonic_ms": 45080.416807,
+          "output_samples": 2136480,
+          "reason": "deadline",
+          "video_frames": 89
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话，测试收到。"
+      ],
+      "replies": [
+        "收到，测试正常。"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "202610271415057F8592C3F9D94E2A6757",
+          "control_ms": 288.04269999999815,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "20261027141419EE81563874F9B18CFA40",
+        "control_ms": 307.5222000000001,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 4786.246604,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 47771,
+        "covering_chunk": {
+          "enqueued_ms": 4790.559104,
+          "event": "audio_chunk",
+          "last_sample": 47840,
+          "monotonic_ms": 4790.569405,
+          "voiced_endpoint_ms": 4796.122635
+        }
+      },
+      "elapsed_seconds": 48.410637999884784,
+      "media": {
+        "audio_chunks": 378,
+        "video_frames": 89,
+        "decoded_audio_frames": 8796,
+        "nonzero_audio_frames": 93,
+        "maximum_output_rms": 5272.328579084704,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "expected_answer": "测试收到",
+      "answer_correct": false,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "phase": "development",
+      "delivery_verified": true
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "ok": false,
+      "media_verified": true,
+      "image": null,
+      "attempt": 3,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 3865.930641,
+        "first_audio_ms": 4264.1745280000005,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 5644.853617
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 19.449565,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 102.304383
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 508.457323,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 604.496234
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1422.284384,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1485.543056
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1485.57656,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1505.375856,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1678.033585,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1684.138822,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1684.212733
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1823.008781,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2807.650152,
+          "payload": {
+            "EventTime": 1793082173641,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Taskabde9ed502c5",
+            "UserID": "Userabde9ed502c5"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2807.687754
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2807.702922
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2807.730056,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793082173642,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3060.603915,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793082173904,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3397.883899,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793082174246,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3737.104475,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793082174597,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3952.122543,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793082174816,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4025.407734,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793082174892,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 4798.781805
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4854.763608,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793082175740,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5132.896781,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082176024,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5337.680054,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082176235,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5392.997943,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082176292,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 3770.112945,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 5593.122357,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 4808.691995
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6147.117579,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082177063,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6155.113845,
+          "payload": {
+            "EventTime": 1793082177071,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Taskabde9ed502c5",
+            "UserID": "Userabde9ed502c5"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6155.165344,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082177071,
+                "userId": "Userabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8664.712446,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "收到，测试正常。",
+                "timestamp": 1793082179633,
+                "userId": "Botabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8664.866836,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082179634,
+                "userId": "Botabde9ed502c5"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8677.054397,
+          "payload": {
+            "EventTime": 1793082179643,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Taskabde9ed502c5",
+            "UserID": "Userabde9ed502c5"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 9062.956333,
+          "monotonic_ms": 9073.255754,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 10443.635422,
+          "payload": {
+            "EventTime": 1793082181463,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Taskabde9ed502c5",
+            "UserID": "Userabde9ed502c5"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话，测试收到。"
+      ],
+      "replies": [
+        "收到，测试正常。"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "202610271423021EFD304498C0D88A9CFD",
+          "control_ms": 213.48819999999978,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "202610271422514023A6440B26A08DD59D",
+        "control_ms": 366.8430000000001,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 4798.781805,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 47771,
+        "covering_chunk": {
+          "enqueued_ms": 4803.094305,
+          "event": "audio_chunk",
+          "last_sample": 47840,
+          "monotonic_ms": 4803.101861,
+          "voiced_endpoint_ms": 4808.691995
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 13.696786500047892,
+      "media": {
+        "audio_chunks": 378,
+        "video_frames": 21,
+        "decoded_audio_frames": 935,
+        "pulled_audio_frames": 1053,
+        "nonzero_audio_frames": 112,
+        "maximum_output_rms": 5045.476717648525,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "测试收到",
+      "answer_correct": false,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "ok": false,
+      "media_verified": true,
+      "image": null,
+      "attempt": 4,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 3239.5514379999995,
+        "first_audio_ms": 3622.47779,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 5005.078861999999
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 68.423697,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 99.289637
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 685.799029,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 1100.771695
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1634.343197,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1680.317167
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1680.342706,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1780.031774,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1953.114453,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1958.028132,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1958.040983
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 2039.626319,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3137.668162,
+          "payload": {
+            "EventTime": 1793082268674,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task450186aa471e",
+            "UserID": "User450186aa471e"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3137.831603
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3137.849595
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3138.441456,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793082268675,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3347.826091,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793082268893,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3619.713997,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793082269169,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4105.41381,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793082269673,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4365.204655,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793082269942,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4448.491783,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793082270027,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 5015.266461
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5121.321578,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793082270719,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5568.30149,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082271180,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5611.762089,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082271225,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5701.067994,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082271315,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 3770.080478,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 5809.705057,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 5025.308749
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6263.008752,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082271897,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6269.222184,
+          "payload": {
+            "EventTime": 1793082271901,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task450186aa471e",
+            "UserID": "User450186aa471e"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6269.763042,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082271903,
+                "userId": "User450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8254.817899,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "收到，测试正常。",
+                "timestamp": 1793082273941,
+                "userId": "Bot450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8255.306455,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 7,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082273942,
+                "userId": "Bot450186aa471e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8256.843094,
+          "payload": {
+            "EventTime": 1793082273944,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task450186aa471e",
+            "UserID": "User450186aa471e"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 8637.744251,
+          "monotonic_ms": 8647.949103,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 10020.345323,
+          "payload": {
+            "EventTime": 1793082275753,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task450186aa471e",
+            "UserID": "User450186aa471e"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话，测试收到。"
+      ],
+      "replies": [
+        "收到，测试正常。"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "20261027142436061CE0C867CCE58F8792",
+          "control_ms": 157.4922000000006,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "20261027142426163C8B6B8C3C02242B5F",
+        "control_ms": 405.5455999999999,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 5015.266461,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 47771,
+        "covering_chunk": {
+          "enqueued_ms": 5019.578961,
+          "event": "audio_chunk",
+          "last_sample": 47840,
+          "monotonic_ms": 5019.58286,
+          "voiced_endpoint_ms": 5025.308749
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 13.913338599959388,
+      "media": {
+        "audio_chunks": 378,
+        "video_frames": 20,
+        "decoded_audio_frames": 866,
+        "pulled_audio_frames": 992,
+        "nonzero_audio_frames": 102,
+        "maximum_output_rms": 4724.4114715045025,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "测试收到",
+      "answer_correct": false,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "speech",
+      "turn_mode": "automatic",
+      "ok": false,
+      "media_verified": true,
+      "image": null,
+      "attempt": 5,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 2649.022704,
+        "first_audio_ms": 3058.994294,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 4812.279028999999
+      },
+      "events": [
+        {
+          "audio_bytes": 120800,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 6.515966,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 45.034137
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 397.626962,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 546.373774
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1244.533287,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1277.942411
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1277.983652,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1297.321143,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1443.315247,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1450.506175,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1450.544424
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1625.433911,
+          "pcm_duration_ms": 3775.0,
+          "speech_endpoint_offset_ms": 2985.6875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2601.519542,
+          "payload": {
+            "EventTime": 1793082288794,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task4d1326d64620",
+            "UserID": "User4d1326d64620"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2601.556293
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2601.580436
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2601.621997,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793082288795,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2837.207093,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请只",
+                "timestamp": 1793082289037,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3167.346863,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请只回答",
+                "timestamp": 1793082289376,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3557.043296,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请只回答一句话",
+                "timestamp": 1793082289775,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3822.345496,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请只回答一句话。",
+                "timestamp": 1793082290045,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3904.562636,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请只回答一句话",
+                "timestamp": 1793082290130,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4587.220458,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请只回答一句话测试",
+                "timestamp": 1793082290829,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 4601.135649
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4927.072689,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082291173,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5112.669971,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082291362,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5202.334171,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请只回答一句话测试收到",
+                "timestamp": 1793082291438,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 3769.99474,
+          "event": "pcm_eof",
+          "last_sample": 60400,
+          "monotonic_ms": 5395.426874,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 4611.116937
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5654.603721,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082291923,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5659.130186,
+          "payload": {
+            "EventTime": 1793082291925,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task4d1326d64620",
+            "UserID": "User4d1326d64620"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5660.259515,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请只回答一句话，测试收到。",
+                "timestamp": 1793082291926,
+                "userId": "User4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7250.158353,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 9,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "收到，测试响应正常。",
+                "timestamp": 1793082293550,
+                "userId": "Bot4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7250.322337,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 9,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082293552,
+                "userId": "Bot4d1326d64620"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7255.487402,
+          "payload": {
+            "EventTime": 1793082293559,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task4d1326d64620",
+            "UserID": "User4d1326d64620"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 7660.129943,
+          "monotonic_ms": 7670.327249,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9413.414678,
+          "payload": {
+            "EventTime": 1793082295769,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task4d1326d64620",
+            "UserID": "User4d1326d64620"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "请只回答一句话，测试收到。"
+      ],
+      "replies": [
+        "收到，测试响应正常。"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "2026102714245600E0FCD0C716D192C448",
+          "control_ms": 297.59079999999994,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "202610271424469900E17E1F25C2240062",
+        "control_ms": 361.424,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 4601.135649,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 47771,
+        "covering_chunk": {
+          "enqueued_ms": 4605.448149,
+          "event": "audio_chunk",
+          "last_sample": 47840,
+          "monotonic_ms": 4605.45388,
+          "voiced_endpoint_ms": 4611.116937
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 13.55596540006809,
+      "media": {
+        "audio_chunks": 378,
+        "video_frames": 19,
+        "decoded_audio_frames": 856,
+        "pulled_audio_frames": 960,
+        "nonzero_audio_frames": 143,
+        "maximum_output_rms": 4873.948242313412,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "测试收到",
+      "answer_correct": false,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "status",
+      "turn_mode": "automatic",
+      "ok": true,
+      "media_verified": true,
+      "image": null,
+      "attempt": 6,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 5653.429258,
+        "first_audio_ms": 6561.843086000001,
+        "tool_call_ms": 2413.342187,
+        "tool_result_sent_ms": 4035.633119,
+        "completed_ms": 9487.657016000001
+      },
+      "events": [
+        {
+          "audio_bytes": 176000,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 8.958219,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 41.105133
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 698.560323,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 1042.515012
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1508.96407,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1546.283258
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1546.322391,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1570.533325,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1724.634195,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1727.329486,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1727.397484
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1891.450592,
+          "pcm_duration_ms": 5500.0,
+          "speech_endpoint_offset_ms": 4714.4375
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2774.470084,
+          "payload": {
+            "EventTime": 1793082324342,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Taska82a4e0f08d0",
+            "UserID": "Usera82a4e0f08d0"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2774.503553
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2774.516995
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2774.542607,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "请",
+                "timestamp": 1793082324343,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3146.003611,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "请查询",
+                "timestamp": 1793082324724,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3619.742104,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "请查询模拟",
+                "timestamp": 1793082325207,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4171.753971,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "请查询模拟无人机",
+                "timestamp": 1793082325773,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4522.384786,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "请查询模拟无人机的",
+                "timestamp": 1793082326124,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4558.809721,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "请查询模拟无人机的电量",
+                "timestamp": 1793082326168,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4777.732447,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "请查询模拟无人机的电量。",
+                "timestamp": 1793082326391,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4861.105228,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "请查询模拟无人机的电量",
+                "timestamp": 1793082326479,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6119.724076,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "请查询模拟无人机的电量不要",
+                "timestamp": 1793082327768,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 6595.858536
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6629.816105,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "请查询模拟无人机的电量不要操作",
+                "timestamp": 1793082328291,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6812.785759,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "请查询模拟无人机的电量不要操作飞机",
+                "timestamp": 1793082328479,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6933.403383,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "请查询模拟无人机的电量，不要操作飞机。",
+                "timestamp": 1793082328601,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6996.327161,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 12,
+                "text": "请查询模拟无人机的电量不要操作飞机",
+                "timestamp": 1793082328666,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 5490.116748,
+          "event": "pcm_eof",
+          "last_sample": 88000,
+          "monotonic_ms": 7381.567854,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 6605.884499
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7881.189103,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 13,
+                "text": "请查询模拟无人机的电量，不要操作飞机。",
+                "timestamp": 1793082329573,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7888.936962,
+          "payload": {
+            "EventTime": 1793082329581,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Taska82a4e0f08d0",
+            "UserID": "Usera82a4e0f08d0"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7888.997728,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 14,
+                "text": "请查询模拟无人机的电量，不要操作飞机。",
+                "timestamp": 1793082329581,
+                "userId": "Usera82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8779.324543,
+          "payload": {
+            "event_type": "function_calling",
+            "function": "run_program",
+            "response_id": "021793082329596c65202e590747a44f6b901a7b0655cffd07948",
+            "tool_call_id": "call_n0rd709i8hlcpdghklebewci"
+          },
+          "type": "info"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9009.200723,
+          "payload": {
+            "subscriber_user_id": "",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"code\": \"print(drone.get_status())\"}",
+                  "name": "run_program"
+                },
+                "id": "call_n0rd709i8hlcpdghklebewci",
+                "type": "function"
+              }
+            ]
+          },
+          "type": "tool"
+        },
+        {
+          "event": "tool_result_send_started",
+          "id": "call_n0rd709i8hlcpdghklebewci",
+          "monotonic_ms": 10631.434097
+        },
+        {
+          "event": "tool_result_submitted",
+          "id": "call_n0rd709i8hlcpdghklebewci",
+          "message_id": 1,
+          "monotonic_ms": 10631.491655
+        },
+        {
+          "error": 0,
+          "event": "message_send_result",
+          "message_id": 1,
+          "monotonic_ms": 10697.040871
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 12249.287794,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 14,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "模拟无人机当前电量为 80%。",
+                "timestamp": 1793082334041,
+                "userId": "Bota82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 12249.363324,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 14,
+                "language": "zh",
+                "lastCharPos": 14,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082334041,
+                "userId": "Bota82a4e0f08d0"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 12738.434227,
+          "payload": {
+            "EventTime": 1793082334540,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Taska82a4e0f08d0",
+            "UserID": "Usera82a4e0f08d0"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 13157.701622,
+          "monotonic_ms": 13166.939606,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 16083.515552,
+          "payload": {
+            "EventTime": 1793082337970,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Taska82a4e0f08d0",
+            "UserID": "Usera82a4e0f08d0"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "请查询模拟无人机的电量，不要操作飞机。"
+      ],
+      "replies": [
+        "模拟无人机当前电量为 80%。"
+      ],
+      "tools": [
+        {
+          "id": "call_n0rd709i8hlcpdghklebewci",
+          "name": "run_program",
+          "arguments": {
+            "code": "print(drone.get_status())"
+          },
+          "result": {
+            "ok": true,
+            "status": "completed",
+            "reason": "",
+            "simulated": true,
+            "journal": [
+              {
+                "method": "get_status",
+                "args": [],
+                "kwargs": {},
+                "result": {
+                  "battery": 80,
+                  "height_cm": 0,
+                  "connected": true,
+                  "flight_state": "landed",
+                  "control_owner": "none",
+                  "timestamp": 1793082331.7395627,
+                  "control_epoch": 0,
+                  "command_epoch": 0,
+                  "simulated": true
+                }
+              }
+            ],
+            "follow_cleanup": {
+              "status": "no_control"
+            },
+            "debug": "{'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793082331.7395627, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\n"
+          }
+        }
+      ],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "20261027142538FC5BB9AB0866B024FF2E",
+          "control_ms": 225.73579999999856,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "query_runtime_stopped": true,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "20261027142522188AC072D0727B21F37D",
+        "control_ms": 361.5743,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 6595.858536,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 75431,
+        "covering_chunk": {
+          "enqueued_ms": 6601.421036,
+          "event": "audio_chunk",
+          "last_sample": 75520,
+          "monotonic_ms": 6601.426637,
+          "voiced_endpoint_ms": 6605.884499
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 19.95354890008457,
+      "media": {
+        "audio_chunks": 550,
+        "video_frames": 32,
+        "decoded_audio_frames": 1495,
+        "pulled_audio_frames": 1598,
+        "nonzero_audio_frames": 259,
+        "maximum_output_rms": 7716.334985627352,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": true,
+      "execution": "real_Docker_Gateway_MockBackend_no_aircraft",
+      "expected_answer": "80",
+      "answer_correct": true,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "vision",
+      "turn_mode": "automatic",
+      "ok": true,
+      "media_verified": true,
+      "image": "RedTent",
+      "attempt": 7,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 2520.130027,
+        "first_audio_ms": 3224.2398980000007,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 3802.1401510000005
+      },
+      "events": [
+        {
+          "audio_bytes": 167520,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 46.077727,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 76.919829
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 538.357498,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 578.553526
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1411.725494,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1463.1947
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1463.228774,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1485.479272,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1647.708782,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1655.107183,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1655.157417
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1787.230242,
+          "pcm_duration_ms": 5235.0,
+          "speech_endpoint_offset_ms": 4433.875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2744.8689,
+          "payload": {
+            "EventTime": 1793082352567,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task70a3f7617ba9",
+            "UserID": "User70a3f7617ba9"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2744.915533
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2744.936822
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2744.967434,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "画面",
+                "timestamp": 1793082352567,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2951.102978,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "画面里",
+                "timestamp": 1793082352779,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3078.943259,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "画面里的",
+                "timestamp": 1793082352910,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3386.28831,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "画面里的帐篷",
+                "timestamp": 1793082353226,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3858.797952,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "画面里的帐篷是什么",
+                "timestamp": 1793082353710,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4289.517291,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793082354150,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4587.027267,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "画面里的帐篷是什么颜色？",
+                "timestamp": 1793082354454,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4678.606001,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793082354547,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6093.51197,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "画面里的帐篷是什么颜色只",
+                "timestamp": 1793082355989,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6201.540026,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "画面里的帐篷是什么颜色只回答",
+                "timestamp": 1793082356109,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 6211.116035
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6474.047596,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "画面里的帐篷是什么颜色只回答颜色",
+                "timestamp": 1793082356388,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6569.126334,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082356476,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6619.500337,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 12,
+                "text": "画面里的帐篷是什么颜色只回答颜色",
+                "timestamp": 1793082356533,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 5230.048412,
+          "event": "pcm_eof",
+          "last_sample": 83760,
+          "monotonic_ms": 7017.277158,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 6221.10068
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7384.469113,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 13,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082357320,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7389.270547,
+          "payload": {
+            "EventTime": 1793082357325,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task70a3f7617ba9",
+            "UserID": "User70a3f7617ba9"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7389.413039,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 14,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082357325,
+                "userId": "User70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8731.246062,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "红色",
+                "timestamp": 1793082358699,
+                "userId": "Bot70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8731.315637,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 1,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082358699,
+                "userId": "Bot70a3f7617ba9"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9016.870183,
+          "payload": {
+            "EventTime": 1793082358993,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task70a3f7617ba9",
+            "UserID": "User70a3f7617ba9"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 9435.355933,
+          "monotonic_ms": 9445.634638,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 10013.256186,
+          "payload": {
+            "EventTime": 1793082360013,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task70a3f7617ba9",
+            "UserID": "User70a3f7617ba9"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "红色"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "20261027142600A1583A5C708F0AA4CC8D",
+          "control_ms": 323.34549999999945,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "202610271425507CADA4918F9C0F2B7C82",
+        "control_ms": 413.2714000000001,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 6211.116035,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 70942,
+        "covering_chunk": {
+          "enqueued_ms": 6217.241035,
+          "event": "audio_chunk",
+          "last_sample": 71040,
+          "monotonic_ms": 6217.24507,
+          "voiced_endpoint_ms": 6221.10068
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 13.489988599903882,
+      "media": {
+        "audio_chunks": 524,
+        "video_frames": 21,
+        "decoded_audio_frames": 896,
+        "pulled_audio_frames": 1006,
+        "nonzero_audio_frames": 44,
+        "maximum_output_rms": 5403.72032877967,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "红",
+      "answer_correct": true,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "vision",
+      "turn_mode": "automatic",
+      "ok": true,
+      "media_verified": true,
+      "image": "BlueTent",
+      "attempt": 8,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 1984.4153969999998,
+        "first_audio_ms": 2811.41031,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 3452.763825000001
+      },
+      "events": [
+        {
+          "audio_bytes": 167520,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 14.640613,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 48.47814
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 510.116465,
+          "state": 0
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 549.97454
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1590.73486,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1641.946457
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1641.977913,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1657.586516,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1790.964049,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 1794.540028,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 1794.616015
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 1978.872391,
+          "pcm_duration_ms": 5235.0,
+          "speech_endpoint_offset_ms": 4433.875
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2972.363023,
+          "payload": {
+            "EventTime": 1793082374843,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task289c0ca6daa7",
+            "UserID": "User289c0ca6daa7"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2972.391282
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 2972.406988
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 2972.451814,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "画面",
+                "timestamp": 1793082374843,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3115.279808,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "画面里",
+                "timestamp": 1793082374990,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3297.355453,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "画面里的",
+                "timestamp": 1793082375176,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3591.356844,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "画面里的帐篷",
+                "timestamp": 1793082375477,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4085.875951,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "画面里的帐篷是什么",
+                "timestamp": 1793082375983,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4464.667915,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793082376371,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4837.091419,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "画面里的帐篷是什么颜色？",
+                "timestamp": 1793082376754,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4857.512755,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793082376772,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6160.012436,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "画面里的帐篷是什么颜色只",
+                "timestamp": 1793082378108,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 6402.893072
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6432.383799,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "画面里的帐篷是什么颜色只回答",
+                "timestamp": 1793082378386,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6556.597544,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "画面里的帐篷是什么颜色只回答颜色",
+                "timestamp": 1793082378513,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6741.426119,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082378701,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6808.402209,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 12,
+                "text": "画面里的帐篷是什么颜色只回答颜色",
+                "timestamp": 1793082378772,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 5230.145832,
+          "event": "pcm_eof",
+          "last_sample": 83760,
+          "monotonic_ms": 7209.016715,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 6412.74272
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7550.130871,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 13,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082379530,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7554.361586,
+          "payload": {
+            "EventTime": 1793082379536,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task289c0ca6daa7",
+            "UserID": "User289c0ca6daa7"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7554.486787,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 14,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793082379536,
+                "userId": "User289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8387.308469,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "蓝色",
+                "timestamp": 1793082380387,
+                "userId": "Bot289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8387.845512,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 1,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793082380387,
+                "userId": "Bot289c0ca6daa7"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8692.178034,
+          "payload": {
+            "EventTime": 1793082380701,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task289c0ca6daa7",
+            "UserID": "User289c0ca6daa7"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 9214.303382,
+          "monotonic_ms": 9223.524685,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9855.656897,
+          "payload": {
+            "EventTime": 1793082381891,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task289c0ca6daa7",
+            "UserID": "User289c0ca6daa7"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "蓝色"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "202610271426221A95BE2D4265F9951B45",
+          "control_ms": 143.35089999999946,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "202610271426123BACFEE708C6598B0D6E",
+        "control_ms": 299.82770000000005,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 6402.893072,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 70942,
+        "covering_chunk": {
+          "enqueued_ms": 6409.018072,
+          "event": "audio_chunk",
+          "last_sample": 71040,
+          "monotonic_ms": 6409.025741,
+          "voiced_endpoint_ms": 6412.74272
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 13.42037760000676,
+      "media": {
+        "audio_chunks": 524,
+        "video_frames": 20,
+        "decoded_audio_frames": 866,
+        "pulled_audio_frames": 993,
+        "nonzero_audio_frames": 53,
+        "maximum_output_rms": 4951.27071884077,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "蓝",
+      "answer_correct": true,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "measurement"
+    }
+  ]
+}

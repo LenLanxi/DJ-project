@@ -1,0 +1,154 @@
+{
+  "provider": "tencent_trtc",
+  "schema_version": 1,
+  "voice_rtc": true,
+  "client_tools_verified": false,
+  "video_understanding_verified": false,
+  "full_media_round_trip_verified": false,
+  "public_api_configuration": "voice_cascade",
+  "hardware_verified": false,
+  "full_pipeline_latency_ms": null,
+  "media_published": false,
+  "note": "Control-plane qualification only; no microphone, camera, browser, aircraft or model prompt sent.",
+  "error_code": "InvalidParameter",
+  "request_id": "6b182cc6-ef51-400e-9f01-8748719718a2",
+  "outcome_unknown": false,
+  "cleanup": {
+    "ok": true,
+    "status": "no_cloud_task",
+    "cloud_stop_confirmed": false,
+    "billing_stopped_verified": false
+  },
+  "events": [
+    {
+      "event": "tencent_api_start",
+      "action": "StartAIConversation",
+      "attempt": 1,
+      "retried": false,
+      "timestamp": 1793081064.6141567,
+      "session_id": "Sessiona8d1089ad41648a48ab451996e346d6e",
+      "measured_scope": "control_plane_only",
+      "billed_cost_verified": false
+    },
+    {
+      "event": "tencent_api_end",
+      "action": "StartAIConversation",
+      "ok": false,
+      "error_code": "InvalidParameter",
+      "request_id": "6b182cc6-ef51-400e-9f01-8748719718a2",
+      "outcome_unknown": false,
+      "control_plane_ms": 125.0,
+      "timestamp": 1793081064.7402706,
+      "session_id": "Sessiona8d1089ad41648a48ab451996e346d6e",
+      "measured_scope": "control_plane_only",
+      "billed_cost_verified": false
+    }
+  ],
+  "ok": false,
+  "second_attempt": {
+    "error_code": "InvalidParameter",
+    "cleanup": {
+      "ok": true,
+      "status": "no_cloud_task",
+      "cloud_stop_confirmed": false,
+      "billing_stopped_verified": false
+    },
+    "sanitized_parameter_error": [
+      "参数错误。 invalid StartAIConversationReq.AgentConfig: embedded message failed validation | caused by: invalid AgentConfig.MaxIdleTime: value must be inside range [60, 259200]"
+    ],
+    "events": [
+      {
+        "event": "tencent_api_start",
+        "action": "StartAIConversation",
+        "attempt": 1,
+        "retried": false,
+        "timestamp": 1793081107.1943567,
+        "session_id": "Sessionccfa0fc930d245b89412fd58996e4e35",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      },
+      {
+        "event": "tencent_api_end",
+        "action": "StartAIConversation",
+        "ok": false,
+        "error_code": "InvalidParameter",
+        "request_id": "2d000084-66f5-4aa9-8daf-4a7813da1567",
+        "outcome_unknown": false,
+        "control_plane_ms": 234.0,
+        "timestamp": 1793081107.4192436,
+        "session_id": "Sessionccfa0fc930d245b89412fd58996e4e35",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      }
+    ]
+  },
+  "subsequent_successful_native_development": {
+    "media_evidence": "TencentDevelopment.json",
+    "start": {
+      "ok": true,
+      "status": "submitted",
+      "task_id": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+      "request_id": "3aee39b3-5d43-4923-a63a-0c4a858e6dfa",
+      "ready": false,
+      "voice_rtc": true,
+      "client_tools_verified": false,
+      "video_understanding_verified": false,
+      "full_media_round_trip_verified": false,
+      "public_api_configuration": "voice_cascade",
+      "hardware_verified": false
+    },
+    "cleanup": {
+      "ok": true,
+      "status": "stopped",
+      "task_id": "v2_20261027_nYGA3QQfkX9Jz1Dgr6kX_ez38CeZlG2p-2HzmXSYqKUONacH3il8ooRjvuFwLRI-cMTZlb8JTkW0kcB8rHfZwQGPmBRwOLX64rb2REmoZ6_0at0vEJjgohEdeVBVIFhaZWmf9bMxqK07W8pbjjZInQ5RE0o",
+      "request_id": "cd1bee1f-7727-440f-a3ea-a6d048ac41ab",
+      "cloud_stop_confirmed": true,
+      "billing_stopped_verified": false
+    },
+    "control_events": [
+      {
+        "event": "tencent_api_start",
+        "action": "StartAIConversation",
+        "attempt": 1,
+        "retried": false,
+        "timestamp": 1793081467.2843425,
+        "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      },
+      {
+        "event": "tencent_api_end",
+        "action": "StartAIConversation",
+        "ok": true,
+        "request_id": "3aee39b3-5d43-4923-a63a-0c4a858e6dfa",
+        "control_plane_ms": 266.0,
+        "timestamp": 1793081467.5508537,
+        "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      },
+      {
+        "event": "tencent_api_start",
+        "action": "StopAIConversation",
+        "attempt": 1,
+        "retried": false,
+        "timestamp": 1793081474.3651228,
+        "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      },
+      {
+        "event": "tencent_api_end",
+        "action": "StopAIConversation",
+        "ok": true,
+        "request_id": "cd1bee1f-7727-440f-a3ea-a6d048ac41ab",
+        "control_plane_ms": 171.0,
+        "timestamp": 1793081474.5303345,
+        "session_id": "Session62efd1776bbf42a88c70f866c1f05eb1",
+        "measured_scope": "control_plane_only",
+        "billed_cost_verified": false
+      }
+    ],
+    "scope": "actual native voice development trial, excluded from formal comparison"
+  }
+}
