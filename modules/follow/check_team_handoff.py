@@ -41,7 +41,7 @@ async def scenario(root, output):
                 self.cached = (key,FrameResult(synthetic_frame(x=self.x, visible=self.visible),index,time.time(),False))
             return self.cached[1]
     feed = Feed()
-    backend = SDKBackend(root)
+    backend = SDKBackend(root, allow_simulated=True)
     gateway = Gateway(backend)
     async def wait(predicate, seconds=2):
         deadline=time.monotonic()+seconds

@@ -144,4 +144,3 @@ class HeightContractTests(DeviceCase):
         self.fake.refresh(age=2)
         self.assertFalse(port.get_status().height_fresh)
         self.assertFalse(port.get_status().height_fresh)
-
