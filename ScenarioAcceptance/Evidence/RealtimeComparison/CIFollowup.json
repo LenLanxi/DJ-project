@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-10-27T07:06:21.208675+00:00",
+  "initial_commit": "89b0d39bd871b72387bee0c1d38d881de3a4a5c1",
+  "initial_ci": "https://github.com/LenLanxi/DJ-project/actions/runs/40462722117",
+  "initial_windows": "success",
+  "initial_containers": "failure",
+  "failure_case": "RealSandboxSafetyTests.test11_real_infinite_loop_cancelled_without_leftover_container",
+  "failure": "docker inspect returned0 after early cancellation",
+  "diagnosis": "docker run CLI was killed while daemon create could still complete; one NoSuchContainer was treated as permanent absence",
+  "fix": "retain spawn handle, remove while CLI is alive, require create/remove fence before killing CLI; bounded unknown state retains pending identity",
+  "new_regressions": 7,
+  "old_version_red_green_check": "test19 reproduces orphan on89b0d39 and passes fixed source; test25 reproduces false confirmation on second cancellation",
+  "targeted_pytest_items": 63,
+  "targeted_failures": 0,
+  "explicit_real_docker_items": 4,
+  "global_items_collected": 1064,
+  "cloud_calls_during_followup": 0,
+  "cloud_timing_dataset_revision": "89b0d39; not remeasured after cancellation-only followup",
+  "source_sha256": {
+    "modules/ai/sandbox_runner.py": "87da83fec17bbd07870dd9029a156dd95e4b9e8cb25e3f081b6e0c08806962c9",
+    "tests/SandboxSafetyTests.py": "05771fe085987cc1c521ff2248838e0421fe9acfc245b02d2b4ac2a5a28ddd98"
+  }
+}

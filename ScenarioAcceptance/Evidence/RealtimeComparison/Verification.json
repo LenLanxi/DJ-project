@@ -67,5 +67,12 @@
   "browser_attempt": {
     "result": "trusted_Node_REPL_browser_service_unavailable",
     "fallback": "official_native_SDKs_no_UI_or_devices"
+  },
+  "followup": {
+    "evidence": "CIFollowup.json",
+    "targeted_items": 63,
+    "new_regressions": 7,
+    "total_current_python_items": 1064,
+    "cloud_timing_revision": "89b0d39"
   }
 }

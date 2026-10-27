@@ -182,13 +182,21 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test15_cancel_during_spawn_still_removes_named_container(self):
         runner, _backend = self.runner()
-        entered = asyncio.Event()
+        entered, release = asyncio.Event(), asyncio.Event()
         calls = []
+        process = Process()
+        process.stdout = asyncio.StreamReader()
+        original_kill = process.kill
+        def kill():
+            calls.append(('kill',))
+            original_kill()
+        process.kill = kill
         async def create(*args, **kwargs):
             calls.append(args)
             if args[:2] == ('docker', 'run'):
                 entered.set()
-                await asyncio.Event().wait()
+                await release.wait()
+                return process
             if args[:3] == ('docker', 'rm', '-f'):
                 return Process()
             raise AssertionError(args)
@@ -196,9 +204,12 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
             task = asyncio.create_task(runner.run('pass'))
             await asyncio.wait_for(entered.wait(), .5)
             runner.cancel()
+            release.set()
             result = await asyncio.wait_for(task, .5)
         self.assertEqual(result['status'], 'cancelled')
         self.assertTrue(any(call[:3] == ('docker','rm','-f') for call in calls))
+        self.assertIn(('kill',), calls)
+        self.assertLess(next(i for i,call in enumerate(calls) if call[:3]==('docker','rm','-f')), calls.index(('kill',)))
         self.assertFalse(runner.running)
 
     async def test16_cancel_during_stdin_backpressure_is_prompt(self):
@@ -249,22 +260,230 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result['ok'])
         self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed')
 
+    async def test19_late_daemon_create_is_removed_before_cli_is_killed(self):
+        """A request already sent to Docker can finish after CLI cancellation.
+
+        The first rm deterministically sees 404. The daemon then creates the
+        container independently of the CLI's lifetime. Killing run before this
+        barrier leaves an orphan in the former implementation.
+        """
+        runner, _backend = self.runner()
+        entered, first_remove, created = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        state = {'exists':False, 'removed':False, 'killed':False, 'early_kill':False}
+        process = Process()
+        process.stdout = asyncio.StreamReader()
+        original_kill = process.kill
+        def kill():
+            state['killed'] = True
+            state['early_kill'] = not state['removed']
+            original_kill()
+        process.kill = kill
+        async def daemon_create():
+            await first_remove.wait()
+            state['exists'] = True
+            created.set()
+        daemon = asyncio.create_task(daemon_create())
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'):
+                entered.set()
+                return process
+            if args[:3] == ('docker','rm','-f'):
+                if state['exists']:
+                    state['exists'] = False
+                    state['removed'] = True
+                    return Process()
+                missing = Process(stderr=b'Error response from daemon: No such container')
+                async def absent():
+                    missing.returncode = 1
+                    first_remove.set()
+                    return 1
+                missing.wait = absent
+                return missing
+            raise AssertionError(args)
+        try:
+            with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+                task = asyncio.create_task(runner.run('while True: pass'))
+                await asyncio.wait_for(entered.wait(), .5)
+                runner.cancel()
+                result = await asyncio.wait_for(task, 1)
+                await asyncio.wait_for(created.wait(), .5)
+            self.assertFalse(state['exists'], 'cancelled run returned before delayed daemon creation was removed')
+            self.assertFalse(state['early_kill'], 'run CLI was killed before create/remove barrier')
+            self.assertTrue(state['removed'])
+            self.assertTrue(state['killed'])
+            self.assertEqual(result['status'], 'cancelled', result)
+        finally:
+            daemon.cancel()
+            await asyncio.gather(daemon, return_exceptions=True)
+
+    async def test20_absent_before_create_is_not_confirmed_even_if_cli_exited(self):
+        runner, _backend = self.runner()
+        runner.CLEANUP_SECONDS = .01
+        entered = asyncio.Event()
+        process = Process()
+        process.returncode = 0
+        process.stdout = asyncio.StreamReader()
+        calls = []
+        async def create(*args, **kwargs):
+            calls.append(args)
+            if args[:2] == ('docker','run'):
+                entered.set()
+                return process
+            if args[:3] == ('docker','rm','-f'):
+                missing = Process(stderr=b'No such container')
+                async def absent(): missing.returncode = 1; return 1
+                missing.wait = absent
+                return missing
+            raise AssertionError(args)
+        with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            task = asyncio.create_task(runner.run('pass'))
+            await asyncio.wait_for(entered.wait(), .5)
+            runner.cancel()
+            result = await asyncio.wait_for(task, .5)
+        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
+        self.assertIn('container_creation_unconfirmed', result['cleanup_errors'])
+        self.assertTrue(result['pending_container'].startswith('companion-'))
+        self.assertFalse(any(call[:2] == ('docker','ps') for call in calls), 'an empty listing cannot fence an unobserved create')
+        self.assertFalse(runner.running)
+
+    async def test21_unresolved_spawn_retains_cleanup_identity(self):
+        runner, _backend = self.runner()
+        runner.SPAWN_SETTLE_SECONDS = .01
+        entered, spawn_cancelled = asyncio.Event(), asyncio.Event()
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'):
+                entered.set()
+                try: await asyncio.Event().wait()
+                finally: spawn_cancelled.set()
+            if args[:3] == ('docker','rm','-f'):
+                return Process()
+            raise AssertionError(args)
+        with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            task = asyncio.create_task(runner.run('pass'))
+            await asyncio.wait_for(entered.wait(), .5)
+            runner.cancel()
+            result = await asyncio.wait_for(task, .5)
+        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
+        self.assertTrue(any(e.startswith('docker_spawn_unconfirmed:') for e in result['cleanup_errors']))
+        self.assertTrue(result['pending_container'].startswith('companion-'))
+        self.assertTrue(spawn_cancelled.is_set())
+        self.assertFalse(runner.running)
+
+    async def test22_follow_cleanup_error_preserves_pending_container_identity(self):
+        runner, _backend = self.runner()
+        runner.CLEANUP_SECONDS = .001
+        process = Process([{'type':'done','ok':True}])
+        missing = Process(stderr=b'No such container')
+        async def absent(): missing.returncode = 1; return 1
+        missing.wait = absent
+        with patch.object(runner, 'check', new=AsyncMock()), patch.object(runner, '_removed', new=AsyncMock(return_value=False)), patch.object(runner.gateway, 'finish', new=AsyncMock(side_effect=RuntimeError('follow cleanup failed'))), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=[process, missing]):
+            result = await runner.run('pass')
+        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
+        self.assertEqual(result['cleanup_errors'], ['container_absence_unconfirmed'])
+        self.assertTrue(result['pending_container'].startswith('companion-'))
+        self.assertEqual(result['follow_cleanup_error'], 'follow cleanup failed')
+        self.assertFalse(runner.running)
+
+    async def test23_invalid_stdout_does_not_fence_container_creation(self):
+        runner, _backend = self.runner()
+        runner.CLEANUP_SECONDS = .001
+        process = Process([{'type':'untrusted-output'}])
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'): return process
+            missing = Process(stderr=b'No such container')
+            async def absent(): missing.returncode = 1; return 1
+            missing.wait = absent
+            return missing
+        with patch.object(runner, 'check', new=AsyncMock()), patch.object(runner, '_removed', new=AsyncMock(return_value=True)) as removed, patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            result = await runner.run('pass')
+        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
+        self.assertIn('container_creation_unconfirmed', result['cleanup_errors'])
+        removed.assert_not_awaited()
+
+    async def test24_external_task_cancel_retains_unconfirmed_cleanup_evidence(self):
+        runner, _backend = self.runner()
+        runner.CLEANUP_SECONDS = .001
+        entered = asyncio.Event()
+        process = Process()
+        process.stdout = asyncio.StreamReader()
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'):
+                entered.set()
+                return process
+            missing = Process(stderr=b'No such container')
+            async def absent(): missing.returncode = 1; return 1
+            missing.wait = absent
+            return missing
+        with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            task = asyncio.create_task(runner.run('while True: pass'))
+            await asyncio.wait_for(entered.wait(), .5)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError) as caught:
+                await asyncio.wait_for(task, .5)
+        self.assertFalse(runner.last_cleanup['confirmed'])
+        self.assertTrue(runner.last_cleanup['pending_container'].startswith('companion-'))
+        self.assertEqual(caught.exception.pending_container, runner.last_cleanup['pending_container'])
+        self.assertIn('container_creation_unconfirmed', caught.exception.cleanup_errors)
+        with self.assertRaises(TypeError):
+            runner.last_cleanup['pending_container'] = None
+        self.assertIsInstance(runner.last_cleanup['cleanup_errors'], tuple)
+        self.assertFalse(runner.running)
+
+    async def test25_second_task_cancel_during_cleanup_cannot_confirm_absence(self):
+        runner, _backend = self.runner()
+        spawned, removing = asyncio.Event(), asyncio.Event()
+        process = Process()
+        process.stdout = asyncio.StreamReader()
+        cleanup = Process()
+        async def blocked_remove():
+            removing.set()
+            await asyncio.Event().wait()
+        cleanup.wait = blocked_remove
+        async def create(*args, **kwargs):
+            if args[:2] == ('docker','run'):
+                spawned.set()
+                return process
+            if args[:3] == ('docker','rm','-f'):
+                return cleanup
+            raise AssertionError(args)
+        with patch.object(runner, 'check', new=AsyncMock()), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+            task = asyncio.create_task(runner.run('while True: pass'))
+            await asyncio.wait_for(spawned.wait(), .5)
+            task.cancel()
+            await asyncio.wait_for(removing.wait(), .5)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError) as caught:
+                await asyncio.wait_for(task, .5)
+        self.assertFalse(runner.last_cleanup['confirmed'])
+        self.assertIn('cleanup_interrupted', runner.last_cleanup['cleanup_errors'])
+        self.assertTrue(runner.last_cleanup['pending_container'].startswith('companion-'))
+        self.assertEqual(caught.exception.pending_container, runner.last_cleanup['pending_container'])
+        self.assertIn('cleanup_interrupted', caught.exception.cleanup_errors)
+        self.assertFalse(runner.running)
+
 
 @unittest.skipUnless(os.getenv('RUN_DOCKER_TESTS')=='1' and shutil.which('docker'), 'requires explicit RUN_DOCKER_TESTS=1 and built sandbox image')
 class RealSandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
     async def run_recording_container(self, runner, code, cancel=False):
         names = []
+        spawned = asyncio.Event()
         original = SandboxRunner.command
+        original_create = asyncio.create_subprocess_exec
         def command(image, name):
             names.append(name)
             return original(image, name)
-        with patch.object(SandboxRunner, 'command', side_effect=command):
+        async def create(*args, **kwargs):
+            process = await original_create(*args, **kwargs)
+            if args[:2] == ('docker','run'):
+                spawned.set()
+            return process
+        with patch.object(SandboxRunner, 'command', side_effect=command), patch('sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
             task = asyncio.create_task(runner.run(code))
             if cancel:
-                deadline = time.monotonic() + 3
-                while not names and time.monotonic() < deadline: await asyncio.sleep(.01)
+                # Cancel at the first real OS-spawn acknowledgement, before
+                # requiring container visibility. This exercises early create.
+                await asyncio.wait_for(spawned.wait(), 10)
                 self.assertTrue(names)
-                await asyncio.sleep(.15)
                 runner.cancel()
             result = await asyncio.wait_for(task, 15)
         self.assertTrue(names)

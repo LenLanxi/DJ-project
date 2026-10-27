@@ -6,6 +6,7 @@ its captured grant even when a cancelled host worker finishes late.
 import asyncio
 import json
 import shutil
+from types import MappingProxyType
 import uuid
 
 
@@ -14,6 +15,8 @@ class ProgramCancelled(RuntimeError): pass
 
 
 class SandboxRunner:
+    CLEANUP_SECONDS = 3
+    SPAWN_SETTLE_SECONDS = 2
     def __init__(self, gateway, image='companion-sandbox:0.4', timeout=90, max_rpc=2000):
         if not 0 < timeout <= 3600 or type(max_rpc) is not int or not 1 <= max_rpc <= 10000:
             raise ValueError('invalid sandbox budget')
@@ -21,6 +24,7 @@ class SandboxRunner:
         self.timeout, self.max_rpc = timeout, max_rpc
         self.cancelled = asyncio.Event()
         self.running = False
+        self.last_cleanup = MappingProxyType({})
 
     @staticmethod
     def command(image, name):
@@ -81,7 +85,7 @@ class SandboxRunner:
             raise
 
     async def _race_cancel(self, operation):
-        work = asyncio.create_task(operation)
+        work = asyncio.ensure_future(operation)
         cancelled = asyncio.create_task(self.cancelled.wait())
         try:
             done, _ = await asyncio.wait((work, cancelled), return_when=asyncio.FIRST_COMPLETED)
@@ -92,6 +96,43 @@ class SandboxRunner:
             for task in (work, cancelled):
                 if not task.done(): task.cancel()
             await asyncio.gather(work, cancelled, return_exceptions=True)
+
+    async def _remove_container(self, name, known_created):
+        """Remove before killing run's CLI, which may still be creating it.
+
+        docker run performs one synchronous create followed by start. A
+        successful rm proves that creation finished and that the container was
+        deleted; killing the CLI after that cannot create it again. In contrast,
+        an early 404 while run is alive is not evidence of permanent absence.
+        """
+        until = asyncio.get_running_loop().time() + self.CLEANUP_SECONDS
+        while True:
+            cleanup = await asyncio.create_subprocess_exec('docker', 'rm', '-f', name,
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            try:
+                remaining = max(.01, until-asyncio.get_running_loop().time())
+                exit_code = await asyncio.wait_for(cleanup.wait(), remaining)
+                if exit_code == 0:
+                    return []
+                stream = getattr(cleanup, 'stderr', None)
+                error = await asyncio.wait_for(stream.read(4096), 1) if stream is not None else b''
+            except TimeoutError:
+                await self._kill_wait(cleanup)
+                return ['container_remove_timeout']
+            if b'No such container' in error:
+                if known_created:
+                    # Worker output fences create, but still require a healthy
+                    # engine's empty listing to confirm --rm has finished.
+                    return [] if await self._removed(name) else ['container_absence_unconfirmed']
+                if asyncio.get_running_loop().time() >= until:
+                    return ['container_creation_unconfirmed']
+                await asyncio.sleep(.05)
+                continue
+            # An empty listing alone cannot fence a create. For --rm's
+            # removal-in-progress race, first require observed worker output.
+            if known_created and await self._removed(name):
+                return []
+            return ['container_remove_exit: ' + str(exit_code)]
 
     async def run(self, code):
         if self.running:
@@ -104,10 +145,12 @@ class SandboxRunner:
         response_bytes = 0
         name = 'companion-' + uuid.uuid4().hex
         process = None
+        spawn_task = None
         stderr_task = None
         result = {'ok':False, 'status':'failed'}
-        begun = output_limit = container_attempted = False
+        begun = output_limit = container_attempted = known_created = False
         cleanup_errors = []
+        external_cancel = None
         try:
             self.gateway.begin()
             begun = True
@@ -115,9 +158,12 @@ class SandboxRunner:
                 await self._race_cancel(self.check())
                 if self.cancelled.is_set(): raise ProgramCancelled()
                 container_attempted = True
-                process = await self._race_cancel(asyncio.create_subprocess_exec(*self.command(self.image, name),
+                spawn_task = asyncio.create_task(asyncio.create_subprocess_exec(*self.command(self.image, name),
                     stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE, limit=16001))
+                # Cancellation must not lose the Process when OS spawn and the
+                # cancel event complete in the same loop turn.
+                process = await self._race_cancel(asyncio.shield(spawn_task))
                 process.stdin.write(json.dumps({'code':code}).encode() + b'\n')
                 await self._race_cancel(process.stdin.drain())
                 async def drain_errors():
@@ -129,8 +175,6 @@ class SandboxRunner:
                         if count > 64000:
                             output_limit = True
                             self.cancel()  # also abort an in-flight host RPC
-                            try: process.kill()
-                            except ProcessLookupError: pass
                             return
                 stderr_task = asyncio.create_task(drain_errors())
                 expected_id = 1
@@ -143,11 +187,13 @@ class SandboxRunner:
                     message = json.loads(line)
                     if not isinstance(message, dict): raise ValueError('invalid RPC message')
                     if message.get('type') == 'done':
+                        known_created = True
                         result = {'ok':message.get('ok') is True,
                                   'status':'completed' if message.get('ok') is True else 'failed',
                                   'reason':message.get('error', '')}
                         break
                     if message.get('type') != 'rpc': raise ValueError('invalid sandbox protocol')
+                    known_created = True
                     if type(message.get('id')) is not int or message['id'] != expected_id:
                         raise ValueError('invalid or repeated RPC sequence')
                     expected_id += 1
@@ -184,38 +230,35 @@ class SandboxRunner:
         except TimeoutError:
             self.cancel()
             result = {'ok':False, 'status':'timeout', 'reason':'program_deadline_exceeded'}
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as exc:
+            external_cancel = exc
             self.cancel()
             result = {'ok':False, 'status':'cancelled', 'reason':'task_cancelled'}
             raise
         except Exception as exc:
             result = {'ok':False, 'status':'failed', 'reason':type(exc).__name__ + ': ' + str(exc)[:500]}
         finally:
+            cleanup_finished = False
             try:
-                # Removing the named container is required even if waiting for
-                # the CLI fails; killing only the CLI leaves work in the engine.
+                if process is None and spawn_task is not None:
+                    try:
+                        process = await asyncio.wait_for(asyncio.shield(spawn_task), self.SPAWN_SETTLE_SECONDS)
+                    except Exception as exc:
+                        cleanup_errors.append('docker_spawn_unconfirmed: ' + type(exc).__name__)
+                    finally:
+                        if not spawn_task.done():
+                            spawn_task.cancel()
+                            await asyncio.gather(spawn_task, return_exceptions=True)
+                if container_attempted:
+                    try:
+                        cleanup_errors.extend(await self._remove_container(name, known_created))
+                    except (OSError, TimeoutError, ProcessLookupError) as exc:
+                        cleanup_errors.append('container_remove: ' + str(exc))
+                # The remove/create fence must precede killing run's CLI.
                 if process is not None:
                     try: await self._kill_wait(process)
                     except (OSError, TimeoutError, ProcessLookupError) as exc:
                         cleanup_errors.append('docker_cli_wait: ' + str(exc))
-                if container_attempted:
-                    try:
-                        cleanup = await asyncio.create_subprocess_exec('docker', 'rm', '-f', name,
-                            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
-                        try:
-                            exit_code = await asyncio.wait_for(cleanup.wait(), 5)
-                            if exit_code != 0:
-                                stream = getattr(cleanup, 'stderr', None)
-                                error = await asyncio.wait_for(stream.read(4096), 1) if stream is not None else b''
-                                # --rm may already have removed a completed
-                                # container. Other failures are unconfirmed.
-                                if b'No such container' not in error and not await self._removed(name):
-                                    cleanup_errors.append('container_remove_exit: ' + str(exit_code))
-                        except TimeoutError:
-                            await self._kill_wait(cleanup)
-                            cleanup_errors.append('container_remove_timeout')
-                    except (OSError, TimeoutError, ProcessLookupError) as exc:
-                        cleanup_errors.append('container_remove: ' + str(exc))
                 if stderr_task:
                     try: await asyncio.wait_for(asyncio.shield(stderr_task), .5)
                     except TimeoutError:
@@ -228,12 +271,38 @@ class SandboxRunner:
                     result = {'ok':False, 'status':'failed', 'reason':'sandbox_output_budget_exceeded'}
                 if cleanup_errors:
                     result = {'ok':False, 'status':'failed', 'reason':'sandbox_cleanup_unconfirmed',
-                              'cleanup_errors':cleanup_errors}
+                              'cleanup_errors':cleanup_errors,
+                              'pending_container':name if container_attempted else None}
                 if begun:
                     try: await self.gateway.finish(result.get('ok') is True)
                     except Exception as exc:
-                        result = {'ok':False, 'status':'failed', 'reason':'cleanup_or_follow_resume_failed: ' + str(exc)[:500]}
+                        if cleanup_errors:
+                            result['follow_cleanup_error'] = str(exc)[:500]
+                        else:
+                            result = {'ok':False, 'status':'failed', 'reason':'cleanup_or_follow_resume_failed: ' + str(exc)[:500]}
+                cleanup_finished = True
+            except asyncio.CancelledError as exc:
+                external_cancel = exc
+                self.cancel()
+                raise
             finally:
+                if not cleanup_finished:
+                    cleanup_errors.append('cleanup_interrupted')
+                # Task.cancel() preserves its exception contract, so its caller
+                # cannot receive the normal result. Retain cleanup evidence in
+                # both the runner and that exception, including the name needed
+                # to reconcile a create that may still finish after the deadline.
+                pending = name if container_attempted and cleanup_errors else None
+                self.last_cleanup = MappingProxyType({
+                    'container_name':name if container_attempted else None,
+                    'pending_container':pending,
+                    'cleanup_errors':tuple(cleanup_errors),
+                    'confirmed':not cleanup_errors,
+                    'follow_cleanup_error':result.get('follow_cleanup_error'),
+                })
+                if external_cancel is not None:
+                    external_cancel.pending_container = pending
+                    external_cancel.cleanup_errors = tuple(cleanup_errors)
                 self.running = False
         return {**result, 'simulated':self.gateway.simulated, 'journal':journal,
                 'follow_cleanup':dict(self.gateway.cleanup),
