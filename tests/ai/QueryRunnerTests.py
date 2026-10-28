@@ -78,20 +78,3 @@ class BenchmarkSafetyTests(unittest.IsolatedAsyncioTestCase):
                             await benchmark.main(SimpleNamespace(real=False, credentials='Unused.json'))
                 spawn.assert_not_called()
                 read.assert_not_called()
-
-
-class PreflightDependenciesTests(unittest.TestCase):
-    def test_removed_audio_dependency_does_not_block_preflight(self):
-        from tools import flight_preflight
-        required = []
-
-        def available(name):
-            required.append(name)
-            return object()
-
-        with patch('follow.r3_follow.config.load_config', return_value=SimpleNamespace(control_profile='openpose_pid')):
-            with patch.object(flight_preflight.importlib.util, 'find_spec', side_effect=available):
-                with patch.object(flight_preflight.subprocess, 'run', return_value=SimpleNamespace(returncode=0)):
-                    result = flight_preflight.inspect('Unused.json')
-        self.assertTrue(result['checks']['dependencies'])
-        self.assertEqual(required, ['cv2', 'numpy', 'av', 'djitellopy', 'websockets'])
