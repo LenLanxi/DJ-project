@@ -40,7 +40,7 @@ class VideoTests(unittest.TestCase):
             decoder.run()
         self.assertEqual(opened.call_count, 1)
         self.assertEqual(opened.call_args.args[0], decoder.url + driver.VIDEO_URL_OPTIONS)
-        self.assertEqual(opened.call_args.kwargs['timeout'], (5, 2))
+        self.assertEqual(opened.call_args.kwargs['timeout'], (1, 1))
         self.assertEqual(opened.call_args.kwargs['format'], 'h264')
         self.assertLessEqual(int(opened.call_args.kwargs['options']['probesize']), 32768)
         self.assertTrue(any('open(bounded_udp)' in error for error in decoder.errors))
@@ -70,6 +70,72 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(decoder.reconnects, 1)
         self.assertEqual(decoder.count, 1)
         self.assertTrue(any('Circular buffer overrun' in error for error in decoder.errors))
+
+    def test_stop_during_open_closes_on_worker_without_starting_demux(self):
+        decoder = driver._VideoDecoder('udp://127.0.0.1:19999')
+        entered = threading.Event()
+        closed = []
+        class Container:
+            def demux(self, **kwargs):
+                raise AssertionError('must not start another native read after stop')
+            def close(self):
+                closed.append(threading.get_ident())
+        def opened(*args, **kwargs):
+            entered.set()
+            if not decoder._halt.wait(2):
+                raise AssertionError('stop was not requested')
+            return Container()
+        with patch('av.open', side_effect=opened):
+            decoder.start()
+            try:
+                self.assertTrue(entered.wait(2))
+            finally:
+                decoder.stop()
+        self.assertFalse(decoder.is_alive())
+        self.assertEqual(closed, [decoder.ident])
+        self.assertIsNone(decoder.frame)
+
+    def test_stop_timeout_is_reported_instead_of_silent_success(self):
+        decoder = driver._VideoDecoder('udp://127.0.0.1:19999')
+        with patch.object(decoder, 'is_alive', return_value=True), patch.object(decoder, 'join'):
+            with self.assertRaisesRegex(TimeoutError, 'video decoder did not stop'):
+                decoder.stop(timeout=.01)
+
+    def test_streamoff_success_does_not_hide_decoder_stop_failure(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        reader = SimpleNamespace(stop=Mock(side_effect=[TimeoutError('still opening'), None]))
+        tello = SimpleNamespace(streamoff=Mock())
+        with patch.object(driver, '_video', reader), patch.object(driver, '_tello', tello), \
+             patch.object(driver, '_call_real', return_value=(True, None)), \
+             patch.object(driver, '_record'), patch.object(driver.time, 'sleep'):
+            self.assertFalse(driver.stop_video())
+            self.assertIs(driver._video, reader)
+            self.assertTrue(driver.stop_video())
+            self.assertIsNone(driver._video)
+
+    def test_real_silent_udp_open_stops_and_releases_port(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as reserved:
+            reserved.bind(('127.0.0.1', 0))
+            port = reserved.getsockname()[1]
+        decoder = driver._VideoDecoder(f'udp://127.0.0.1:{port}')
+        entered = threading.Event()
+        import av
+        original = av.open
+        def opened(*args, **kwargs):
+            entered.set()
+            return original(*args, **kwargs)
+        with patch('av.open', side_effect=opened):
+            decoder.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                time.sleep(.1)  # enter the actual native open/probe with no sender
+            finally:
+                decoder.stop()
+        self.assertFalse(decoder.is_alive())
+        self.assertIsNone(decoder.frame)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as released:
+            released.bind(('127.0.0.1', port))
 
     def test_invalid_h264_packet_does_not_reopen_before_next_valid_packet(self):
         import av

@@ -867,14 +867,20 @@ def stop_video():
     with _lock:
         tello, reader, _video = _tello, _video, None
     stop = getattr(reader, 'stop', None)
+    decoder_stopped = True
     if callable(stop):
         try: stop()
-        except Exception as exc: _record('video_stop_failed', error=str(exc))
+        except Exception as exc:
+            decoder_stopped = False
+            _record('video_stop_failed', error=str(exc))
+            # Keep the reader reachable so a later stop can retry cleanup.
+            with _lock:
+                if _video is None: _video = reader
     if tello is None: return False
     ok, _error = _call_real(tello.streamoff, action='streamoff',
                             deadline=COMMAND_DEADLINE_S['land'])
-    time.sleep(.2)  # 让解码线程彻底释放 11111 端口
-    return ok
+    time.sleep(.2)
+    return ok and decoder_stopped
 
 
 _PLACEHOLDER_SHAPE = (300, 400, 3)
@@ -891,6 +897,10 @@ VIDEO_URL_OPTIONS = '?overrun_nonfatal=0&fifo_size=2048&buffer_size=65536&timeou
 VIDEO_DECODE_OPTIONS = {'probesize': '32768', 'analyzeduration': '0'}
 VIDEO_MAX_DECODE_GAP_S = 1.0
 VIDEO_MAX_CONVERSION_S = .05
+# PyAV restarts open_timeout for opening the input AND probing stream info.
+# Bound each native phase so both can finish within stop()'s three-second
+# default budget, including UDP cleanup. A failed probe retries normally.
+VIDEO_IO_PHASE_TIMEOUT_S = 1.0
 
 
 class _VideoDecoder(threading.Thread):
@@ -927,6 +937,8 @@ class _VideoDecoder(threading.Thread):
 
     def _decode_packets(self, container):
         import av
+        if self._halt.is_set():
+            return
         for packet in container.demux(video=0):
             if self._halt.is_set():
                 return
@@ -951,7 +963,8 @@ class _VideoDecoder(threading.Thread):
             try:
                 container = av.open(self.url + VIDEO_URL_OPTIONS,
                                     format='h264', options=dict(VIDEO_DECODE_OPTIONS),
-                                    timeout=(self.open_timeout, self.read_timeout))
+                                    timeout=(min(self.open_timeout, VIDEO_IO_PHASE_TIMEOUT_S),
+                                             min(self.read_timeout, VIDEO_IO_PHASE_TIMEOUT_S)))
             except Exception as exc:
                 # A plain-URL fallback would silently bypass the chosen queue
                 # and overflow policy. Retry the same explicit policy instead.
@@ -1042,11 +1055,13 @@ class _VideoDecoder(threading.Thread):
         """停止解码并等到线程退出。
 
         绝不从外部线程 close 容器：FFmpeg 正在 decode 时跨线程关闭会直接崩溃
-        (0xC0000005)。这里靠 read_timeout 让 decode 自己返回，再 join。
+        (0xC0000005)。打开、探测和读取均限制单阶段等待；由解码线程关闭容器。
         """
         self._halt.set()
         if self.is_alive():
             self.join(timeout)
+        if self.is_alive():
+            raise TimeoutError('video decoder did not stop within %.3fs' % timeout)
 
 
 def _is_placeholder(frame):
