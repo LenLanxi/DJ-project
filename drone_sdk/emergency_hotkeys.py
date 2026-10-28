@@ -1,6 +1,6 @@
 """物理安全兜底：全局组合键 → 底层 priority 通道（pynput，Windows 低级键盘钩子）。
 
-二组/四组共用：地面调试台（run_yaw_ground_test.py）与实飞入口（modules/ai/main.py）
+由应用层操作员控制（app/Hud.py）使用。
 注册同一组组合键，避免"两套键、现场按错"。
 
     Ctrl+Shift+Alt+A   急停 / 悬停
@@ -16,8 +16,10 @@ HOTKEY_COOLDOWN_S = 1.0
 HOTKEYS = (
     ('<ctrl>+<shift>+<alt>+a', 'stop', 'Ctrl+Shift+Alt+A'),
     ('<ctrl>+<shift>+<alt>+l', 'land', 'Ctrl+Shift+Alt+L'),
+    ('<f12>', 'stop', 'F12'),
+    ('<f11>', 'land', 'F11'),
 )
-HOTKEY_HELP = ('物理快捷键（全局）：Ctrl+Shift+Alt+A=急停  Ctrl+Shift+Alt+L=降落  '
+HOTKEY_HELP = ('物理快捷键（全局）：Ctrl+Shift+Alt+A/F12=急停  Ctrl+Shift+Alt+L/F11=降落  '
                '[焦点在哪个窗口都有效]')
 
 
@@ -39,26 +41,16 @@ def ensure_pynput(emit=None):
         return None
 
 
-def command_failed(result):
-    if isinstance(result, dict):
-        return result.get('ok') is not True
-    return result is not None and not getattr(result, 'ok', True)
-
-
-class EmergencyHotkeys(threading.Thread):
-    """注册 Ctrl+Shift+Alt+A/L；on_trigger(kind, combo) 由调用方接到 priority 通道。"""
+class EmergencyHotkeys:
+    """One listener owns both the global chords and the F11/F12 shortcuts."""
 
     def __init__(self, on_trigger, cooldown=HOTKEY_COOLDOWN_S, emit=None):
-        super().__init__(daemon=True, name='emergency-hotkeys')
         if not callable(on_trigger):
             raise TypeError('on_trigger must be callable')
         self._on_trigger = on_trigger
         self._emit = emit or _default_emit
         self.cooldown = cooldown
         self.listener = None
-        self.ready = False
-        self.error = ''
-        self.fired = []
         self._lock = threading.Lock()
         self._last = {}
 
@@ -70,7 +62,6 @@ class EmergencyHotkeys(threading.Thread):
             if previous is not None and now - previous < self.cooldown:
                 return False
             self._last[kind] = now
-            self.fired.append((kind, now))
             return True
 
     def fire(self, kind, combo):
@@ -84,35 +75,21 @@ class EmergencyHotkeys(threading.Thread):
             self._emit('错误', '物理快捷键处理后异常：%s: %s' % (type(exc).__name__, exc))
         return True
 
-    def run(self):
+    def start(self):
         keyboard = ensure_pynput(self._emit)
         if keyboard is None:
-            self.error = 'pynput_unavailable'
-            return
-        try:
-            self.listener = keyboard.GlobalHotKeys({
-                combo: (lambda k=kind, c=human: self.fire(k, c))
-                for combo, kind, human in HOTKEYS
-            })
-            self.listener.daemon = True
-            self.listener.start()
-            self.ready = True
-            self._emit('快捷键', HOTKEY_HELP)
-        except Exception as exc:
-            self.error = '%s: %s' % (type(exc).__name__, exc)
-            self._emit('快捷键', '全局组合键注册失败（%s）：请用 F12/F11（或 s 键）急停' % self.error)
+            raise RuntimeError('pynput_unavailable')
+        self.listener = keyboard.GlobalHotKeys({
+            combo: (lambda k=kind, c=human: self.fire(k, c))
+            for combo, kind, human in HOTKEYS
+        })
+        self.listener.daemon = True
+        self.listener.start()
+        self._emit('快捷键', HOTKEY_HELP)
 
     def stop(self):
-        listener = self.listener
-        if listener is not None:
-            try:
-                listener.stop()
-            except Exception:
-                pass
-            if listener.is_alive():
-                try:
-                    listener.join(1.0)
-                except Exception:
-                    pass
-        if self.is_alive():
-            self.join(1.0)
+        if self.listener is not None:
+            self.listener.stop()
+            self.listener.join(1.0)
+            if self.listener.is_alive():
+                raise RuntimeError('hotkey_listener_still_running')

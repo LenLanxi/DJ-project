@@ -1,0 +1,124 @@
+import os
+import math
+import threading
+import time
+import uuid
+from providers.http_transport import post_json
+
+
+def accounting_usage(value):
+    """Only numeric accounting fields, never arbitrary provider text/payloads."""
+    if not isinstance(value, dict):
+        return {}
+    result = {}
+    for key, count in value.items():
+        if not isinstance(key, str):
+            continue
+        if type(count) in (int, float) and math.isfinite(count) and count >= 0:
+            result[key] = count
+        elif isinstance(count, dict):
+            nested = accounting_usage(count)
+            if nested:
+                result[key] = nested
+    return result
+
+
+class ModelClient:
+    image_bounds = None
+
+    def __init__(self, on_usage=None, *, key=None, model=None, url=None, max_output_tokens=None):
+        # Explicit server-side credentials keep independent voice providers from
+        # changing process-wide variables or inheriting an unrelated AI route.
+        self.key = key if key is not None else (os.environ.get('AI_API_KEY') or os.environ.get('RTC_VLM_API_KEY', ''))
+        self.model = model if model is not None else (os.environ.get('AI_MODEL') or os.environ.get('RTC_VLM_MODEL', ''))
+        self.url = url if url is not None else (os.environ.get('AI_CHAT_URL') or ('https://ark.cn-beijing.volces.com/api/v3/chat/completions' if os.environ.get('RTC_VLM_API_KEY') else ''))
+        if max_output_tokens is not None and (type(max_output_tokens) is not int or not 1 <= max_output_tokens <= 4096):
+            raise ValueError('invalid_model_output_token_budget')
+        self.max_output_tokens = max_output_tokens
+        # Seed 2.1 Lite defaults to long hidden reasoning. This project's
+        # real-time visual task needs direct answers instead. Other providers
+        # retain their existing request schema unless explicitly configured.
+        self.thinking = os.environ.get('AI_THINKING') or (
+            'disabled' if self.model == 'doubao-seed-2-1-lite-260915' else None)
+        if self.thinking is not None and self.thinking not in ('enabled', 'disabled', 'auto'):
+            raise ValueError('AI_THINKING须为enabled、disabled或auto')
+        self.last_usage = {}
+        self.on_usage = on_usage
+        if on_usage is not None and not callable(on_usage):
+            raise TypeError('on_usage must be callable')
+        self._usage_lock = threading.Lock()
+        self._request_sequence = 0
+        if not self.url.startswith('https://') or not self.key or not self.model:
+            raise ValueError('请配置AI_CHAT_URL、AI_API_KEY、AI_MODEL')
+
+    def complete(self, messages):
+        return self._complete(messages)
+
+    def describe_image(self, jpeg, question):
+        from navigation.Observation import DESCRIBE_INSTRUCTIONS, image_messages
+        return self.complete(image_messages(jpeg, DESCRIBE_INSTRUCTIONS, question))
+
+    def observe_image(self, jpeg, target, *, timeout):
+        from navigation.Observation import OBSERVE_INSTRUCTIONS, OBSERVATION_SCHEMA, image_messages
+        return self._complete(image_messages(jpeg, OBSERVE_INSTRUCTIONS, '查找：' + target),
+            response_format={'type': 'json_schema', 'json_schema': {
+                'name': 'navigation_observation', 'strict': True, 'schema': OBSERVATION_SCHEMA}}, timeout=timeout)
+
+    def _complete(self, messages, response_format=None, *, timeout=None):
+        request_id = uuid.uuid4().hex
+        started_at, started = time.time(), time.monotonic()
+        with self._usage_lock:
+            self._request_sequence += 1
+            sequence = self._request_sequence
+            # Compatibility diagnostic only. Cost evidence is per-request below.
+            self.last_usage = {}
+        base = dict(request_id=request_id, model=self.model, started_at=started_at,
+                    attempt=1, retried=False, billing_verified=False)
+        if response_format is not None:
+            base['response_format'] = response_format['type']
+        if self.on_usage:
+            try:
+                self.on_usage(dict(base, event='model_request_start', status='started'))
+            except Exception:
+                raise RuntimeError('模型用量日志不可写，未发送请求；未重试') from None
+        usage = {}
+        provider_usage = {}
+        try:
+            body = {'model': self.model, 'messages': messages}
+            if response_format is not None:
+                body['response_format'] = response_format
+            if self.max_output_tokens is not None:
+                body['max_tokens'] = self.max_output_tokens
+            if self.thinking is not None:
+                body['thinking'] = {'type': self.thinking}
+            result = (post_json(self.url, self.key, body) if timeout is None
+                      else post_json(self.url, self.key, body, timeout=timeout))
+            if isinstance(result, dict) and isinstance(result.get('usage'), dict):
+                provider_usage = result['usage']
+                usage = accounting_usage(provider_usage)
+            try:
+                content = result['choices'][0]['message']['content']
+                if not isinstance(content, str):
+                    raise TypeError()
+            except (KeyError, IndexError, TypeError, AttributeError):
+                raise RuntimeError('模型返回格式不兼容') from None
+        except Exception as exc:
+            if self.on_usage:
+                try:
+                    self.on_usage(dict(base, event='model_request_end', status='failed',
+                        ended_at=time.time(), duration_ms=round((time.monotonic()-started)*1000, 3),
+                        usage=usage, usage_unknown=not bool(usage), error_type=type(exc).__name__))
+                except Exception:
+                    raise RuntimeError('模型请求失败，且用量日志写入失败；未重试') from None
+            raise
+        with self._usage_lock:
+            if sequence == self._request_sequence:
+                self.last_usage = provider_usage
+        if self.on_usage:
+            try:
+                self.on_usage(dict(base, event='model_request_end', status='completed',
+                    ended_at=time.time(), duration_ms=round((time.monotonic()-started)*1000, 3),
+                    usage=usage, usage_unknown=not bool(usage)))
+            except Exception:
+                raise RuntimeError('模型已返回，但用量日志写入失败；未重试') from None
+        return content

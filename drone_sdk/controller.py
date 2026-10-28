@@ -4,15 +4,14 @@ Public owner arguments remain compatible. Reviewed callers additionally send
 control_epoch/command_epoch to reject stale same-owner tasks. Legacy callers
 without these fields do NOT gain ABA protection merely by upgrading the SDK.
 """
-import math
 import contextvars
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from dataclasses import asdict
 import threading
 import time
 from .contract import CommandResult, ControlResult, StatusResult, FrameResult
-from . import _driver, follow_integration
+from . import _driver
 
-SIMULATED = True
 _velocity_lock = threading.RLock()
 _current_owner = None
 _control_epoch = _command_epoch = 0
@@ -24,8 +23,6 @@ _last_velocity_time = 0.
 # 速度看门狗：超过这个时间没有新的非零速度就强制归零。
 # 满杆约 2.5 m/s ⇒ 0.3s 的最坏失控位移约 0.75m（原 0.5s 是 1.25m）。
 VELOCITY_WATCHDOG_S = 0.3
-_frame_lock = threading.RLock()
-_frame = FrameResult(None, 0, 0., True)
 _operation = contextvars.ContextVar('sdk_operation_cancellation', default=None)
 
 @contextmanager
@@ -97,26 +94,9 @@ def _watchdog_thread():
 _watchdog = threading.Thread(target=_watchdog_thread, daemon=True, name='sdk-simulator-watchdog')
 _watchdog.start()
 
-def publish_frame(packet):
-    """Publish decoded frames without refreshing identity/time; tests may inject images."""
-    global _frame
-    if (not isinstance(packet, FrameResult) or type(packet.frame_id) is not int
-            or packet.frame_id < 0 or type(packet.timestamp) not in (int, float)
-            or not math.isfinite(packet.timestamp) or type(packet.stale) is not bool):
-        raise ValueError('invalid_frame_metadata')
-    with _frame_lock:
-        if packet.frame_id < _frame.frame_id: raise ValueError('frame_id_went_backwards')
-        if packet.frame_id == _frame.frame_id:
-            if packet.timestamp != _frame.timestamp: raise ValueError('cached_frame_timestamp_changed')
-            return
-        _frame = FrameResult(None if packet.frame is None else packet.frame.copy(),
-                             packet.frame_id, packet.timestamp, packet.stale)
+# The decoder is the sole source of image identity, time and freshness.
+get_frame = _driver.get_frame
 
-def get_frame():
-    with _frame_lock:
-        stale = _frame.stale or _frame.frame is None or not 0 <= time.time()-_frame.timestamp <= 1.
-        return FrameResult(None if stale else _frame.frame.copy(), _frame.frame_id,
-                           _frame.timestamp, stale)
 
 def get_status():
     with _velocity_lock:
@@ -146,10 +126,13 @@ def _preserve_landing(owner, action):
     if not _driver.action_pending() and not _driver.health().get('landing_acknowledged'):
         _driver.interrupt('land')
 
-def request_control(owner, *, priority=False):
-    """priority=True 是紧急保留通道：不被在途动作/落地流程/占用者拦住，并作废在途动作。"""
+def request_control(owner, *, priority=False, cancelled=None, exclusive=False):
+    """Grant atomically; exclusive rejects even an existing same-name owner.
+
+    priority=True 是紧急保留通道：不被在途动作/落地流程/占用者拦住，并作废在途动作。
+    """
     global _current_owner, _control_epoch, _command_epoch, _active_action
-    with _velocity_lock:
+    with operation_guard(cancelled) if cancelled is not None else nullcontext(), _velocity_lock:
         _advance()
         reason = ('invalid_owner' if owner not in ('follow', 'model') else
                   '' if priority else
@@ -157,7 +140,7 @@ def request_control(owner, *, priority=False):
                   'landing_in_progress' if _flight_state == 'landing' else
                   'command_channel_ambiguous' if not _driver.command_channel_clear() else
                   'action_result_pending' if _driver.action_pending() else
-                  'busy' if _current_owner not in (None, owner) else '')
+                  'busy' if _current_owner is not None and (exclusive or _current_owner != owner) else '')
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
         if priority:
             if _flight_state == 'landing':
@@ -184,9 +167,9 @@ def request_control(owner, *, priority=False):
         _current_owner = owner
         return ControlResult(True, owner, '', _control_epoch, _command_epoch)
 
-def release_control(owner, *, control_epoch=None, command_epoch=None):
+def release_control(owner, *, control_epoch=None, command_epoch=None, cancelled=None):
     global _current_owner, _control_epoch, _command_epoch, _active_action
-    with _velocity_lock:
+    with operation_guard(cancelled) if cancelled is not None else nullcontext(), _velocity_lock:
         reason = _check(owner, control_epoch, command_epoch, allow_landing=True)
         if not reason and _driver.action_pending(): reason = 'action_result_pending'
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
@@ -349,8 +332,27 @@ def move_up(owner, cm, **grant): return _mock_move(owner, 'up', cm, **grant)
 def move_down(owner, cm, **grant): return _mock_move(owner, 'down', cm, **grant)
 def rotate(owner, degrees, **grant): return _mock_move(owner, 'rotate', degrees, **grant)
 
-_follow = follow_integration.FollowIntegration(lambda: _current_owner or 'none')
-def start_follow(timeout=follow_integration.FIRST_FRAME_TIMEOUT): return _follow.start(timeout)
-def stop_follow(): return _follow.stop()
-def is_following(): return _follow.is_following()
-def set_frame_provider(provider): _follow.set_frame_provider(provider)
+def priority_interrupt(land=False):
+    """Trusted interruption and its new grant are one atomic device operation."""
+    with _velocity_lock:
+        result = asdict(globals()['land' if land else 'stop_motion']('model', priority=True))
+        state = get_status()
+        result['grant'] = dict(control_epoch=state.control_epoch, command_epoch=state.command_epoch)
+        return result
+
+
+def action_with_grant(name, grant, *args, cancelled=None):
+    """Execute with the caller's captured grant; never borrow a newer owner.
+
+    Stop and land advance the command epoch. Return that updated grant under
+    the same device lock so callers never need to inspect controller locks.
+    Blocking moves deliberately run without holding that lock.
+    """
+    with operation_guard(cancelled), _velocity_lock if name in ('stop_motion', 'land') else nullcontext():
+        result = asdict(globals()[name]('model', *args, **grant))
+        result['simulated'] = _driver.SIMULATED
+        if result['ok'] and name in ('stop_motion', 'land'):
+            state = get_status()
+            if state.control_epoch == grant['control_epoch']:
+                result['grant'] = dict(control_epoch=state.control_epoch, command_epoch=state.command_epoch)
+        return result

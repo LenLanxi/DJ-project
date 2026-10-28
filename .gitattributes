@@ -1,4 +1,4 @@
 # Vendored source hashes describe original LF bytes, even on Windows.
-modules/follow/r3_follow/_vendor/** -text
+follow/r3_follow/_vendor/** -text
 # Raw YUV fixtures contain arbitrary bytes; never apply Windows text conversion.
 ScenarioAcceptance/Evidence/RealtimeComparison/*.i420 binary

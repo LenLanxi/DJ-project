@@ -13,9 +13,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "sounddevice>=0.5,<0.6"]
+dev = ["pytest>=8,<10"]
 
 [tool.pytest.ini_options]
-pythonpath = [".", "tests", "modules/ai", "modules/follow"]
-testpaths = ["tests", "modules/ai", "modules/follow/tests"]
+pythonpath = [".", "tests/helpers", "diagnostics/cloud", "diagnostics/hardware", "diagnostics/follow"]
+testpaths = ["tests"]
 python_files = ["test*.py", "*Tests.py"]
+markers = ["docker: runs an actual local Docker container; requires RUN_DOCKER_TESTS=1"]

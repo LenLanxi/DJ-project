@@ -244,16 +244,16 @@ config.demo.json
 voice_test.wav
 noise_sample.wav
 preflight_frame.jpg
-modules/follow/logs/
+follow/logs/
 
 # --- 实飞/地面调试运行日志（logs/flight_*.log、flight_turns.jsonl 等，不入库）---
 logs/
 
-# --- 三组跟随模块原始交付包（已并入 modules/follow，交付包本身不入库）---
+# --- 三组跟随模块原始交付包（已并入 follow，交付包本身不入库）---
 temp_follow_pid/
 
 # Local credentials and RTC build dependencies
 .env.*
 !.env.example
 node_modules/
-modules/rtc/Build/
+web/Build/

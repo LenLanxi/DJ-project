@@ -2,7 +2,7 @@
 
 Simulation stays the default so every offline suite keeps running with no
 hardware; `connect()` is the only door into real mode and has to be called
-explicitly (test_ground_real.py does that). Records prove software ordering,
+explicitly (diagnostics/hardware/Ground.py does that). Records prove software ordering,
 never physical stopping, landing or motor state.
 
 Real-mode safety contract
@@ -22,6 +22,8 @@ import math
 import re
 import threading
 import time
+
+from .contract import FrameResult
 
 SIMULATED = True
 
@@ -375,10 +377,6 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
     with _lock:
         tello = _tello
         if tello is None: return False
-        if not _link_ok:
-            _events.append(dict(event='action_rejected', action=action, reason='link_down',
-                                monotonic=time.monotonic(), simulated=False))
-            return False
     _record('action_queued', action=action, param=param)
     if action in ('takeoff', 'land'):
         def acknowledged():
@@ -516,6 +514,7 @@ def set_velocity(channels, reason, *, guard=None):
     _command_context.guard = guard
     try:
         tello.send_rc_control(*applied)
+        _set_link_ok()
         return True
     except Exception as exc:
         if str(exc) == 'operation_cancelled_before_send':
@@ -727,6 +726,14 @@ def _tello_class(timeout):
             return response
         def send_command_without_return(self, command):
             _wire_send(command, lambda value: wire.client_socket.sendto(value.encode('utf-8'), self.address))
+        def send_rc_control(self, left_right_velocity, forward_backward_velocity, up_down_velocity, yaw_velocity):
+            channels = (left_right_velocity, forward_backward_velocity, up_down_velocity, yaw_velocity)
+            if not any(channels):
+                # A priority zero must reach the final send gate even within
+                # the vendor's 1ms rate limit for ordinary RC updates.
+                self.send_command_without_return('rc 0 0 0 0')
+            else:
+                super().send_rc_control(*channels)
         def send_control_command(self, command, timeout=timeout):
             response = self.send_command_with_return(command, timeout=timeout)
             if response.lower() != 'ok':
@@ -749,6 +756,12 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
         raise RuntimeError('djitellopy_unavailable: %s' % exc)
     tello, ready_error = None, ''
     for attempt in range(1, CONNECT_ATTEMPTS + 1):
+        # No motion has been admitted during bootstrap. Repeating the idempotent
+        # SDK handshake may discard a failed attempt's uncorrelated ACK barrier.
+        with _lock:
+            _response_quarantine = None
+            _unknown_actions.clear()
+            _unknown_since.clear()
         candidate = tello_class(str(address) if address else None)
         try:
             candidate.connect()
@@ -788,8 +801,8 @@ def _keepalive_loop(tello, stop):
     ``rc`` 是不需要响应的指令，既能重置 15 秒自动降落计时器，又不占响应队列。
     """
     while not stop.wait(KEEPALIVE_INTERVAL_S):
-        with _lock: flying, linked, last_send = _flying, _link_ok, _last_wire_send
-        if not flying or not linked: continue
+        with _lock: flying, last_send = _flying, _last_wire_send
+        if not flying: continue
         if action_pending(): continue        # 有在途命令时不插队
         if time.monotonic() - last_send < KEEPALIVE_INTERVAL_S: continue
         try:
@@ -830,34 +843,23 @@ def stream_video_only():
     return ok
 
 
-def start_video(backend=None, wait=0.0):
-    """Start the video pipeline.
-
-    backend 默认取 VIDEO_BACKEND='av'（现场已用真机验证出图）；
-    backend='djitellopy' 仅作对照。wait>0 时等第一帧真实画面，超时未拿到返回 False。
-    """
+def start_video(wait=0.0):
+    """Start the single bounded PyAV source; it owns capture identity and time."""
     global _video
-    backend = VIDEO_BACKEND if backend is None else backend
-    if backend not in VIDEO_BACKENDS:
-        raise ValueError('invalid_video_backend:%s' % (backend,))
-    with _lock: tello = _tello
-    if tello is None: return False
     if not stream_video_only(): return False
+    with _lock: tello = _tello
     try:
-        if backend == 'djitellopy':
-            reader = tello.get_frame_read()
-        else:
-            reader = _VideoDecoder(tello.get_udp_video_address())
-            reader.start()
+        reader = _VideoDecoder(tello.get_udp_video_address())
+        reader.start()
     except Exception as exc:
         _link_fault('frame_read: %s' % exc)
         return False
     with _lock: _video = reader
-    _record('video_started', origin='tello_stream', backend=backend)
+    _record('video_started', origin='tello_stream', backend='av')
     if wait:
-        frame, stats = await_video(wait)
-        if frame is None:
-            _record('video_no_frame', backend=backend, stats=stats)
+        packet, stats = await_video(wait)
+        if packet.frame is None:
+            _record('video_no_frame', backend='av', stats=stats)
             return False
     return True
 
@@ -866,10 +868,9 @@ def stop_video():
     global _video
     with _lock:
         tello, reader, _video = _tello, _video, None
-    stop = getattr(reader, 'stop', None)
     decoder_stopped = True
-    if callable(stop):
-        try: stop()
+    if reader is not None:
+        try: reader.stop()
         except Exception as exc:
             decoder_stopped = False
             _record('video_stop_failed', error=str(exc))
@@ -883,9 +884,6 @@ def stop_video():
     return ok and decoder_stopped
 
 
-_PLACEHOLDER_SHAPE = (300, 400, 3)
-VIDEO_BACKEND = 'av'          # 现场已验证：自研 av 后端（真机实测 720x960 出图）
-VIDEO_BACKENDS = ('av', 'djitellopy')
 # FFmpeg fifo_size uses 188-byte units: 2048 is 385,024 bytes, compared with
 # its 5,390,336-byte default. Keep a separate 64KiB socket receive request.
 # Loopback 720p H264 keyframe bursts rejected 512 units and intermittently
@@ -928,7 +926,6 @@ class _VideoDecoder(threading.Thread):
         self.gap_rejections = 0
         self.last_frame_at = 0.0
         self.last_frame_timestamp = 0.0
-        self._container = None
 
     def _note(self, text):
         with self._lock:
@@ -975,7 +972,6 @@ class _VideoDecoder(threading.Thread):
                 continue
             with self._lock:
                 self.opened += 1
-                self._container = container
             last_decoded_at = None
             try:
                 for packet in self._decode_packets(container):
@@ -1023,7 +1019,6 @@ class _VideoDecoder(threading.Thread):
                 self._note('decode: %s' % exc)
             finally:
                 with self._lock:
-                    self._container = None
                     self._frame = None
                     self.last_frame_at = self.last_frame_timestamp = 0.
                 try:
@@ -1064,59 +1059,29 @@ class _VideoDecoder(threading.Thread):
             raise TimeoutError('video decoder did not stop within %.3fs' % timeout)
 
 
-def _is_placeholder(frame):
-    """djitellopy 在收到真实帧之前会一直给出 300x400 的全零数组。"""
-    return tuple(frame.shape) == _PLACEHOLDER_SHAPE and not frame.any()
-
-
 def get_frame():
-    """Latest frame from the drone camera as BGR, or None when unavailable.
-
-    The av backend decodes straight to BGR; djitellopy's PIL path yields RGB and
-    is swapped here once. Its pre-stream placeholder (300x400 zeros) is reported
-    as None, so callers can wait for a real picture instead of saving a black one.
-    """
+    """Read image, identity and decode time atomically from the only frame source."""
     with _lock: reader = _video
-    if reader is None: return None
-    frame = reader.frame
-    if frame is None: return None
-    if isinstance(reader, _VideoDecoder):
-        return frame if reader.count and 0 <= time.monotonic()-reader.last_frame_at <= .5 else None
-    if _is_placeholder(frame): return None
-    import numpy
-    if frame.ndim == 2:
-        frame = numpy.repeat(frame[:, :, None], 3, axis=2)
-    return numpy.ascontiguousarray(frame[:, :, ::-1])
+    if reader is None:
+        return FrameResult(None, 0, 0., True)
+    with reader._lock:
+        stale = (reader._frame is None or not reader.count or
+                 not 0 <= time.monotonic() - reader.last_frame_at <= .5)
+        return FrameResult(None if stale else reader._frame.copy(), reader.count,
+                           reader.last_frame_timestamp, stale)
 
 
 def video_stats():
-    """Diagnostics for the live stream (backend, counters, errors)."""
     with _lock: reader = _video
-    if reader is None:
-        return dict(reader=False, backend='none', placeholder=False, shape=None,
-                    mean=None, max=None)
-    if isinstance(reader, _VideoDecoder):
-        stats = reader.stats()
-        stats.update(reader=True, placeholder=False, max=None)
-        return stats
-    frame = reader.frame
-    if frame is None:
-        return dict(reader=True, backend='djitellopy', placeholder=False, shape=None,
-                    mean=None, max=None)
-    import numpy
-    values = numpy.asarray(frame)
-    return dict(reader=True, backend='djitellopy', placeholder=_is_placeholder(frame),
-                shape=list(values.shape), mean=round(float(values.mean()), 2),
-                max=int(values.max()))
+    return reader.stats() if reader is not None else dict(reader=False, backend='none', shape=None)
 
 
 def await_video(timeout=8.0, interval=.05):
-    """Wait for the first real frame; the zero placeholder never counts."""
     deadline = time.monotonic() + max(0., float(timeout))
     while True:
-        frame = get_frame()
-        if frame is not None: return frame, video_stats()
-        if time.monotonic() >= deadline: return None, video_stats()
+        packet = get_frame()
+        if not packet.stale: return packet, video_stats()
+        if time.monotonic() >= deadline: return packet, video_stats()
         time.sleep(interval)
 
 
@@ -1124,44 +1089,55 @@ def disconnect(*, safe=True):
     global _tello, _video, _keepalive_stop, SIMULATED, _flying, _height_cm, _response_quarantine
     cancel_pending('disconnect')
     with _lock:
-        tello, _tello = _tello, None
-        reader, _video = _video, None
-        stop, _keepalive_stop = _keepalive_stop, None
-        _unknown_actions.clear()
-        _unknown_since.clear()
-        _response_quarantine = None
-        _pending_commands.clear()
+        tello, reader, stop = _tello, _video, _keepalive_stop
     if stop is not None: stop.set()
-    stopper = getattr(reader, 'stop', None)
-    if callable(stopper):
-        try: stopper()
-        except Exception as exc: _record('video_stop_failed', error=str(exc))
+    ok = decoder_stopped = True
+    if reader is not None:
+        try:
+            reader.stop()
+        except Exception as exc:
+            ok = decoder_stopped = False
+            _record('video_stop_failed', error=str(exc))
     if tello is None:
-        with _lock: SIMULATED = True
+        with _lock:
+            if decoder_stopped:
+                if _video is reader: _video = None
+                SIMULATED = True
         return False
     if safe:
         try:
-            tello.send_rc_control(0, 0, 0, 0)
+            if tello.send_rc_control(0, 0, 0, 0) is False:
+                raise RuntimeError('disconnect_rc_returned_false')
         except Exception as exc:
+            ok = False
             _record('disconnect_rc_failed', error=str(exc))
+    ended = False
     try:
-        tello.end()
+        if tello.end() is False:
+            raise RuntimeError('disconnect_returned_false')
+        ended = True
     except Exception as exc:
+        ok = False
         _record('disconnect_failed', error=str(exc))
     with _lock:
-        SIMULATED, _flying, _height_cm = True, False, 0
-    _record('disconnected')
-    return True
+        if decoder_stopped and _video is reader: _video = None
+        if ended and _tello is tello: _tello = None
+        if _keepalive_stop is stop: _keepalive_stop = None
+        # A failed end keeps the real handle and uncertainty for a retry.
+        # Only complete cleanup resets the disconnected simulator state.
+        if ok:
+            SIMULATED, _flying, _height_cm = True, False, 0
+            _unknown_actions.clear()
+            _unknown_since.clear()
+            _response_quarantine = None
+            _pending_commands.clear()
+    _record('disconnected' if ok else 'disconnect_unconfirmed')
+    return ok
 
 
-def capture_metadata(frame):
-    """Return decoder identity/completion time atomically, not sensor capture time.
-
-    Polling does not refresh this timestamp. The half-second age gate detects a
-    stalled publication, but cannot establish camera-to-control video latency.
-    """
-    with _lock: reader=_video
-    if not isinstance(reader,_VideoDecoder): return None
-    with reader._lock:
-        if reader._frame is not frame: return False
-        return reader.count, getattr(reader,'last_frame_timestamp',0.)
+def diagnostics():
+    """Stable operator diagnostics, without exposing decoder or telemetry internals."""
+    telemetry, _, _, _ = _telemetry()
+    return dict(video=video_stats(), health=health(),
+                raw_telemetry={key: telemetry.get(key) for key in
+                               ('h', 'tof', 'bat', 'time', 'templ', 'temph', 'vgx', 'vgy', 'vgz')})

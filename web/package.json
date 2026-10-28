@@ -1,0 +1,10 @@
+{
+  "name": "companionrtc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local RTC media client and bounded VoiceChat control service",
+  "license": "BSD-3-Clause",
+  "engines": {"node": ">=22"},
+  "scripts": {"start": "node RTCService.js", "test": "node --test ../tests/rtc/RTCServiceTests.js ../tests/rtc/RTCClientTests.js ../tests/rtc/DoubaoProbeTests.js ../tests/rtc/OmniClientTests.js"},
+  "dependencies": {"@volcengine/openapi": "1.22.0", "@volcengine/rtc": "4.69.3"}
+}
