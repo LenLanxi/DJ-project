@@ -55,9 +55,9 @@ class TelloAdapterTests(unittest.TestCase):
         controller.observe(tracker.detect(bgr, seq, stamp, "tello"))
         controller.calibrate(0)
         controller.start(0)
-        seq, stamp, bgr = self.frames.poll(.6)
+        seq, stamp, bgr = self.frames.poll(1.1)
         controller.observe(tracker.detect(bgr, seq, stamp, "tello"))
-        self.assertEqual(controller.tick(.6).right, 0)
+        self.assertEqual(controller.tick(1.1).right, 0)
         self.assertEqual(controller.state, State.STALE)
 
     def test_preview_scale_and_inactive_zero(self):

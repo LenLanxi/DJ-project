@@ -60,6 +60,22 @@ class DeviceAcceptance(DeviceCase):
         self.assertFalse(ctl.takeoff('model', **grant).ok)
         self.assertNotIn(('takeoff',), self.fake.calls)
 
+    def test_zero_threshold_allows_known_low_battery_but_not_missing_battery(self):
+        grant=self.real(flying=False)
+        ctl.configure_takeoff(authorized=True,min_battery=0)
+        self.fake.packet['bat']=None
+        self.assertFalse(ctl.takeoff('model',**grant).ok)
+        self.fake.packet['bat']=10
+        self.assertTrue(ctl.takeoff('model',**grant).ok)
+        self.assertIn(('takeoff',),self.fake.calls)
+
+    def test_zero_battery_threshold_does_not_disable_temperature_gate(self):
+        grant=self.real(flying=False)
+        ctl.configure_takeoff(authorized=True,min_battery=0)
+        self.fake.packet.update(bat=10,templ=96,temph=97)
+        self.assertFalse(ctl.takeoff('model',**grant).ok)
+        self.assertNotIn(('takeoff',),self.fake.calls)
+
     def test05_landing_stays_pending_until_ack_and_ground_packet(self):
         self.real()
         entered, release = threading.Event(), threading.Event()
@@ -230,6 +246,30 @@ class DeviceAcceptance(DeviceCase):
                 drv.connect()
         self.assertIsNone(drv._tello)
 
+    def test_failed_connect_destructor_cannot_remove_replacement_host(self):
+        hosts = {}
+        attempts = []
+        class SharedHost(FakeTello):
+            address = ('fake', 8889)
+            def __init__(self, host=None):
+                super().__init__(False)
+                hosts['fake'] = True
+            def connect(self):
+                attempts.append(1)
+                if len(attempts) == 1:
+                    raise UnicodeDecodeError('utf-8', b'\xcc', 0, 1, 'test')
+                assert hosts['fake']
+            def set_speed(self, value): pass
+            def end(self): hosts.pop('fake', None)
+            def __del__(self): self.end()
+        with patch.object(drv, '_tello_class', return_value=SharedHost), patch.object(drv, 'CONNECT_RETRY_DELAY_S', 0):
+            try:
+                self.assertTrue(drv.connect()['connected'])
+            finally:
+                if drv._keepalive_stop: drv._keepalive_stop.set()
+                drv.disconnect(safe=False)
+        self.assertEqual(len(attempts), 2)
+
     def test21_explicit_takeoff_rejection_has_diagnostic(self):
         self.real(flying=False)
         self.fake.takeoff = lambda: (_ for _ in ()).throw(RuntimeError('flight controller error'))
@@ -243,28 +283,30 @@ class DeviceAcceptance(DeviceCase):
 
 class VisualAcceptance(NoNetwork):
     def test22_slow_navigation_inference_expires_after_return(self):
-        clock = [100.]
+        import json
+        from NavigationTests import CameraBackend, BOX
+        backend = CameraBackend()
         class Client:
             def complete(self, _messages):
-                clock[0] += 3
-                return '{"visible":true,"center_x":0.5,"width_fraction":0.2}'
-        visual = Vision(Client(), MockBackend())
-        with patch.object(visual, 'frame', return_value={'source':'sdk_camera','frame_id':1,'timestamp':100.,'image_url':'data:test'}), patch('vision.time.time', side_effect=lambda: clock[0]):
-            with self.assertRaisesRegex(RuntimeError, 'visual_result_expired'):
+                frozen = backend.get_frame()
+                backend.get_frame = lambda: frozen
+                time.sleep(1.2)
+                return json.dumps({'visible':True,'ambiguous':False,'candidate_count':1,'bbox':BOX})
+        visual = Vision(Client(), backend)
+        try:
+            with self.assertRaisesRegex(RuntimeError, 'expired'):
                 visual.observe('red tent')
+        finally: visual.close()
 
     def test23_visible_zero_width_and_invisible_coordinates_rejected(self):
         class Client:
             value = ''
             def complete(self, _messages): return self.value
         client = Client()
-        visual = Vision(client, MockBackend())
-        frame = {'source':'sdk_camera','frame_id':1,'timestamp':time.time(),'image_url':'data:test'}
-        with patch.object(visual, 'frame', return_value=frame):
-            client.value = '{"visible":true,"center_x":0.5,"width_fraction":0}'
-            with self.assertRaises(ValueError): visual.observe('tent')
-            client.value = '{"visible":false,"center_x":0.5,"width_fraction":null}'
-            with self.assertRaises(ValueError): visual.observe('tent')
+        client.value = '{"visible":true,"ambiguous":false,"candidate_count":1,"bbox":[0.5,0.2,0.5,0.6]}'
+        with self.assertRaises(ValueError): Vision.parse_observation(client.value)
+        client.value = '{"visible":false,"ambiguous":false,"candidate_count":0,"bbox":null,"center_x":0.5,"width_fraction":null}'
+        with self.assertRaises(ValueError): Vision.parse_observation(client.value)
 
     def test24_static_image_cannot_drive_real_navigation(self):
         async def run():
@@ -277,7 +319,8 @@ class VisualAcceptance(NoNetwork):
             await gateway.dispatch('observe', ['tent'], {})
             with self.assertRaisesRegex(RuntimeError, 'real_navigation_requires_live_camera'):
                 await gateway.dispatch('move_forward', [20], {})
-            self.assertEqual(backend.calls, [])
+            self.assertTrue(all(name == 'stop_motion' for name,_ in backend.calls))
+            await gateway.finish(False)
         asyncio.run(run())
 
     def test25_navigation_rejects_expired_observation_before_acquire(self):

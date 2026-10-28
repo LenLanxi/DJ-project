@@ -10,6 +10,19 @@ MOTION = DISTANCE | {'takeoff', 'land', 'stop_motion', 'rotate', 'update_velocit
 LAND_CONFIRM_TIMEOUT_S = 25.
 
 
+class NavigationGuard:
+    """An immutable source-frame deadline follows this call to final UDP send."""
+    def __init__(self, event, timestamp, *, clock=time.monotonic, wall_clock=time.time):
+        if type(timestamp) not in (int,float) or not math.isfinite(timestamp):
+            raise ValueError('invalid_navigation_timestamp')
+        self.event,self.timestamp = event,timestamp
+        self.clock,self.wall_clock = clock,wall_clock
+        self.deadline = clock()+max(0.,1.0-(wall_clock()-timestamp))
+    def is_set(self):
+        return (self.event.is_set() or self.clock()>self.deadline
+                or not 0 <= self.wall_clock()-self.timestamp <= 1.0)
+
+
 class Gateway:
     def __init__(self, backend, vision=None):
         self.backend, self.vision = backend, vision
@@ -30,6 +43,8 @@ class Gateway:
     def begin(self):
         if self.acquired:
             raise RuntimeError('previous_control_cleanup_unconfirmed')
+        reset = getattr(self.vision,'reset',None)
+        if callable(reset): reset()
         self.generation += 1
         self.cancelled.set()
         self.cancelled = threading.Event()  # old worker references never revive
@@ -44,17 +59,17 @@ class Gateway:
         if self.cancelled.is_set() or generation != self.generation:
             raise RuntimeError('program_cancelled')
 
-    async def _bound(self, fn, *args, grant=None, cleanup=False):
+    async def _bound(self, fn, *args, grant=None, cleanup=False, operation=None):
         # asyncio.to_thread propagates this context. A new priority controller
         # may mutate backend.grant while an old program is awaiting a result;
         # that old program and its cleanup must retain their original lease.
         token = GRANT.set(dict(self.grant if grant is None else grant) if (self.grant if grant is None else grant) is not None else {})
-        operation = OPERATION.set(None if cleanup else self.cancelled)
+        operation_token = OPERATION.set(None if cleanup else operation if operation is not None else self.cancelled)
         try:
             return await asyncio.to_thread(fn, *args)
         finally:
             GRANT.reset(token)
-            OPERATION.reset(operation)
+            OPERATION.reset(operation_token)
 
     async def acquire(self):
         generation = self.generation
@@ -109,7 +124,7 @@ class Gateway:
             raise RuntimeError('real_navigation_requires_live_camera')
         if observation.get('source') == 'sdk_camera':
             stamp = observation.get('timestamp')
-            if type(stamp) not in (int, float) or not math.isfinite(stamp) or not 0 <= time.time() - stamp <= .5:
+            if type(stamp) not in (int, float) or not math.isfinite(stamp) or not 0 <= time.time() - stamp <= 1.0:
                 raise RuntimeError('navigation_observation_expired')
 
     async def _confirm_landed(self, generation):
@@ -121,7 +136,7 @@ class Gateway:
             stamp = state.get('timestamp')
             if (state.get('connected') is True and state.get('flight_state') == 'landed'
                     and state.get('height_cm') == 0 and type(stamp) in (int, float)
-                    and math.isfinite(stamp) and 0 <= time.time() - stamp <= .5):
+                    and math.isfinite(stamp) and 0 <= time.time() - stamp <= 1.0):
                 return
             await asyncio.sleep(min(.05, max(0., deadline - time.monotonic())))
         raise RuntimeError('landing_confirmation_timeout')
@@ -142,11 +157,29 @@ class Gateway:
                 raise ValueError('vision requires a target/question of 1 to 2000 characters')
             if self.vision is None:
                 raise RuntimeError('vision_model_not_configured')
+            if method == 'observe':
+                # A navigation observation is an intentional temporary takeover,
+                # unlike read-only describe. Preserve the existing follow ticket.
+                await self.acquire()
+                self._current(generation)
+                stopped = await self._bound(self.backend.action,'stop_motion')
+                self._current(generation)
+                if stopped.get('ok') is not True:
+                    self.resume = False
+                    raise RuntimeError('navigation_hover_stop_unconfirmed')
+                if isinstance(stopped.get('grant'),dict): self.grant = dict(stopped['grant'])
+                prepare = getattr(self.vision,'prepare_navigation',None)
+                if callable(prepare):
+                    await asyncio.to_thread(prepare,time.time(),self.cancelled)
+                    self._current(generation)
             result = await asyncio.to_thread(getattr(self.vision, method), args[0])
             self._current(generation)
             if method == 'observe':
                 if not isinstance(result, dict) or type(result.get('visible')) is not bool:
                     raise ValueError('invalid_navigation_observation')
+                if not result['visible'] or result.get('ambiguous') is True:
+                    self.resume = False
+                    result = dict(result,visible=False)
                 identity = (result.get('source'), result.get('frame_id'))
                 if identity in self.observations and result.get('source') == 'sdk_camera':
                     raise RuntimeError('navigation_requires_new_frame')
@@ -180,12 +213,18 @@ class Gateway:
                 if method == 'start_follow':
                     raise RuntimeError('follow_adjustment_must_be_last_motion')
                 self.follow_adjust_axis = None
+            if method == 'start_follow' and self.was_following and self.ticket is not None and self.acquired:
+                self.resume = True
+                return {'ok':True,'status':'accepted','reason':'resume_after_program_success',
+                        'reference_preserved':True,'deferred':True,'simulated':self.simulated}
             self.resume = False
             if method == 'stop_follow':
                 result = await self._bound(self.backend.stop_follow)
                 self._current(generation)
                 if not result.get('ok'):
                     raise RuntimeError('follow_stop_unconfirmed: ' + str(result))
+                self.ticket = None
+                self.was_following = False
                 return result
             if await asyncio.to_thread(self.backend.is_following):
                 self._current(generation)
@@ -213,6 +252,8 @@ class Gateway:
         if method in DISTANCE:
             if len(args) != 1 or type(args[0]) is not int or not 20 <= args[0] <= 500:
                 raise ValueError('distance must be an integer from 20 to 500 cm')
+            if self.observation is not None and args[0] != 20:
+                raise ValueError('observed_navigation_step_must_be_20_cm')
         elif method == 'rotate':
             if len(args) != 1 or type(args[0]) is not int or not -360 <= args[0] <= 360 or args[0] == 0:
                 raise ValueError('rotation must be a nonzero integer from -360 to 360 degrees')
@@ -221,13 +262,27 @@ class Gateway:
                 raise ValueError('RC requires four integers from -100 to 100')
         elif args:
             raise ValueError('action takes no arguments')
+        navigation_guard = None
+        observed_motion = method in DISTANCE or method == 'update_velocity' and any(args)
+        if observed_motion and self.observation is not None and self.observation.get('visible') is True and not self.observation.get('consumed'):
+            refresh = getattr(self.vision,'refresh_observation',None)
+            if callable(refresh):
+                self.observation = await asyncio.to_thread(refresh,dict(self.observation))
+                self._current(generation)
         if method in DISTANCE | {'rotate', 'update_velocity'}:
             self._navigation_evidence(method, args)
+        if observed_motion and self.observation is not None and self.observation.get('source') == 'sdk_camera':
+            # Capture once at RPC entry. A later background frame cannot renew
+            # this command while it waits for control, SDK locks or UDP send.
+            navigation_guard = NavigationGuard(self.cancelled,self.observation['timestamp'])
         if method in ('land', 'stop_motion'):
             self.resume = False
         await self.acquire()
         self._current(generation)
-        result = await self._bound(self.backend.action, method, *args)
+        if navigation_guard is not None and navigation_guard.is_set():
+            raise RuntimeError('navigation_observation_expired')
+        if observed_motion: self._navigation_evidence(method,args)
+        result = await self._bound(self.backend.action, method, *args, operation=navigation_guard)
         self._current(generation)
         permitted = ('completed', 'accepted') if method in ('stop_motion', 'land', 'update_velocity') else ('completed',)
         if not result.get('ok') or result.get('status') not in permitted:
@@ -275,6 +330,13 @@ class Gateway:
                 or state.get('control_owner') not in ('model',))
 
     async def finish(self, success):
+        try:
+            return await self._finish_control(success)
+        finally:
+            close = getattr(self.vision,'close',None)
+            if callable(close): close()
+
+    async def _finish_control(self, success):
         if not success or self.cancelled.is_set():
             self.cancelled.set()
             cleanup_follow = getattr(self.backend, 'stop_cancelled_follow', None)

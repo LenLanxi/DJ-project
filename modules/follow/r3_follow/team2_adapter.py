@@ -118,7 +118,7 @@ class Team2StubPort:
             connected=status.connected if type(status.connected) is bool else None
             airborne={'flying':True,'landed':False}.get(status.flight_state)
             if (type(status.timestamp) not in (int,float) or not math.isfinite(status.timestamp)
-                    or not 0 <= time.time()-status.timestamp <= .5):
+                    or not 0 <= time.time()-status.timestamp <= 1.0):
                 connected=airborne=None
             height = getattr(status, 'height_cm', None)
             # The reviewed SDK's timestamp is query time, not telemetry time.
@@ -126,7 +126,7 @@ class Team2StubPort:
             # status is explicitly tagged and only represents invented height.
             height_stamp = getattr(status, 'height_timestamp', None)
             height_time_valid = (type(height_stamp) in (int, float)
-                and math.isfinite(height_stamp) and 0 <= time.time()-height_stamp <= .5)
+                and math.isfinite(height_stamp) and 0 <= time.time()-height_stamp <= 1.0)
             height_fresh = (connected is True and airborne is True
                 and (getattr(status, 'simulated', None) is True or height_time_valid)
                 and type(height) in (int, float) and math.isfinite(height) and 0 <= height <= 1000)

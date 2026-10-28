@@ -81,7 +81,7 @@ class VerticalSdkTests(unittest.TestCase):
             self.assertIn('高度数据未知或过期',service.get_follow_status()['status_message'])
             stamp[0]=0
             self.wait_for(lambda:self.velocity()[2]>0)
-            stamp[0]=-1
+            stamp[0]=-1.01  # Strictly beyond the one-second height freshness limit.
             self.wait_for(lambda:self.velocity()[2]==0)
 
 

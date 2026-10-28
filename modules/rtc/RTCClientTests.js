@@ -16,6 +16,56 @@ function client() {
   return { value, sent };
 }
 const subtitle = item => ({ type: 'subv', value: { data: [item] } });
+
+test('RTC expiry callbacks share a renewal and update the current engine', async () => {
+  const { value } = client();
+  value.session.expiresAt = Date.now() + 30000000;
+  const handlers = {}, updates = [];
+  value.engine = { on(name, fn) { handlers[name] = fn; }, async updateToken(token) { updates.push(token); } };
+  let requests = 0, release;
+  value.post = async (path, body) => {
+    requests++;
+    assert.equal(path, '/api/token'); assert.equal(body.sessionId, identity.sessionId);
+    await new Promise(resolve => { release = resolve; });
+    return { sessionId: identity.sessionId, token: 'new-token',
+      tokenExpiresAt: Math.floor(Date.now() / 1000) + 3600, expiresAt: value.session.expiresAt };
+  };
+  value.installEvents();
+  handlers.onTokenWillExpire();
+  handlers.onTokenPublishPrivilegeWillExpire();
+  handlers.onTokenSubscribePrivilegeWillExpire();
+  assert.equal(requests, 1);
+  const pending = value.tokenRenewal.promise;
+  release(); await pending;
+  assert.deepEqual(updates, ['new-token']);
+  assert.equal(value.session.token, 'new-token');
+});
+
+test('late token renewal cannot affect a replaced session or engine', async () => {
+  const { value } = client();
+  let release;
+  value.engine = { updateToken() { assert.fail('old engine must not be updated'); } };
+  value.post = () => new Promise(resolve => { release = resolve; });
+  const pending = value.renewToken();
+  value.connectionGeneration++;
+  value.session = { sessionId: 'new-session' };
+  value.engine = { updateToken() { assert.fail('new engine must not receive old token'); } };
+  release({ token: 'old-token' });
+  await pending;
+  assert.equal(value.session.token, undefined);
+});
+
+test('token renewal rejects extended deadlines and propagates request failure', async () => {
+  const { value } = client();
+  value.session.expiresAt = Date.now() + 30000000;
+  value.engine = { updateToken() { assert.fail('invalid token must not reach SDK'); } };
+  value.post = async () => ({ sessionId: identity.sessionId, token: 'token',
+    tokenExpiresAt: Math.floor(Date.now() / 1000) + 3600, expiresAt: value.session.expiresAt + 1000 });
+  await assert.rejects(value.renewToken(), /invalid_renewed_token/);
+  value.post = async () => { throw new Error('session_expired'); };
+  await assert.rejects(value.renewToken(), /session_expired/);
+  assert.equal(value.tokenRenewal, null);
+});
 // Minimal anonymized shape from DoubaoMedia.json development capture. User IDs
 // are replaced by the local fixture; sequence/roundId/boolean flags preserve
 // the real wire types. Official reference:
@@ -177,7 +227,7 @@ test('new round partial revokes immediately and its final cannot restore the old
     definite: false, text: '停' }));
   value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: true,
     definite: true, text: '停止' }));
-  assert.deepEqual(sent, [{ type: 'interrupt', land: false }]);
+  assert.deepEqual(sent, [{ type: 'interrupt', land: false, source: 'user_speech_during_turn' }]);
   assert.equal(value.epoch, null);
   assert.equal(value.pendingTurn, null);
 });
@@ -187,11 +237,22 @@ test('cloud interruption state reaches local cancellation before final subtitles
   assert.equal(sent[0].type, 'interrupt');
   assert.equal(value.epoch, null);
 });
-test('RTC program is bounded by UTF-8 bytes, while short loops remain possible', () => {
+test('oversized and malformed programs reach host validation without disconnecting voice', async () => {
   const { value, sent } = client(); value.epoch = 2;
   value.forwardCalls([call('short', 'for _ in range(2):\n print(drone.get_status())')]);
   assert.equal(sent.length, 1);
-  assert.throws(() => value.forwardCalls([call('long', '中'.repeat(201))]), /600/);
+  value.forwardCalls([call('long', '中'.repeat(201))]);
+  const malformed = call('malformed'); malformed.function.arguments = '{"code":';
+  value.forwardCalls([malformed]);
+  assert.equal(sent.length, 3);
+  const replies = [];
+  value.engine = { async sendUserBinaryMessage(bot, data) { replies.push(decodeTLV(data)); } };
+  await value.bridgeMessage({ type: 'tool_result', id: 'long', epoch: 2,
+    result: { ok: false, status: 'failed', reason: 'invalid_program_arguments: max=600' } });
+  assert.equal(JSON.parse(replies[0].value.Content).ok, false);
+  assert.equal(value.active, true);
+  value.forwardCalls([call('corrected', 'print(drone.get_status())')]);
+  assert.equal(sent.at(-1).calls[0].id, 'corrected');
 });
 test('basic RTS reply remains below one KiB and retains observation and actual completion status', () => {
   const reply = toolReply('tool1', { ok: true, status: 'completed', reason: '说明'.repeat(200), journal: [
@@ -211,7 +272,15 @@ test('interrupt invalidates local turn synchronously before network acknowledgem
   await value.interrupt(true);
   assert.equal(value.epoch, null);
   assert.equal(value.pendingTurn, null);
-  assert.deepEqual(sent[0], { type: 'interrupt', land: true });
+  assert.deepEqual(sent[0], { type: 'interrupt', land: true, source: 'operator' });
+});
+
+test('client failure preserves its reason before closing the control socket', async () => {
+  const { value, sent } = client();
+  await value.stop('RTC错误：fixture_error');
+  assert.equal(sent[0].source, 'client_stop');
+  assert.equal(sent[0].reason, 'RTC错误：fixture_error');
+  assert.equal(sent[0].land, false);
 });
 test('late tool result cannot be returned to the cloud after local interruption', async () => {
   const { value } = client();

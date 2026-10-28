@@ -161,7 +161,7 @@ class CaptureMappingTests(unittest.TestCase):
         self.assertTrue(any(e.get('reason')=='nonadvancing_clock_mapping' for e in svc.events))
 
     def test_clock_handling_does_not_accept_future_or_expired_timestamps(self):
-        for stamp_offset in (.01,-.6):
+        for stamp_offset in (.01,-1.1):
             t,epoch,mono,wall,port,svc=self.make()
             port.publish(object(),0,wall()-.02);self.assertTrue(svc.capture_once())
             t[0]+=.7;port.publish(object(),1,wall()+stamp_offset)

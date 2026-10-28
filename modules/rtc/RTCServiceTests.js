@@ -43,6 +43,31 @@ test('tokens cannot be made immortal or long-lived', () => {
     assert.throws(() => createToken('app', 'key', 'room', 'user', expiry, { now: 1000 }));
 });
 
+test('long sessions use renewable one-hour tokens without extending session authority', async () => {
+  const { controller, session, advance, calls } = setup();
+  assert.equal(session.expiresAt - controller.session.createdAt, 30000000);
+  assert.ok(session.tokenExpiresAt <= Math.floor(controller.session.createdAt / 1000) + 3600);
+  advance(3500000);
+  const renewed = controller.renewToken(session.sessionId);
+  assert.equal(renewed.expiresAt, session.expiresAt);
+  assert.equal(renewed.sessionId, session.sessionId);
+  assert.equal(renewed.tokenExpiresAt, session.tokenExpiresAt + 3500);
+  assert.notEqual(renewed.token, session.token);
+  assert.equal(calls.length, 0);
+  assert.throws(() => controller.renewToken('obsolete'), /unknown_session/);
+  await controller.stop(session.sessionId);
+  assert.throws(() => controller.renewToken(session.sessionId), /session_expired/);
+});
+
+test('token renewal respects the final session deadline', () => {
+  const { controller, session, advance } = setup();
+  advance(29990000);
+  assert.equal(controller.renewToken(session.sessionId).tokenExpiresAt,
+    Math.floor(session.expiresAt / 1000) + 30);
+  advance(10000);
+  assert.throws(() => controller.renewToken(session.sessionId), /session_expired/);
+});
+
 test('missing credentials remain explicit and do not generate fake RTC sessions', () => {
   const config = loadConfig({});
   const controller = new SessionController(config, () => assert.fail('no API call'));
@@ -141,10 +166,12 @@ test('missing heartbeat revokes tools and stops bot without extending deadline',
   assert.equal(controller.heartbeat(session.sessionId).ok, false);
 });
 
-test('heartbeat cannot extend the total 180-second deadline', async () => {
-  const { controller, session, advance } = setup();
+test('heartbeat cannot extend the configured session deadline', async () => {
+  const { controller, session, advance, config } = setup();
   await controller.start(session.sessionId);
-  for (let i = 0; i < 90; i++) { advance(2000); controller.heartbeat(session.sessionId); }
+  for (let elapsed = 0; elapsed < config.sessionMs; elapsed += 2000) {
+    advance(2000); controller.heartbeat(session.sessionId);
+  }
   await controller.tick();
   assert.equal(controller.status().status, 'stopped');
   assert.equal(controller.status().stopReason, 'session_deadline');
@@ -247,6 +274,15 @@ test('loopback HTTP rejects foreign origins, secret-bearing bad JSON and arbitra
     assert.equal(calls.length, 0);
     response = await fetch(base + '/api/session');
     const session = await response.json();
+    response = await fetch(base + '/api/token', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: base },
+      body: JSON.stringify({ sessionId: session.sessionId }) });
+    const renewal = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(renewal.sessionId, session.sessionId);
+    assert.equal(renewal.expiresAt, session.expiresAt);
+    assert.ok(renewal.tokenExpiresAt <= Math.floor(Date.now() / 1000) + 3600);
+    assert.equal(calls.length, 0);
     response = await fetch(base + '/api/start', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ sessionId: session.sessionId }) });
     assert.equal((await response.json()).status, 'submitted');
     assert.equal(calls.length, 1);
@@ -358,7 +394,7 @@ test('audit distinguishes heartbeat disconnection from an absolute session deadl
     const controller = new SessionController(loadConfig(ENV), async action => success(action),
       () => now, entry => entries.push(entry));
     const session = controller.create(); await controller.start(session.sessionId);
-    now += trigger === 'disconnect' ? 8001 : 180001;
+    now = trigger === 'disconnect' ? now + 8001 : session.expiresAt + 1;
     await controller.tick(); await controller.tick();
     const expected = trigger === 'disconnect' ? 'rtc_client_disconnected' : 'rtc_session_deadline';
     assert.equal(entries.filter(entry => entry.event === expected).length, 1);

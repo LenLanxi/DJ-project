@@ -36,7 +36,7 @@ class FrameBridge(threading.Thread):
             return False
         age = time.time() - decoded_at
         controller.publish_frame(FrameResult(frame, frame_id, decoded_at,
-                                              not 0 <= age <= .5))
+                                              not 0 <= age <= 1.0))
         self.published, self.last_frame = frame_id, frame
         self.last_error = None
         return True

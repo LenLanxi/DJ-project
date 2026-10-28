@@ -196,7 +196,7 @@ class OpenPoseControllerTests(unittest.TestCase):
                 elif mode == "loss":
                     request = self.sample(c, 8, .8, found=False)
                 elif mode == "stale":
-                    request = c.tick(1.3)
+                    request = c.tick(1.8)
                 else:
                     c.observe(None if mode == "invalid" else
                               replace(observation(8, .8), target_id=1))
@@ -303,11 +303,11 @@ class OpenPoseComparisonTests(unittest.TestCase):
         from openpose_compare import closed_loop, PROFILES
         for profile in PROFILES:
             for response in (.1, .25, 1.):
-                for delay in (0., .2, .4, .6):
+                for delay in (0., .2, .4, .6, 1.1):
                     with self.subTest(profile=profile, response=response, delay=delay):
                         rows, summary = closed_loop(profile, response=response, delay=delay)
                         self.assertEqual(summary["nontracking_nonzero"], 0)
-                        if delay == .6:
+                        if delay > 1.:
                             self.assertEqual(summary["final_state"], "frame_stale")
                             self.assertTrue(all(r["request_yaw"] == r["request_forward"] == 0
                                                 for r in rows if r["t"] >= 3))

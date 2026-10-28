@@ -130,6 +130,22 @@ def get_status():
             h.get('command_uncertainty') if h else None,
             h.get('telemetry_timestamp') if h else None)
 
+def _preserve_landing(owner, action):
+    """Called with _velocity_lock held: a takeover cannot become a hover.
+
+    Keep the existing landing worker. Only retry after a failed/no-ack dispatch
+    has finished; repeated priority requests must not queue extra land workers.
+    An acknowledgement without fresh ground telemetry still means landing.
+    """
+    global _current_owner, _control_epoch, _command_epoch, _active_action
+    _driver.record_priority_override(action, current_owner=_current_owner, landing_preserved=True)
+    _control_epoch += 1
+    _command_epoch += 1
+    _current_owner = owner
+    _active_action = None
+    if not _driver.action_pending() and not _driver.health().get('landing_acknowledged'):
+        _driver.interrupt('land')
+
 def request_control(owner, *, priority=False):
     """priority=True 是紧急保留通道：不被在途动作/落地流程/占用者拦住，并作废在途动作。"""
     global _current_owner, _control_epoch, _command_epoch, _active_action
@@ -144,6 +160,9 @@ def request_control(owner, *, priority=False):
                   'busy' if _current_owner not in (None, owner) else '')
         if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
         if priority:
+            if _flight_state == 'landing':
+                _preserve_landing(owner, 'request_control')
+                return ControlResult(True, owner, 'landing_preserved', _control_epoch, _command_epoch)
             # 保留通道：先作废在途动作的 token，再零速度接管，保证随后的 stop/land 一定能下发。
             _driver.record_priority_override('request_control', current_owner=_current_owner)
             _driver.cancel_pending('priority_takeover')
@@ -193,7 +212,8 @@ def update_velocity(owner, left_right, forward_back, up_down, yaw, *, control_ep
         if not reason and any(channels) and _flight_state != 'flying': reason = 'is_landed'
         if not reason and _active_action is not None: reason = 'action_busy'
         if reason: return CommandResult(False, 'failed', reason, False)
-        if _driver.set_velocity(channels, 'velocity_update') is False:
+        options = {} if operation_event() is None else {'guard': operation_event()}
+        if _driver.set_velocity(channels, 'velocity_update', **options) is False:
             return CommandResult(False, 'failed', 'velocity_send_failed', False)
         _last_velocity_time = time.monotonic() if any(channels) else 0.
         return CommandResult(True, 'accepted', '', False)
@@ -216,9 +236,11 @@ def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=N
             return CommandResult(False, 'failed', 'stop_send_failed')
         token = (_control_epoch, _command_epoch, object())
         driver_epoch = _driver.capture_cancel_epoch()
+        driver_guard = operation_event()
         _active_action = token
     try:
-        ok = _driver.execute(action, param, epoch=driver_epoch)
+        options = {} if driver_guard is None else {'guard': driver_guard}
+        ok = _driver.execute(action, param, epoch=driver_epoch, **options)
     except Exception:
         ok = False
     with _velocity_lock:
@@ -247,7 +269,7 @@ _min_battery = 30
 def configure_takeoff(*, authorized=False, min_battery=30):
     """Software authorization; the threshold is not a firmware guarantee."""
     global _takeoff_authorized, _min_battery
-    if type(min_battery) is not int or not 1 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
+    if type(min_battery) is not int or not 0 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
     _takeoff_authorized, _min_battery = bool(authorized), min_battery
 
 def takeoff(owner, **grant):
@@ -301,10 +323,15 @@ def stop_motion(owner, *, control_epoch=None, command_epoch=None, priority=False
     """priority=True：越过 action_result_pending / 代次校验，保证急停指令必达。"""
     global _command_epoch, _control_epoch, _active_action, _current_owner
     with _velocity_lock:
+        if priority:
+            _advance()
         reason = ('invalid_owner' if owner not in ('model', 'follow') else
                   '' if priority else _check(owner, control_epoch, command_epoch))
         if reason: return CommandResult(False, 'failed', reason, False)
         if priority:
+            if _flight_state == 'landing':
+                _preserve_landing(owner, 'stop_motion')
+                return CommandResult(True, 'accepted', 'landing_preserved', False)
             _driver.record_priority_override('stop_motion', current_owner=_current_owner)
             _control_epoch += 1
             _current_owner = owner

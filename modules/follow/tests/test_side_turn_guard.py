@@ -204,7 +204,7 @@ class ShapeGuardTests(unittest.TestCase):
             c.tick(.1)
             if failure == "loss":
                 c.observe(observation(2, .2, found=False))
-            request = c.tick(.2 if failure == "loss" else .61)
+            request = c.tick(.2 if failure == "loss" else 1.11)
             self.assertEqual((request.right, request.forward), (0, 0))
             self.assertEqual(c.state, State.RECOVERING if failure == "loss" else State.STALE)
 

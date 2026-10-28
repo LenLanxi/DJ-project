@@ -18,11 +18,11 @@ from urllib.parse import parse_qs, urlsplit
 RTC_PROGRAM_MAX_BYTES = 600  # RTC custom-message envelope is limited to 1 KiB.
 
 class RTCBridge:
-    def __init__(self, runtime, backend, log, *, heartbeat_seconds=8, max_session_seconds=180):
+    def __init__(self, runtime, backend, log, *, heartbeat_seconds=8, max_session_seconds=30000):
         self.runtime, self.backend, self.log = runtime, backend, log
         self.token = secrets.token_urlsafe(32)
         self.heartbeat_seconds = heartbeat_seconds
-        if not 0 < max_session_seconds <= 180:
+        if not 0 < max_session_seconds <= 30000:
             raise ValueError('invalid_rtc_session_deadline')
         self.max_session_seconds = max_session_seconds
         self.session_deadline = None
@@ -35,7 +35,6 @@ class RTCBridge:
         self.seen = set()
         self.fingerprints = {}
         self.seen_turns = set()
-        self.turn_program_admitted = False
         self.active_call = None
         self.runtime_generation = getattr(runtime, "generation", 0)
         self.reset_pending = False
@@ -102,7 +101,6 @@ class RTCBridge:
         self.reset_pending = False
         self.epoch += 1
         self.turn_id = None
-        self.turn_program_admitted = False
         self.seen.clear()
         self.fingerprints.clear()
         self.seen_turns.clear()
@@ -163,7 +161,18 @@ class RTCBridge:
         if kind == 'interrupt':
             if type(message.get('land')) is not bool:
                 raise ValueError('land_requires_boolean')
-            await self.revoke('operator_interrupt', message['land'])
+            source = message.get('source')
+            source = source if source in ('operator', 'client_stop', 'cloud_barge_in',
+                'invalid_subtitle_during_turn', 'user_speech_during_turn') else 'unspecified_client'
+            detail = message.get('reason')
+            try:
+                self.log({'event': 'rtc_client_interrupt', 'source': source,
+                          'reported_reason': detail[:1000] if isinstance(detail, str) else '',
+                          'land': message['land'], 'epoch': self.epoch,
+                          'client_reported': True})
+            finally:
+                reason = 'operator_interrupt' if source in ('operator', 'unspecified_client') else source
+                await self.revoke(reason, message['land'])
             return
         try:
             self.current(message)
@@ -191,7 +200,6 @@ class RTCBridge:
                 return
             self.epoch += 1
             self.turn_id = identity
-            self.turn_program_admitted = False
             self.log({'event': 'user_text', 'text': text, 'epoch': self.epoch, 'transport': 'rtc'})
             await self.send({'type': 'turn', 'epoch': self.epoch, 'id': identity})
             return
@@ -220,11 +228,6 @@ class RTCBridge:
                     raise ValueError('invalid_tool_function')
                 busy = self.program_active or self.runtime.running
                 if function.get('name') == 'run_program' and not busy:
-                    if self.turn_program_admitted:
-                        await self.send({'type':'tool_result', 'id':call['id'], 'epoch':self.epoch,
-                                         'result':{'ok':False,'status':'failed','reason':'turn_program_budget_exceeded'}})
-                        continue
-                    self.turn_program_admitted = True
                     self.program_active = True  # admission before scheduling
                     self.active_call = (self.epoch, call['id'])
                 task = asyncio.create_task(self.call(call, self.epoch, busy, getattr(self.runtime, 'generation', 0)))
@@ -241,6 +244,11 @@ class RTCBridge:
         admitted = name == 'run_program' and not busy
         try:
             raw = call['function'].get('arguments')
+            self.log({'event': 'rtc_tool_received', 'id': call['id'], 'epoch': epoch,
+                      'name': str(name)[:100],
+                      'arguments_preview': raw[:2000] if isinstance(raw, str) else '[non-string]',
+                      'arguments_bytes': len(raw.encode('utf-8')) if isinstance(raw, str) else None,
+                      'preview_truncated': isinstance(raw, str) and len(raw) > 2000})
             if not isinstance(raw, str) or len(raw.encode()) > 64000:
                 raise ValueError('invalid_tool_arguments')
             args = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError('nonfinite_json')))
@@ -253,7 +261,9 @@ class RTCBridge:
             elif name == 'run_program':
                 if (set(args) != {'code'} or not isinstance(args['code'], str)
                         or not 0 < len(args['code'].encode('utf-8')) <= RTC_PROGRAM_MAX_BYTES):
-                    raise ValueError('invalid_program_arguments')
+                    size = len(args['code'].encode('utf-8')) if isinstance(args.get('code'), str) else None
+                    raise ValueError(f'invalid_program_arguments: code_bytes={size}; max=600; '
+                                     'return a shorter complete Python program')
                 if busy:
                     result = {'ok': False, 'status': 'busy', 'reason': 'another_program_running'}
                 else:
@@ -342,7 +352,7 @@ class RTCBridge:
             packet = await asyncio.wait_for(asyncio.to_thread(self.backend.get_frame), .75)
             stamp = packet.get('timestamp')
             fresh = (not packet.get('stale') and packet.get('frame') is not None
-                     and type(stamp) in (int,float) and math.isfinite(stamp) and 0 <= time.time()-stamp <= .5)
+                     and type(stamp) in (int,float) and math.isfinite(stamp) and 0 <= time.time()-stamp <= 1.0)
             if not fresh:
                 await self.send({'type': 'invalid_frame', 'reason': 'sdk_frame_expired'})
                 if not self.frame_fault:

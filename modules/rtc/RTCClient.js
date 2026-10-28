@@ -123,6 +123,7 @@
       this.readyWaiters = [];
       this.requestTimeoutMs = options.requestTimeoutMs || 10000;
       this.connectionGeneration = 0;
+      this.tokenRenewal = null;
     }
 
     async request(path, body) {
@@ -284,7 +285,13 @@
       on('onRoomBinaryMessageReceived', receive);
       on('onUserBinaryMessageReceived', receive);
       on('onError', error => this.fail(new Error('RTC错误：' + String(error.errorCode || error.code || 'unknown'))));
-      on('onTokenWillExpire', () => this.fail(new Error('RTC授权即将过期，已结束当前会话')));
+      for (const event of ['onTokenWillExpire', 'onTokenPublishPrivilegeWillExpire',
+                           'onTokenSubscribePrivilegeWillExpire']) {
+        on(event, () => this.renewToken().catch(error => {
+          if (this.active && generation === this.connectionGeneration && this.engine === engine)
+            this.fail(error);
+        }));
+      }
       on('onUserLeave', event => {
         const user = event.userInfo && event.userInfo.userId || event.userId;
         if (this.session && user === this.session.botId) this.fail(new Error('模型已离开房间，停止动作并结束会话'));
@@ -306,7 +313,7 @@
         const states = { 1: '模型正在听', 2: '模型正在理解', 3: '模型正在回答', 4: '模型已中断', 5: '本轮回复结束' };
         if (states[stage]) this.onState(states[stage]);
         if (stage === 4 && this.bound) {
-          this.interrupt(false).catch(error => this.fail(error));
+          this.interrupt(false, 'cloud_barge_in').catch(error => this.fail(error));
           return;
         }
         if (stage === 5 && !this.pendingTools.size && !this.pendingTurn && !this.pendingCalls.length) this.turnOpen = false;
@@ -320,14 +327,14 @@
             const validRound = Number.isSafeInteger(item.roundId) && item.roundId >= 0;
             if (!validRound || typeof item.paragraph !== 'boolean' || typeof item.definite !== 'boolean') {
               if ((this.pendingTools.size || this.turnOpen) && text)
-                this.interrupt(false).catch(error => this.fail(error));
+                this.interrupt(false, 'invalid_subtitle_during_turn').catch(error => this.fail(error));
               continue;
             }
             const id = String(item.roundId);
             if (this.completedRounds.has(id)) continue;
             if (this.userSubtitleRound !== null && item.roundId < this.userSubtitleRound) continue;
             if ((this.pendingTools.size || this.turnOpen) && text) {
-              this.interrupt(false).catch(error => this.fail(error));
+              this.interrupt(false, 'user_speech_during_turn').catch(error => this.fail(error));
               return;
             }
             if (item.roundId !== this.userSubtitleRound) {
@@ -369,12 +376,8 @@
       for (const call of calls) {
         if (!call || typeof call.id !== 'string' || call.id.length > 128) throw new Error('无效工具编号');
         const signature = JSON.stringify(call.function);
-        if (call.function && call.function.name === 'run_program') {
-          let args;
-          try { args = typeof call.function.arguments === 'string' ? JSON.parse(call.function.arguments) : call.function.arguments; }
-          catch (_) { throw new Error('模型程序参数不是JSON'); }
-          if (!args || typeof args.code !== 'string' || encoder.encode(args.code).length > 600) throw new Error('RTC模型程序超过600字节或格式无效');
-        }
+        // The host validates code and returns failures to this tool call.
+        // Invalid model arguments must not tear down the voice connection.
         if (this.callIds.has(call.id)) {
           if (this.callSignatures.get(call.id) !== signature) throw new Error('工具编号被用于不同请求');
           continue;
@@ -448,13 +451,38 @@
       this.onFrame(null);
     }
 
+    async renewToken() {
+      const session = this.session, engine = this.engine, generation = this.connectionGeneration;
+      if (!this.active || !session || !engine) return;
+      if (this.tokenRenewal?.generation === generation) return this.tokenRenewal.promise;
+      const renewal = { generation, promise: null };
+      this.tokenRenewal = renewal;
+      renewal.promise = (async () => {
+        const result = await this.post('/api/token', { sessionId: session.sessionId });
+        if (!this.active || generation !== this.connectionGeneration || this.session !== session || this.engine !== engine)
+          return;
+        const now = Math.floor(Date.now() / 1000);
+        if (result.sessionId !== session.sessionId || typeof result.token !== 'string' || !result.token
+            || !Number.isInteger(result.tokenExpiresAt) || result.tokenExpiresAt <= now
+            || result.tokenExpiresAt > now + 3600 || result.expiresAt !== session.expiresAt)
+          throw new Error('invalid_renewed_token');
+        await engine.updateToken(result.token);
+        if (this.active && generation === this.connectionGeneration && this.session === session) {
+          session.token = result.token;
+          session.tokenExpiresAt = result.tokenExpiresAt;
+        }
+      })();
+      try { return await renewal.promise; }
+      finally { if (this.tokenRenewal === renewal) this.tokenRenewal = null; }
+    }
+
     async heartbeat() {
       if (!this.active || !this.session) return;
       this.send({ type: 'heartbeat' });
       await this.post('/api/heartbeat', { sessionId: this.session.sessionId });
     }
 
-    async interrupt(land) {
+    async interrupt(land, source = 'operator') {
       if (!this.active || !this.bound) throw new Error('本机控制尚未连接，请使用物理急停键');
       this.epoch = null;
       this.turnRevoked = true;
@@ -462,7 +490,7 @@
       this.pendingTurn = null;
       this.turnOpen = false;
       this.pendingTools.clear();
-      this.send({ type: 'interrupt', land: Boolean(land) });
+      this.send({ type: 'interrupt', land: Boolean(land), source });
       this.onState(land ? '已请求降落，请核对实际状态' : '已请求停止，请核对实际状态');
     }
 
@@ -490,7 +518,8 @@
         for (const timer of this.timers.splice(0)) clearTimeout(timer);
         for (const waiter of this.readyWaiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(new Error('连接已结束')); }
         if (this.socket && this.socket.readyState === 1) {
-          try { this.socket.send(JSON.stringify({ type: 'interrupt', land: false })); } catch (_) {}
+          try { this.socket.send(JSON.stringify({ type: 'interrupt', land: false,
+            source: 'client_stop', reason: String(reason).slice(0, 1000) })); } catch (_) {}
         }
         const session = this.session;
         this.session = null;
@@ -519,6 +548,7 @@
           this.onMessage('云端停止未确认：' + String(error.message || error));
         }));
         await Promise.allSettled(work);
+        this.onMessage('连接结束：' + reason);
         this.onState(reason);
       })();
       return this.ending;

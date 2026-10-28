@@ -133,7 +133,7 @@ class HorizontalRoutingTests(unittest.TestCase):
                     for seq in range(1,8):sample(c,seq,seq*.1,x=.75,size=.15)
                     self.assertTrue(any(values(c.last_request)))
                     if action in ("stop","pause"):r=getattr(c,action)()
-                    elif action=="stale":r=c.tick(1.201)
+                    elif action=="stale":r=c.tick(1.701)
                     else:
                         c.observe(None if action=="invalid" else observation(8,.8,target_id=1))
                         r=c.tick(.8)

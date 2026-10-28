@@ -99,7 +99,7 @@ class FieldLatencyTests(unittest.TestCase):
 
     def test_stale_while_budget_wait_is_latched(self):
         self.frame('detection_budget_exceeded')
-        self.clock.now += .51
+        self.clock.now += 1.01
         self.service.control_once()
         self.frame(x=500)
         s=self.service.get_follow_status()
@@ -111,7 +111,7 @@ class FieldLatencyTests(unittest.TestCase):
         self.assertIn('重新开始',s['status_message'])
 
     def test_budget_result_already_old_cannot_enter_recovery(self):
-        self.detector.cost=.51
+        self.detector.cost=1.01
         self.assertFalse(self.frame('detection_budget_exceeded'))
         s=self.service.get_follow_status()
         self.assertEqual(s['state'],'frame_stale')
@@ -145,7 +145,7 @@ class FieldLatencyTests(unittest.TestCase):
         self.assertEqual(self.port.velocity,(0,5,0,0))
 
     def test_frame_gap_reason_survives_inactive_ticks_and_status_queries(self):
-        self.frame(dt=.6)
+        self.frame(dt=1.1)
         for _ in range(3):
             s=self.service.get_follow_status()
             self.assertEqual(s['last_halt_reason'],'frame_gap')
@@ -183,9 +183,9 @@ class FieldLatencyTests(unittest.TestCase):
         spy=NativeSpy()
         self.service.tracker=spy
         self.service.pause_follow()
-        self.clock.now+=.45
+        self.clock.now+=.95
         self.seq+=1
-        self.port.publish(('',500),self.seq,self.clock.wall()-.4)
+        self.port.publish(('',500),self.seq,self.clock.wall()-.9)
         self.service.capture_once()
         self.assertAlmostEqual(spy.received_budget,80,places=3)
 
@@ -197,7 +197,7 @@ class FieldLatencyTests(unittest.TestCase):
                 return Detector(clock).detect(frame,frame_id,acquired_at,source)
         spy=NativeSpy()
         self.service.tracker=spy
-        self.clock.now+=.45
+        self.clock.now+=.95
         self.seq+=1
         self.port.publish(('',500),self.seq,self.clock.wall())
         self.service.capture_once()

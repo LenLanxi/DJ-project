@@ -75,7 +75,7 @@ class TimedTracker(MarkerTracker):
         # pixels, or explicit injected costs. Neither refreshes capture age.
         cost = measured if world.costs is None else world.costs[sequence % len(world.costs)]
         if world.case == 'cpu_spike' and 3 <= world.t < 4:
-            cost = max(cost, .65)  # single native call may exceed cooperative budget
+            cost = max(cost, 1.15)  # single native call may exceed cooperative budget
         limit = options.get('processing_budget_ms',120.)/1000
         scheduled_budget_exceeded = cost >= limit
         if scheduled_budget_exceeded:
@@ -263,7 +263,7 @@ def save_run(directory, name, world, summary, events):
     panels=[('virtual_depth_m','Virtual depth (m; assumed plant)',2.),
             ('rc_forward','Forward request (RC; NOT cm/s)',0.),
             ('virtual_forward_m_s','Virtual forward velocity (m/s)',0.),
-            ('observation_age_ms','Published observation age (ms)',500.)]
+            ('observation_age_ms','Published observation age (ms)',1000.)]
     lines=['<svg xmlns="http://www.w3.org/2000/svg" width="960" height="820" viewBox="0 0 960 820">',
            '<rect width="960" height="820" fill="white"/>',
            f'<text x="60" y="24" font-family="sans-serif" font-size="17">{name} — synthetic plant, no flight validation</text>']
@@ -319,7 +319,7 @@ def main():
             result,events=world.run();save_run(args.output,case,world,result,events);results.append(result)
         if args.matrix:
             for response in (.1,.25,1.):
-                for delay in (0.,.2,.4,.6):
+                for delay in (0.,.2,.4,.6,1.1):
                     for cost in (.03,.10,.3):
                         name=f'matrix_tau{response}_delay{delay}_cost{cost}'
                         world=Timeline(case='reverse',costs=[cost],delay=delay,response=response,

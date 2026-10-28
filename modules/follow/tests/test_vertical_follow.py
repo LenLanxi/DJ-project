@@ -99,7 +99,7 @@ class VerticalCalculationTests(unittest.TestCase):
                     c.observe(vertical_observation(7,.7,y=300,x=.3,size=.3))
                     self.assertLess(c.tick(.7).up,0)
                     if end in ('stop','pause'):r=getattr(c,end)()
-                    elif end=='stale':r=c.tick(1.21)
+                    elif end=='stale':r=c.tick(1.71)
                     else:
                         c.observe(None if end=='invalid' else vertical_observation(8,.8,target_id=1))
                         r=c.tick(.8)
@@ -206,7 +206,7 @@ class VerticalServiceTests(unittest.TestCase):
                 for _ in range(5):frame(x=.7,y=.3,size=.18)
                 self.assertGreater(port.velocity[2],0)
                 if event=='stop':service.stop_follow()
-                elif event=='stale':clock.now+=.51;service.control_once()
+                elif event=='stale':clock.now+=1.01;service.control_once()
                 elif event=='long_loss':
                     for _ in range(34):frame(visible=False)
                 else:

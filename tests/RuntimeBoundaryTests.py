@@ -34,10 +34,10 @@ class RuntimeBoundaryTests(unittest.IsolatedAsyncioTestCase):
         for name in ('--live','--offline-voice','--always-on','--realtime','--volc-dialog','--sdk-stub-root'):
             self.assertNotIn(name,options)
 
-    async def test_voice_duration_over_180_is_rejected_before_logging_or_startup(self):
+    async def test_voice_duration_over_30000_is_rejected_before_logging_or_startup(self):
         with contextlib.redirect_stderr(io.StringIO()), patch.object(main,'SessionLog') as log:
             with self.assertRaises(SystemExit) as caught:
-                main.main(['--real-drone','--max-session-seconds','181'])
+                main.main(['--real-drone','--max-session-seconds','30001'])
         self.assertEqual(caught.exception.code,2)
         log.assert_not_called()
 

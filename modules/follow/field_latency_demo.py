@@ -218,8 +218,8 @@ def run(output):
         scenario = 'true_frame_gap'
         prime(scenario, clock, members)
         service, port, tracker, script = members[0]
-        script.advance(.51)
-        lost = snapshot(scenario, 'no_new_frame_510ms', 6, service, port, tracker)
+        script.advance(1.01)
+        lost = snapshot(scenario, 'no_new_frame_1010ms', 6, service, port, tracker)
         checks['real_gap_still_latches'] = (lost['state'] == 'frame_stale'
                                            and lost['forward_back'] == lost['yaw'] == 0)
         clock.value += .01
@@ -243,8 +243,8 @@ def run(output):
             event['event'] == 'observation_discarded'
             and event['reason'] == 'lifecycle_changed_during_detection' for event in service.events)
 
-        # Match supplied timing structure: last good capture t, next capture
-        # t+.080, read t+.094, rescue chain .434; old result reaches age .504
+        # Exercise the one-second deadline: last good capture t, next capture
+        # t+.580, read t+.594, rescue chain .434; old result reaches age 1.004
         # before the new result returns. These are injected delays, not pixels
         # from the real flight or a claim about the same image's runtime.
         contrast = cv2.imdecode(np.frombuffer(
@@ -260,18 +260,18 @@ def run(output):
             prime(scenario, clock, members)
             service, port, tracker, script = members[0]
             last_good_at = clock.value
-            clock.value = last_good_at+.094
+            clock.value = last_good_at+.594
             def timeline_tick():
                 service.control_once()
                 snapshot(scenario, 'during_rescue_chain', 6, service, port, tracker, truth=False)
             script.control_tick = timeline_tick
-            script.callbacks.append((last_good_at+.504, lambda: None))
+            script.callbacks.append((last_good_at+1.004, lambda: None))
             script.costs = deque((.030, .075, .070, .080, .179))
-            port.publish(contrast, 6, last_good_at+.080)
+            port.publish(contrast, 6, last_good_at+.580)
             service.capture_once()
             result = snapshot(scenario, 'rescue_returned', 6, service, port, tracker, truth=False)
             timeline[scenario] = {'last_good_capture': last_good_at,
-                'new_frame_capture': last_good_at+.080, 'read_at': last_good_at+.094,
+                'new_frame_capture': last_good_at+.580, 'read_at': last_good_at+.594,
                 'returned_at': clock.value, 'state_on_return': result['state'],
                 'observation_reason': result['observation_reason'],
                 'deadline': tracker.last_diagnostics.get('processing_budget'),

@@ -83,7 +83,7 @@ class IdentityRecoveryTests(unittest.TestCase):
 
     def test_expired_frame_during_identity_wait_is_latched(self):
         self.frame('ambiguous_scan_budget_exceeded')
-        self.clock.now+=.51;self.service.control_once()
+        self.clock.now+=1.01;self.service.control_once()
         for _ in range(4):self.frame()
         self.assertFalse(self.service.is_following())
         self.assertEqual(self.service.get_follow_status()['state'],'frame_stale')

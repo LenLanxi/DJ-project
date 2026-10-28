@@ -260,7 +260,7 @@ class JointTests(unittest.TestCase):
         self.frame(visible=False)
         self.assertFalse(self.runtime.get_status()["target_visible"])
         self.frame()
-        self.now += .51
+        self.now += 1.01
         self.assertFalse(self.runtime.get_status()["target_visible"])
 
     def test_no_image_from_upstream_does_not_create_synthetic_evidence(self):
@@ -276,7 +276,7 @@ class JointTests(unittest.TestCase):
 
     def test_cached_frame_never_refreshes_age(self):
         self.following()
-        self.now += .6
+        self.now += 1.1
         self.service.capture_once()
         self.service.control_once()
         self.assertFalse(self.runtime.is_following())

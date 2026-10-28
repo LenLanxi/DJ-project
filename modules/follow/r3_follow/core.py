@@ -8,7 +8,7 @@ from .depth_brake import DepthBrake
 
 _DEFAULT_STEERING = object()
 # Unix double timestamps around 2026 have ~0.24 microsecond spacing. Mapping
-# them to monotonic time can put an exact 0.5-second boundary a few ulps over.
+# them to monotonic time can put an exact one-second boundary a few ulps over.
 # One microsecond is numeric tolerance only, not a longer image lifetime.
 FRAME_TIME_EPSILON = 1e-6
 
@@ -171,7 +171,7 @@ class ApparentSizeGuard:
 
 
 class FollowController:
-    def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
+    def __init__(self, target_id=0, max_age=1.0, recovery_window=0.0,
                  max_request_rate=None, require_geometry=False,
                  steering_mode=_DEFAULT_STEERING, yaw_limit=0.20,
                  forward_limit=0.30,

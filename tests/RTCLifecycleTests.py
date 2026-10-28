@@ -14,10 +14,11 @@ from RTCRuntime import RTCProcess, REQUIRED, validate_environment
 
 class RTCLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_rtc_credentials_are_detected_before_any_hardware_connection(self):
-        args=main.make_parser().parse_args(['--real-drone'])
+        args=main.make_parser().parse_args(['--real-drone','--voice-provider','doubao',
+                                          '--doubao-credentials','MissingCredentials.json','--api-budget-rmb','15'])
         with patch.dict(os.environ,{name:'' for name in REQUIRED}), \
              patch.object(main,'initialize_real',new=AsyncMock()) as initialize:
-            with self.assertRaisesRegex(ValueError,'RTC正式语音缺少配置'):
+            with self.assertRaisesRegex(ValueError,'凭据文件'):
                 await main.run(args,lambda event:None)
             initialize.assert_not_awaited()
 

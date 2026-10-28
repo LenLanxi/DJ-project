@@ -97,6 +97,58 @@ class TransportTests(unittest.TestCase):
 
 
 class ModelTests(unittest.TestCase):
+    def test_structured_request_uses_strict_schema_and_preserves_raw_for_caller_validation(self):
+        events=[]
+        client=self.client(events.append)
+        schema={'type':'object','properties':{'visible':{'type':'boolean'}},
+                'required':['visible'],'additionalProperties':False}
+        messages=[{'role':'user','content':'private input'}]
+        # Invalid JSON is deliberately returned intact so the diagnostic
+        # wrapper can persist it before the business validator rejects it.
+        with patch('model_client.post_json',return_value={
+                'choices':[{'message':{'content':'provider malformed JSON'}}],
+                'usage':{'total_tokens':9}}) as sent:
+            self.assertEqual(client.complete_structured(messages,schema),'provider malformed JSON')
+        body=sent.call_args.args[2]
+        self.assertEqual(body,{'model':'configured-model','messages':messages,
+            'response_format':{'type':'json_schema','json_schema':{
+                'name':'navigation_observation','strict':True,'schema':schema}}})
+        self.assertIsNot(body['response_format']['json_schema']['schema'],schema)
+        self.assertEqual(client.last_usage,{'total_tokens':9})
+        self.assertEqual(len(events),2)
+        self.assertEqual(events[-1]['usage'],{'total_tokens':9})
+        self.assertEqual(events[-1]['response_format'],'json_schema')
+        self.assertNotIn('provider malformed JSON',json.dumps(events))
+        self.assertNotIn('private input',json.dumps(events))
+
+    def test_structured_http_rejection_has_one_failed_audit_without_text_fallback(self):
+        events=[]
+        client=self.client(events.append)
+        with patch('model_client.post_json',side_effect=RuntimeError('HTTP 400')) as sent:
+            with self.assertRaisesRegex(RuntimeError,'HTTP 400'):
+                client.complete_structured([],{'type':'object'})
+        sent.assert_called_once()
+        self.assertEqual(events[-1]['status'],'failed')
+        self.assertTrue(events[-1]['usage_unknown'])
+        self.assertFalse(events[-1]['retried'])
+
+    def test_invalid_structured_schema_is_rejected_before_any_request(self):
+        invalid=(None,[],{'type':'array'},{'type':'object','value':float('nan')},
+                 {'type':'object','value':object()})
+        for schema in invalid:
+            with self.subTest(schema=schema),patch('model_client.post_json') as sent:
+                with self.assertRaises(ValueError): self.client().complete_structured([],schema)
+                sent.assert_not_called()
+
+    def test_structured_seed_request_keeps_disabled_thinking_and_output_budget(self):
+        with patch.dict('os.environ',{'AI_THINKING':''}):
+            client=ModelClient(key='fake',model='doubao-seed-2-1-lite-260915',
+                url='https://example.com/chat',max_output_tokens=500)
+        with patch('model_client.post_json',return_value={'choices':[{'message':{'content':'{}'}}]}) as sent:
+            client.complete_structured([],{'type':'object'})
+        self.assertEqual(sent.call_args.args[2]['thinking'],{'type':'disabled'})
+        self.assertEqual(sent.call_args.args[2]['max_tokens'],500)
+
     def test_seed_visual_requests_disable_default_hidden_reasoning(self):
         with patch.dict('os.environ', {'AI_CHAT_URL':'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
                 'AI_API_KEY':'fixture','AI_MODEL':'doubao-seed-2-1-lite-260915','AI_THINKING':''}):

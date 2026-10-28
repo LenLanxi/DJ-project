@@ -510,6 +510,9 @@ class GatewaySafety(NoNetwork):
             gateway.vision = types.SimpleNamespace(observe=observe)
             task = asyncio.create_task(gateway.dispatch('observe', ['tent'], {}))
             await asyncio.to_thread(entered.wait, 1)
+            # Navigation observe now owns a hover lease. Reconcile that lease
+            # before beginning a new program; the delayed result is still old.
+            await gateway.finish(False)
             gateway.begin()
             release.set()
             with self.assertRaisesRegex(RuntimeError, 'program_cancelled'):

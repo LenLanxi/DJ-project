@@ -34,9 +34,9 @@ class FrameRejectionTests(unittest.TestCase):
                     self.assertTrue(service.capture_once())
                     service.control_once()
                     self.assertNotEqual(port.velocity, (0, 0, 0, 0))
-                    now[0] += 1.
+                    now[0] += 1.2
                     stamp = wall() + (.01 if kind == "future_timestamp" else
-                                      -.6 if kind == "expired_timestamp" else 0.)
+                                      -1.1 if kind == "expired_timestamp" else 0.)
                     port.publish(None if kind == "missing_pixels" else 550,
                                  3, stamp, stale=kind == "source_stale")
                     self.assertFalse(service.capture_once())

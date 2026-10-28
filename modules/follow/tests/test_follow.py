@@ -72,15 +72,24 @@ class ControllerTests(unittest.TestCase):
         self.zero(self.c.tick(10.2))
         self.assertTrue(self.c.start(10.2)[0])
 
+    def test_default_freshness_is_one_second_from_acquisition(self):
+        self.arm()
+        self.assertEqual(self.c.max_age, 1.0)
+        for now in (10.5, 10.6, 10.99, 11.0):
+            with self.subTest(now=now):
+                self.assertEqual(self.c.tick(now).state, State.TRACKING)
+        self.assertEqual(self.c.tick(11.01).state, State.STALE)
+        self.zero(self.c.last_request)
+
     def test_watchdog_without_new_frames(self):
         self.arm()
-        self.zero(self.c.tick(10.6))
+        self.zero(self.c.tick(11.1))
         self.assertEqual(self.c.state, State.STALE)
 
     def test_duplicate_does_not_refresh(self):
         self.arm()
-        self.assertFalse(self.c.observe(obs(1, 10.6, x=600)))
-        self.zero(self.c.tick(10.6))
+        self.assertFalse(self.c.observe(obs(1, 11.1, x=600)))
+        self.zero(self.c.tick(11.1))
         self.assertEqual(self.c.state, State.STALE)
 
     def test_reordered_frame_ignored(self):
@@ -119,7 +128,7 @@ class ControllerTests(unittest.TestCase):
     def test_resume_rechecks_freshness(self):
         self.arm()
         self.c.pause()
-        self.assertFalse(self.c.resume(11)[0])
+        self.assertFalse(self.c.resume(11.01)[0])
         self.zero(self.c.last_request)
 
 

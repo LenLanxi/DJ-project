@@ -85,7 +85,7 @@ class DistanceMetricTests(unittest.TestCase):
         self.assertEqual(self.estimate(reference_size_ratio=.21)["reason"], "reference_size_changed")
 
     def test_stale_and_future_frames_never_show_distance(self):
-        self.assertEqual(self.estimate(now=10.51)["reason"], "stale_frame")
+        self.assertEqual(self.estimate(now=11.01)["reason"], "stale_frame")
         self.assertEqual(self.estimate(now=9.9)["reason"], "future_frame")
 
     def test_missing_or_ambiguous_target_never_shows_distance(self):

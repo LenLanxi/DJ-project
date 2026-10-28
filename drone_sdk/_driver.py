@@ -284,7 +284,7 @@ def _sanitise_rc(channels):
     return (left_right, forward_back, up_down, yaw)
 
 
-def _call_real(fn, *, action, deadline, epoch=None, on_success=None):
+def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None):
     """Run one blocking Tello command on a worker and cap the caller's wait.
 
     取消语义：调用时绑定当时的取消编号；worker 真正拿到命令锁后、调用 fn 之前
@@ -309,11 +309,15 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None):
             _command_context.epoch = bound_epoch
             _command_context.action = action
             _command_context.outcome = outcome
+            _command_context.guard = guard
             with _lock: cancelled = _cancel_epoch != bound_epoch
             if cancelled:
                 outcome['error'] = 'cancelled_before_send'
                 _record('command_dropped', action=action, reason='cancelled_before_send',
                         bound_epoch=bound_epoch, cancel_epoch=_cancel_epoch)
+            elif guard is not None and guard.is_set() and action not in ('land', 'streamoff'):
+                outcome['error'] = 'operation_cancelled_before_send'
+                _record('command_dropped', action=action, reason='operation_cancelled_before_send')
             else:
                 if not command_channel_clear() and action not in ('land','streamoff'):
                     outcome['error'] = 'command_channel_ambiguous'
@@ -324,12 +328,14 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None):
                 outcome['ok'], outcome['error'] = True, ''
         except Exception as exc:
             outcome['error'] = (str(exc) if str(exc) in ('cancelled_before_send', 'cancelled_after_send',
-                                                        'response_timeout_after_send','command_channel_ambiguous')
+                                                        'response_timeout_after_send','command_channel_ambiguous',
+                                                        'operation_cancelled_before_send')
                                 else '%s: %s' % (type(exc).__name__, exc))
         finally:
             _command_context.epoch = None
             _command_context.action = None
             _command_context.outcome = None
+            _command_context.guard = None
             _command_lock.release()
             with _lock: _pending_commands.discard(done)
             done.set()
@@ -343,7 +349,8 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None):
     if outcome['ok']:
         _set_link_ok()
         return True, ''
-    if outcome['error'] in ('cancelled_before_send', 'cancelled_after_send', 'command_channel_ambiguous'):
+    if outcome['error'] in ('cancelled_before_send', 'cancelled_after_send', 'command_channel_ambiguous',
+                            'operation_cancelled_before_send'):
         return False, outcome['error']          # 主动丢弃不是链路故障
     _link_fault(outcome['error'])
     return False, outcome['error']
@@ -363,7 +370,7 @@ def _execute_move(tello, action, cm):
         getattr(tello, 'move_%s' % action)(cm)
 
 
-def _execute_real(action, param=None, *, epoch=None):
+def _execute_real(action, param=None, *, epoch=None, guard=None):
     global _flying, _height_cm, _last_error
     with _lock:
         tello = _tello
@@ -385,7 +392,7 @@ def _execute_real(action, param=None, *, epoch=None):
             _record('action_acknowledged', action=action)
         ok, error = _call_real(getattr(tello, action), action=action,
                                deadline=_move_deadline(action, None), epoch=epoch,
-                               on_success=acknowledged)
+                               on_success=acknowledged, guard=guard)
         if ok:
             if action == 'takeoff': _current_height(tello)
             return True
@@ -398,7 +405,8 @@ def _execute_real(action, param=None, *, epoch=None):
             _record('action_unknown', action='takeoff', error=error)
             threading.Thread(target=_reconcile_later, args=(tello, token), daemon=True,
                              name='tello-reconcile').start()
-        elif action == 'takeoff' and error not in ('command_busy', 'link_down','cancelled_before_send','command_channel_ambiguous'):
+        elif action == 'takeoff' and error not in ('command_busy', 'link_down','cancelled_before_send',
+                                                 'command_channel_ambiguous','operation_cancelled_before_send'):
             # 飞控明确回 error（区别于超时）。现场原因基本只有低电量一条：
             # 电量 50% 时 takeoff 会在 0.1s 内被拒。记下可操作的诊断，
             # 别让上层只看到 "takeoff was unsuccessful for 2 tries"。
@@ -418,7 +426,7 @@ def _execute_real(action, param=None, *, epoch=None):
              _plan_descent(param) if action == 'down' else param)
         if cm is None: return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, cm), action=action,
-                                deadline=_move_deadline(action, cm), epoch=epoch)
+                                deadline=_move_deadline(action, cm), epoch=epoch, guard=guard)
         if ok:
             if action in ('up', 'down'):
                 with _lock:
@@ -430,23 +438,26 @@ def _execute_real(action, param=None, *, epoch=None):
             _record('action_rejected', action=action, reason='invalid_degrees', param=param)
             return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, param), action=action,
-                                deadline=_move_deadline(action, param), epoch=epoch)
+                                deadline=_move_deadline(action, param), epoch=epoch, guard=guard)
         return ok
     _record('action_rejected', action=action, reason='unknown_action', param=param)
     return False
 
 
-def execute(action, param=None, *, epoch=None):
+def execute(action, param=None, *, epoch=None, guard=None):
     with _lock:
         real, delay = not SIMULATED, _delay
     if not real:
+        if guard is not None and guard.is_set() and action != 'land':
+            _record('command_dropped', action=action, reason='operation_cancelled_before_send')
+            return False
         if epoch is not None and epoch != capture_cancel_epoch():
             _record('command_dropped', action=action, reason='cancelled_before_send')
             return False
         _record('action_sent', action=action, param=param)
         if delay: time.sleep(delay)
         return True
-    return _execute_real(action, param, epoch=epoch)
+    return _execute_real(action, param, epoch=epoch, guard=guard)
 
 
 def _reconcile_later(tello, token=None, delay=1.5):
@@ -484,13 +495,16 @@ def reconcile_state(tello=None, token=None):
         return resolved
 
 
-def set_velocity(channels, reason):
+def set_velocity(channels, reason, *, guard=None):
     global _velocity
     with _lock: real = not SIMULATED
     if real and any(channels) and not command_channel_clear():
         _record('velocity_rejected', reason='command_channel_ambiguous')
         return False
     applied = _sanitise_rc(channels) if real else tuple(channels)
+    if any(applied) and guard is not None and guard.is_set():
+        _record('velocity_rejected', reason='operation_cancelled_before_send')
+        return False
     with _lock:
         _velocity = applied
         _events.append(dict(event='velocity', channels=_velocity, reason=reason,
@@ -498,12 +512,18 @@ def set_velocity(channels, reason):
         tello = _tello
     if not real: return True
     if tello is None: return False
+    previous_guard = getattr(_command_context, 'guard', None)
+    _command_context.guard = guard
     try:
         tello.send_rc_control(*applied)
         return True
     except Exception as exc:
+        if str(exc) == 'operation_cancelled_before_send':
+            return False  # An expired local evidence/cancellation guard is not a link fault.
         _link_fault('rc_control: %s' % exc)
         return False
+    finally:
+        _command_context.guard = previous_guard
 
 
 def set_speed(cm_s):
@@ -627,6 +647,10 @@ def _wire_send(command, send):
                 _record('command_dropped', command=command, reason='cancelled_before_wire_send')
                 raise RuntimeError('cancelled_before_send')
             safe = command in ('land','streamoff') or command.split() == ['rc','0','0','0','0']
+            guard = getattr(_command_context, 'guard', None)
+            if not safe and guard is not None and guard.is_set():
+                _record('command_dropped', command=command, reason='operation_cancelled_before_send')
+                raise RuntimeError('operation_cancelled_before_send')
             if _response_quarantine is not None and not safe:
                 raise RuntimeError('command_channel_ambiguous')
         send(command)
@@ -692,7 +716,13 @@ def _tello_class(timeout):
                     _mark_response_unknown(getattr(_command_context, 'action', None) or command.split()[0], 'response_timeout_after_send')
                     raise RuntimeError('response_timeout_after_send')
                 time.sleep(.01)
-            response = responses.pop(0).decode('utf-8').strip()
+            reply = responses.pop(0)
+            try:
+                response = reply.decode('utf-8').strip()
+            except UnicodeDecodeError:
+                _record('invalid_command_reply', command=command.split()[0],
+                        reply_hex=reply[:256].hex(), reply_bytes=len(reply))
+                raise
             self.last_received_command_timestamp = time.time()
             return response
         def send_command_without_return(self, command):
@@ -730,6 +760,9 @@ def connect(address=None, *, timeout=RESPONSE_TIMEOUT_S):
                     max_attempts=CONNECT_ATTEMPTS)
             try: candidate.end()
             except Exception: pass
+            # Dispose the failed object's destructor before a replacement
+            # registers the same host in djitellopy's shared drones mapping.
+            candidate = None
             if attempt < CONNECT_ATTEMPTS: time.sleep(CONNECT_RETRY_DELAY_S)
     if tello is None:
         raise RuntimeError('tello_not_ready: %s' % ready_error)
@@ -834,24 +867,40 @@ def stop_video():
     with _lock:
         tello, reader, _video = _tello, _video, None
     stop = getattr(reader, 'stop', None)
+    decoder_stopped = True
     if callable(stop):
         try: stop()
-        except Exception as exc: _record('video_stop_failed', error=str(exc))
+        except Exception as exc:
+            decoder_stopped = False
+            _record('video_stop_failed', error=str(exc))
+            # Keep the reader reachable so a later stop can retry cleanup.
+            with _lock:
+                if _video is None: _video = reader
     if tello is None: return False
     ok, _error = _call_real(tello.streamoff, action='streamoff',
                             deadline=COMMAND_DEADLINE_S['land'])
-    time.sleep(.2)  # 让解码线程彻底释放 11111 端口
-    return ok
+    time.sleep(.2)
+    return ok and decoder_stopped
 
 
 _PLACEHOLDER_SHAPE = (300, 400, 3)
 VIDEO_BACKEND = 'av'          # 现场已验证：自研 av 后端（真机实测 720x960 出图）
 VIDEO_BACKENDS = ('av', 'djitellopy')
-# FFmpeg fifo_size is in 188-byte units, not bytes. Its documented default
-# 7*4096 is 5,390,336 bytes. 50,000,000 overflows the byte-size multiplication
-# in some libavformat versions and permits a huge stale queue in others.
-# A full queue must surface an error/reconnect, not silently discard new input.
-VIDEO_URL_OPTIONS = '?overrun_nonfatal=0&fifo_size=28672'
+# FFmpeg fifo_size uses 188-byte units: 2048 is 385,024 bytes, compared with
+# its 5,390,336-byte default. Keep a separate 64KiB socket receive request.
+# Loopback 720p H264 keyframe bursts rejected 512 units and intermittently
+# overran 1024; 2048 leaves room for the tested 241KB compressed keyframe.
+# These are requested local buffers, not a camera-to-host age bound.
+# A full queue is fatal; probing is also bounded because it buffers separately.
+# Official options: ffmpeg.org/ffmpeg-protocols.html#udp and ffmpeg-formats.html.
+VIDEO_URL_OPTIONS = '?overrun_nonfatal=0&fifo_size=2048&buffer_size=65536&timeout=1000000'
+VIDEO_DECODE_OPTIONS = {'probesize': '32768', 'analyzeduration': '0'}
+VIDEO_MAX_DECODE_GAP_S = 1.0
+VIDEO_MAX_CONVERSION_S = .05
+# PyAV restarts open_timeout for opening the input AND probing stream info.
+# Bound each native phase so both can finish within stop()'s three-second
+# default budget, including UDP cleanup. A failed probe retries normally.
+VIDEO_IO_PHASE_TIMEOUT_S = 1.0
 
 
 class _VideoDecoder(threading.Thread):
@@ -874,7 +923,11 @@ class _VideoDecoder(threading.Thread):
         self.reconnects = 0
         self.errors = []
         self.opened = 0
+        self.invalid_packets = 0
+        self.processing_rejections = 0
+        self.gap_rejections = 0
         self.last_frame_at = 0.0
+        self.last_frame_timestamp = 0.0
         self._container = None
 
     def _note(self, text):
@@ -882,13 +935,36 @@ class _VideoDecoder(threading.Thread):
             self.errors.append(text)
             del self.errors[:-6]
 
+    def _decode_packets(self, container):
+        import av
+        if self._halt.is_set():
+            return
+        for packet in container.demux(video=0):
+            if self._halt.is_set():
+                return
+            try:
+                frames = packet.decode()
+            except av.error.InvalidDataError as exc:
+                self.invalid_packets += 1
+                # Joining H264 between keyframes can lack references/SPS.
+                # Keep consuming the bounded stream rather than reopening at
+                # another arbitrary byte; never expose a previous cached frame.
+                self._note('invalid_packet: %s' % exc)
+                with self._lock:
+                    self._frame = None
+                    self.last_frame_at = self.last_frame_timestamp = 0.
+                continue
+            yield from frames
+
     def run(self):
         import av
         while not self._halt.is_set():
             container = None
             try:
                 container = av.open(self.url + VIDEO_URL_OPTIONS,
-                                    timeout=(self.open_timeout, self.read_timeout))
+                                    format='h264', options=dict(VIDEO_DECODE_OPTIONS),
+                                    timeout=(min(self.open_timeout, VIDEO_IO_PHASE_TIMEOUT_S),
+                                             min(self.read_timeout, VIDEO_IO_PHASE_TIMEOUT_S)))
             except Exception as exc:
                 # A plain-URL fallback would silently bypass the chosen queue
                 # and overflow policy. Retry the same explicit policy instead.
@@ -900,19 +976,45 @@ class _VideoDecoder(threading.Thread):
             with self._lock:
                 self.opened += 1
                 self._container = container
+            last_decoded_at = None
             try:
-                for packet in container.decode(video=0):
+                for packet in self._decode_packets(container):
                     if self._halt.is_set():
                         break
+                    conversion_started = time.monotonic()
                     try:
                         frame = packet.to_ndarray(format='bgr24')
                     except Exception as exc:
                         self._note('to_ndarray: %s' % exc)
                         continue
+                    decoded_at = time.monotonic()
+                    if last_decoded_at is None:
+                        # Opening mid-GOP needs a keyframe, not a .5s flight
+                        # deadline. Discard the first frame; only subsequent
+                        # continuous decoding may establish a published frame.
+                        last_decoded_at = decoded_at
+                        continue
+                    if decoded_at-conversion_started > VIDEO_MAX_CONVERSION_S:
+                        self.processing_rejections += 1
+                        # Detect measured local conversion/scheduling overload
+                        # before assigning this frame a new publication time.
+                        # This does not time FFmpeg's internal decode or prove
+                        # camera exposure/network freshness.
+                        raise RuntimeError('frame_processing_exceeded: %.3fs; discard queued frames' %
+                                           (decoded_at-conversion_started))
+                    if decoded_at-last_decoded_at > VIDEO_MAX_DECODE_GAP_S:
+                        self.gap_rejections += 1
+                        # A stalled decoder may now be consuming an old local
+                        # queue. Reject this frame BEFORE giving it a new time,
+                        # then reopen to discard that queue. This conservative
+                        # local check cannot detect camera/Wi-Fi upstream delay.
+                        raise RuntimeError('decode_gap_exceeded: %.3fs; discard queued frames' %
+                                           (decoded_at-last_decoded_at))
+                    last_decoded_at = decoded_at
                     with self._lock:
                         self._frame = frame
                         self.count += 1
-                        self.last_frame_at = time.monotonic()
+                        self.last_frame_at = decoded_at
                         # Host decode-completion time, NOT camera exposure or
                         # network reception. Fresh decode age cannot prove
                         # sensor-to-controller latency when upstream is queued.
@@ -922,6 +1024,8 @@ class _VideoDecoder(threading.Thread):
             finally:
                 with self._lock:
                     self._container = None
+                    self._frame = None
+                    self.last_frame_at = self.last_frame_timestamp = 0.
                 try:
                     container.close()
                 except Exception:
@@ -940,8 +1044,10 @@ class _VideoDecoder(threading.Thread):
         with self._lock:
             frame = self._frame
             return dict(backend='av', count=self.count, reconnects=self.reconnects,
+                        invalid_packets=self.invalid_packets,processing_rejections=self.processing_rejections,
+                        gap_rejections=self.gap_rejections,
                         opened=self.opened, errors=list(self.errors),
-                        age=round(time.monotonic() - self.last_frame_at, 2) if self.count else None,
+                        age=round(time.monotonic() - self.last_frame_at, 2) if self.last_frame_at else None,
                         shape=list(frame.shape) if frame is not None else None,
                         mean=round(float(frame.mean()), 2) if frame is not None else None)
 
@@ -949,11 +1055,13 @@ class _VideoDecoder(threading.Thread):
         """停止解码并等到线程退出。
 
         绝不从外部线程 close 容器：FFmpeg 正在 decode 时跨线程关闭会直接崩溃
-        (0xC0000005)。这里靠 read_timeout 让 decode 自己返回，再 join。
+        (0xC0000005)。打开、探测和读取均限制单阶段等待；由解码线程关闭容器。
         """
         self._halt.set()
         if self.is_alive():
             self.join(timeout)
+        if self.is_alive():
+            raise TimeoutError('video decoder did not stop within %.3fs' % timeout)
 
 
 def _is_placeholder(frame):

@@ -132,14 +132,15 @@ class RTCBridgeTests(unittest.IsolatedAsyncioTestCase):
             await self.bridge.message(tool(self.bridge, code='drone.takeoff()'))
         self.assertEqual(len([call for call in self.runtime.calls if call[0]=='run']),1)
 
-    async def test05_one_complete_program_per_user_turn(self):
+    async def test05_model_decides_sequential_program_count_in_same_user_turn(self):
         await self.bridge.message(turn(self.bridge))
-        await self.bridge.message(tool(self.bridge))
-        await self.settle()
-        await self.bridge.message(tool(self.bridge, call_id='call2'))
-        await self.settle()
-        self.assertEqual(len([call for call in self.runtime.calls if call[0]=='run']),1)
-        self.assertEqual(self.out[-1]['result']['reason'],'turn_program_budget_exceeded')
+        epoch=self.bridge.epoch
+        for index in range(5):
+            await self.bridge.message(tool(self.bridge,call_id='call'+str(index)))
+            await self.settle()
+            self.assertTrue(self.out[-1]['result']['ok'])
+        self.assertEqual(len([call for call in self.runtime.calls if call[0]=='run']),5)
+        self.assertEqual(self.bridge.epoch,epoch)
 
     async def test06_parallel_program_is_busy_not_admitted(self):
         self.runtime.release.clear()
@@ -253,6 +254,31 @@ class RTCBridgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(call[0]=='run' for call in self.runtime.calls))
         self.assertFalse(self.out[-1]['result']['ok'])
         self.assertIn('invalid_program_arguments',self.out[-1]['result']['reason'])
+        self.assertIn('code_bytes=604', self.out[-1]['result']['reason'])
+        self.assertEqual(self.bridge.revoked, set())
+        self.assertFalse(any(call[0] == 'interrupt' for call in self.runtime.calls))
+        received = next(e for e in self.events if e['event'] == 'rtc_tool_received')
+        self.assertIn('code', received['arguments_preview'])
+        bad = tool(self.bridge, call_id='malformed')
+        bad['calls'][0]['function']['arguments'] = '{"code":'
+        await self.bridge.message(bad)
+        await self.settle()
+        self.assertFalse(self.out[-1]['result']['ok'])
+        await self.bridge.message(tool(self.bridge, call_id='corrected'))
+        await self.settle()
+        self.assertTrue(self.out[-1]['result']['ok'])
+        self.assertEqual(len([c for c in self.runtime.calls if c[0] == 'run']), 1)
+        self.assertEqual(self.bridge.revoked, set())
+
+    async def test_client_stop_reason_is_preserved_without_claiming_operator_action(self):
+        await self.bridge.message({'type': 'interrupt', 'land': False,
+                                  'source': 'client_stop', 'reason': 'RTC错误：fixture'})
+        event = next(e for e in self.events if e['event'] == 'rtc_client_interrupt')
+        self.assertEqual(event['source'], 'client_stop')
+        self.assertEqual(event['reported_reason'], 'RTC错误：fixture')
+        revoked = next(e for e in self.events if e['event'] == 'rtc_authority_revoked')
+        self.assertEqual(revoked['reason'], 'client_stop')
+        self.assertIn(('interrupt', False), self.runtime.calls)
 
     async def test23_repeated_bind_does_not_extend_session_deadline(self):
         deadline = self.bridge.session_deadline
