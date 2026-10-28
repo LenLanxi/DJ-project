@@ -31,9 +31,9 @@ class LongRecoveryTests(unittest.TestCase):
 
     def test_long_window_does_not_extend_frame_expiry(self):
         self.frame(.1,False)
-        self.assertEqual(self.c.tick(.61).right,0)
+        self.assertEqual(self.c.tick(1.11).right,0)
         self.assertEqual(self.c.state,State.STALE)
-        for t in (.7,.8,.9): self.assertEqual(self.frame(t).right,0)
+        for t in (1.2,1.3,1.4): self.assertEqual(self.frame(t).right,0)
 
     def test_stop_cancels_long_window(self):
         self.frame(.1,False)

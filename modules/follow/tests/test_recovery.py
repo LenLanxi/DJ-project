@@ -94,13 +94,13 @@ class RecoveryTests(unittest.TestCase):
 
     def test_frozen_stream_is_latched(self):
         self.lose()
-        self.zero(self.c.tick(.61))
+        self.zero(self.c.tick(1.11))
         self.assertEqual(self.c.state, State.STALE)
-        self.zero(self.frame(.65))
+        self.zero(self.frame(1.15))
 
     def test_new_frame_cannot_bypass_watchdog(self):
         self.lose()
-        self.zero(self.frame(.65))
+        self.zero(self.frame(1.15))
         self.assertEqual(self.c.state, State.STALE)
 
     def test_another_loss_resets_confirmation_without_extending_deadline(self):

@@ -8,7 +8,7 @@ from .depth_brake import DepthBrake
 
 _DEFAULT_STEERING = object()
 # Unix double timestamps around 2026 have ~0.24 microsecond spacing. Mapping
-# them to monotonic time can put an exact 0.5-second boundary a few ulps over.
+# them to monotonic time can put an exact one-second boundary a few ulps over.
 # One microsecond is numeric tolerance only, not a longer image lifetime.
 FRAME_TIME_EPSILON = 1e-6
 

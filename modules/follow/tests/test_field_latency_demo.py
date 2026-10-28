@@ -34,7 +34,7 @@ class FieldLatencyDemoTests(unittest.TestCase):
         self.assertEqual(timing['constructed_434ms_unbounded']['state_on_return'], 'frame_stale')
         self.assertEqual(timing['constructed_434ms_cooperative']['state_on_return'], 'recovering_target')
         before = timing['constructed_434ms_unbounded']
-        self.assertAlmostEqual(before['faults'][0]['time']-before['last_good_capture'], .504)
+        self.assertAlmostEqual(before['faults'][0]['time']-before['last_good_capture'], 1.004)
         self.assertAlmostEqual(before['returned_at']-before['faults'][0]['time'], .024)
 
     def test_constant_zero_control_cannot_pass(self):

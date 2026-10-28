@@ -78,18 +78,18 @@ def run(output):
                 (output / 'three_markers.png').write_bytes(encoded.tobytes())
             before_batch = time.perf_counter()
             for i, (service, port, config) in enumerate(zip(services, ports, configs)):
-                if i == 2 and 39 <= step <= 46:
+                if i == 2 and 38 <= step <= 49:
                     if frozen is None:
                         frozen = (frame.copy(), step, clock.value)
                     port.publish(*frozen)
                 else:
                     port.publish(frame.copy(), step, clock.value)
-                source_step = frozen[1] if i == 2 and 39 <= step <= 46 else step
+                source_step = frozen[1] if i == 2 and 38 <= step <= 49 else step
                 service.capture_once()
                 if step == 0:
                     assert service.calibrate_reference().ok
                     assert service.start_follow().ok
-                if step == 47 and i == 2:
+                if step == 50 and i == 2:
                     assert service.start_follow().ok
                 if step == 45 and i == 0 or step == 55 and i == 2:
                     service.stop_follow()
@@ -162,10 +162,10 @@ def run(output):
             for r in own if r["step"] >= stop_at)
     checks["C_frozen_frame_stops"] = all(
         r["state"] == "frame_stale" and r["left_right"] == r["forward_back"] == r["up_down"] == r["yaw"] == 0
-        for r in rows if r["instance"] == configs[2].instance_id and r["step"] in (45, 46))
+        for r in rows if r["instance"] == configs[2].instance_id and r["step"] == 49)
     checks["C_explicit_restart"] = any(
         r["state"] == "tracking" and r["yaw"] > 0
-        for r in rows if r["instance"] == configs[2].instance_id and 48 <= r["step"] <= 49)
+        for r in rows if r["instance"] == configs[2].instance_id and 51 <= r["step"] <= 54)
     with (output / "steps.csv").open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()

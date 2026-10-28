@@ -141,7 +141,7 @@ class ServiceFixTests(unittest.TestCase):
                 self.assertGreater(self.port.velocity[3], 0)
                 if case == "loss": self.frame(found=False, advance=.01)
                 elif case == "stale":
-                    self.t += .51
+                    self.t += 1.01
                     self.service.control_once()
                 elif case == "rejected":
                     with patch.object(self.port, "update_velocity", return_value=Result("failed", "injected")):

@@ -79,7 +79,7 @@ class ClosedLoopExperiments(unittest.TestCase):
         self.assertTrue(all(r['state'] == State.STOPPED for r in rows if r['time'] >= 5))
 
     def test_excessive_delay_fails_closed(self):
-        rows, _ = run(Scenario('delay', delay=.6))
+        rows, _ = run(Scenario('delay', delay=1.1))
         self.assertEqual(rows[-1]['state'], State.STALE)
         self.assertTrue(all(r['right'] == r['forward'] == 0 for r in rows))
 

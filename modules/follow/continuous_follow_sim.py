@@ -40,6 +40,7 @@ SCENARIOS = (
     Scenario('frozen_frames', motion=True, freeze_start=5, freeze_end=7),
     Scenario('explicit_stop', motion=True, stop_at=5),
     Scenario('delay_600ms', delay=.6),
+    Scenario('delay_1100ms', delay=1.1),
     Scenario('slow_response', motion=True, response_time=1.0),
     Scenario('deadzone_jitter', profile='deadzone'),
     Scenario('sudden_reversal', profile='reversal'),
@@ -50,7 +51,7 @@ SCENARIOS = (
 
 MATRIX = tuple(Scenario(f'matrix_tau{tau}_delay{delay}', motion=True,
                        response_time=tau, delay=delay)
-               for tau in (.1, .25, 1.) for delay in (0., .2, .4, .6))
+               for tau in (.1, .25, 1.) for delay in (0., .2, .4, .6, 1.1))
 
 
 def run(scenario, ramp=.8):

@@ -101,7 +101,7 @@ class Team2IntegrationTests(unittest.TestCase):
     def test_stale_and_duplicate_frames(self):
         self.ready()
         seq=self.service.last_frame_id
-        self.now+=.6
+        self.now+=1.1
         self.service.capture_once();self.service.control_once()
         self.assertEqual(self.service.last_frame_id,seq)
         self.assertFalse(self.bridge.is_following())

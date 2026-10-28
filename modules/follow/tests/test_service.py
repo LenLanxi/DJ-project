@@ -80,7 +80,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_duplicate_frame_never_refreshes_age(self):
         self.moving()
-        self.clock.now += .6
+        self.clock.now += 1.1
         self.assertFalse(self.service.capture_once())
         self.service.control_once()
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))
@@ -125,7 +125,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_expired_new_frame_is_rejected(self):
         self.moving()
-        self.port.publish((True, 550), self.seq + 1, self.clock.wall() - .6)
+        self.port.publish((True, 550), self.seq + 1, self.clock.wall() - 1.1)
         self.assertFalse(self.service.capture_once())
         self.assertFalse(self.service.is_following())
 
@@ -297,7 +297,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_expired_follow_before_handoff_cannot_resume(self):
         self.moving()
-        self.clock.now += .6
+        self.clock.now += 1.1
         _, ticket = self.service.pause_for_action()
         self.frame(550)
         self.assertFalse(self.service.finish_action(ticket, "completed").ok)
@@ -306,7 +306,7 @@ class ServiceTests(unittest.TestCase):
         self.moving()
         detect = self.service.tracker.detect
         def slow(*args, **kwargs):
-            self.clock.now += .6
+            self.clock.now += 1.1
             return detect(*args, **kwargs)
         with patch.object(self.service.tracker, "detect", side_effect=slow):
             self.frame(550)

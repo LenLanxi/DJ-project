@@ -121,9 +121,9 @@ class VisibleYawTests(unittest.TestCase):
                 request = c.tick(.6)
             elif failure == "duplicate":
                 self.assertFalse(c.observe(observation(5, 1.1)))
-                request = c.tick(1.1)
+                request = c.tick(1.6)
             else:
-                request = c.tick(1.1)
+                request = c.tick(1.6)
             self.zero(request)
 
     def test_recovery_restarts_from_zero_and_stop_cancels_it(self):
@@ -169,13 +169,13 @@ class YawFeedbackTests(unittest.TestCase):
     def test_camera_projection_responds_to_turning_over_curve_and_latency_matrix(self):
         from turn_follow_check import run_scenario
         for response in (.1, .25, 1.):
-            for delay in (0., .2, .4, .6):
+            for delay in (0., .2, .4, .6, 1.1):
                 with self.subTest(response=response, delay=delay):
                     rows, summary = run_scenario(response=response, delay=delay)
                     self.assertEqual(summary["nontracking_nonzero"], 0)
                     self.assertTrue(summary["virtual_heading_changed"])
                     self.assertFalse(summary["physical_flight_verified"])
-                    if delay <= .5:
+                    if delay <= 1.:
                         self.assertEqual(summary["last_state"], "tracking")
                         self.assertTrue(all(r["target_visible_now"] for r in rows))
                         self.assertLess(abs(summary["final_visible_horizontal_error"]), .15)

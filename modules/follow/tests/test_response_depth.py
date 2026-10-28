@@ -99,7 +99,7 @@ class RelativeDepthTests(unittest.TestCase):
                 if seq<4:self.assertEqual(c.last_request.forward,0)
             self.assertEqual(c.state,State.TRACKING)
             self.assertGreater(c.last_request.forward,0)
-            c.observe(observation(5,t+.51,size=.15));self.assertEqual(c.tick(t+.51).state,State.STALE)
+            c.observe(observation(5,t+1.01,size=.15));self.assertEqual(c.tick(t+1.01).state,State.STALE)
             self.assertEqual(c.last_request.forward,0)
 
 
@@ -197,7 +197,7 @@ class ResponseServiceTests(unittest.TestCase):
         port.sdk = SimpleNamespace(get_status=lambda: status)
         with patch('r3_follow.team2_adapter.time.time',return_value=100.):
             self.assertFalse(port.get_status().height_fresh)
-            for stamp,valid in ((99.6,True),(99.4,False),(101,False),(True,False),(float('nan'),False)):
+            for stamp,valid in ((99.6,True),(99.4,True),(99.,True),(98.99,False),(101,False),(True,False),(float('nan'),False)):
                 status.height_timestamp=stamp
                 self.assertEqual(port.get_status().height_fresh,valid)
             status.simulated=True
@@ -242,7 +242,7 @@ class ResponseServiceTests(unittest.TestCase):
                 if outcome=='busy':
                     lease=port.request_control('model').lease
                     port.update_velocity(lease,left_right=9,forward_back=0,up_down=0,yaw=0)
-                if outcome=='stale':clock.now+=.6
+                if outcome=='stale':clock.now+=1.1
                 if outcome=='stopped':s.stop_follow()
                 r=s.finish_action(ticket,'failed' if outcome=='failed' else 'completed')
                 self.assertFalse(r.ok)

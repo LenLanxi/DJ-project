@@ -22,7 +22,7 @@ class PreintegrationTests(unittest.TestCase):
                 self.assertLessEqual(report['max_request'],.3)
                 self.assertTrue(all(math.isfinite(r[k]) for r in rows for k in
                                     ('right','forward','x_error','size_error','velocity_x','velocity_z')))
-                if case.delay > .5:
+                if case.delay > 1.:
                     self.assertEqual(rows[-1]['state'],'frame_stale')
 
     def test_generated_truth_and_determinism(self):

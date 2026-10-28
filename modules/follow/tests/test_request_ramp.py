@@ -63,8 +63,8 @@ class RequestRampTests(unittest.TestCase):
         self.sample(c,1,.1)
         old=c.last_request.right
         self.assertEqual(c.tick(.1).right,old)
-        self.assertEqual(c.tick(.61).right,0)
-        self.sample(c,2,.7)
+        self.assertEqual(c.tick(1.11).right,0)
+        self.sample(c,2,1.2)
         self.assertEqual(c.last_request.right,0)
 
     def test_rate_validation_and_default_compatibility(self):

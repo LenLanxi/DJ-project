@@ -90,7 +90,7 @@ class CloseoutRuntimeTests(unittest.TestCase):
     def test_hybrid_stale_stops_and_requires_new_start(self):
         clock, reader, port, service, frame = self.instance('hybrid')
         for _ in range(4): frame(x=.75, size=.18)
-        clock.now += .51
+        clock.now += 1.01
         service.control_once()
         self.assertEqual(port.velocity, (0, 0, 0, 0))
         for _ in range(4): frame(x=.75, size=.18)

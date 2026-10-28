@@ -43,10 +43,10 @@ class ExperimentTests(unittest.TestCase):
         c = self.armed(3)
         self.frame(c, 1, .1, False)
         self.frame(c, 1, .6, True)  # duplicate sequence cannot refresh
-        c.tick(.61)
+        c.tick(1.11)
         self.assertEqual(c.state, State.STALE)
         self.assertEqual(c.last_request.right, 0)
-        self.frame(c, 2, .7)
+        self.frame(c, 2, 1.2)
         self.assertEqual(c.state, State.STALE)
 
     def test_duplicate_target_latches_and_retains_reason(self):

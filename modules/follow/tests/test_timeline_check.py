@@ -28,7 +28,7 @@ class TimelineTests(unittest.TestCase):
 
     def test_detector_stall_expires_old_motion_without_waiting_for_return(self):
         w=Timeline(case='cpu_spike',costs=[.03]);r,events=w.run(5.)
-        stalled=next(j for j in w.jobs if j['scheduled_cost_ms']>500)
+        stalled=next(j for j in w.jobs if j['scheduled_cost_ms']>1000)
         halt=next(e for e in events if e['event']=='tracking_halted')
         self.assertLess(halt['time'],stalled['completed_at'])
         self.assertEqual(r['last_state'],'frame_stale')
@@ -43,18 +43,18 @@ class TimelineTests(unittest.TestCase):
         self.assertTrue(all(row['rc_forward']==0 for row in w.rows if row['t']>=6.))
 
     def test_delay_plus_work_expired_result_never_starts(self):
-        w=Timeline(costs=[.12],delay=.4);r,_=w.run(2.)
+        w=Timeline(costs=[.12],delay=.9);r,_=w.run(2.)
         self.assertFalse(r['started'])
         self.assertEqual(r['last_state'],'frame_stale')
         self.assertTrue(all(row['rc_forward']==0 for row in w.rows))
 
-    def test_roundoff_at_half_second_does_not_latch_but_long_gap_does(self):
+    def test_roundoff_at_one_second_does_not_latch_but_long_gap_does(self):
         w=Timeline(costs=[.10],delay=.2);r,_=w.run(4.)
         self.assertEqual(r['last_state'],'tracking')
         c=FollowController(control_profile='openpose_pid',distance_mode='relative_size')
         c.observe(observation(0,0));c.calibrate(0);c.start(0)
-        self.assertEqual(c.tick(.5000002).state,State.TRACKING)
-        self.assertEqual(c.tick(.50001).state,State.STALE)
+        self.assertEqual(c.tick(1.0000002).state,State.TRACKING)
+        self.assertEqual(c.tick(1.00001).state,State.STALE)
         self.assertEqual(c.last_request.forward,0.)
 
     def test_scheduled_work_cannot_bypass_detector_budget_even_if_result_fresh(self):

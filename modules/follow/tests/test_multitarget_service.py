@@ -193,7 +193,7 @@ class MultiInstanceTests(unittest.TestCase):
                 elif action == "stop": a.service.stop_follow()
                 elif action == "lost": a.frame(found=False)
                 elif action == "expired":
-                    a.t += .6
+                    a.t += 1.1
                     a.service.control_once()
                 else:
                     with patch.object(a.port, "update_velocity", return_value=Result("failed", "test_failure")):
