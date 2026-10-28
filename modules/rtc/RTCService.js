@@ -25,10 +25,10 @@ const DEFAULT_TOOLS = [
 function safeCode(value) { return String(value || 'unknown').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 100); }
 function loadConfig(env = process.env) {
   const port = Number(env.RTC_PORT || 0);
-  const sessionSeconds = Number(env.RTC_SESSION_SECONDS || 180);
+  const sessionSeconds = Number(env.RTC_SESSION_SECONDS || 30000);
   const runtimeDeadline = env.RTC_RUNTIME_DEADLINE_MS ? Number(env.RTC_RUNTIME_DEADLINE_MS) : null;
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('invalid_RTC_PORT');
-  if (!Number.isFinite(sessionSeconds) || sessionSeconds <= 0 || sessionSeconds > 180) throw new Error('invalid_RTC_SESSION_SECONDS');
+  if (!Number.isFinite(sessionSeconds) || sessionSeconds <= 0 || sessionSeconds > 30000) throw new Error('invalid_RTC_SESSION_SECONDS');
   if (runtimeDeadline !== null && (!Number.isSafeInteger(runtimeDeadline) || runtimeDeadline <= 0))
     throw new Error('invalid_RTC_RUNTIME_DEADLINE_MS');
   let tools = DEFAULT_TOOLS;
@@ -159,14 +159,23 @@ class SessionController {
   }
   publicSession() {
     const s = this.session;
-    const tokenExpiresAt = Math.floor(s.expiresAt / 1000) + 30;
+    const now = Math.floor(this.now() / 1000);
+    const tokenExpiresAt = Math.min(Math.floor(s.expiresAt / 1000) + 30, now + 3600);
     return { ok: true, sessionId: s.id, appId: this.config.appId,
       token: createToken(this.config.appId, this.config.appKey, s.roomId, s.userId,
-                         tokenExpiresAt, { now: Math.floor(this.now() / 1000) }),
+                         tokenExpiresAt, { now }),
       roomId: s.roomId, userId: s.userId, botId: s.botId, taskId: s.taskId,
       businessId: this.config.businessId, expiresAt: s.expiresAt, tokenExpiresAt,
       bridgeUrl: this.config.bridgeUrl, bridgeToken: this.config.bridgeToken,
       status: s.status, hardwareVerified: false };
+  }
+  renewToken(id) {
+    const s = this.require(id);
+    if (s.stopRequested || s.status === 'stopped' || this.now() >= s.expiresAt)
+      throw Object.assign(new Error('session_expired'), { statusCode: 409 });
+    const { token, tokenExpiresAt, expiresAt } = this.publicSession();
+    this.audit('rtc_token_renewed', s);
+    return { ok: true, sessionId: s.id, token, tokenExpiresAt, expiresAt };
   }
   require(id) {
     if (!this.session || typeof id !== 'string' || id !== this.session.id)
@@ -321,6 +330,7 @@ function createService(options = {}) {
         else if (route === '/api/update') result = await controller.update(value.sessionId, value.command, value.message);
         else if (route === '/api/stop') result = await controller.stop(value.sessionId);
         else if (route === '/api/heartbeat') result = controller.heartbeat(value.sessionId);
+        else if (route === '/api/token') result = controller.renewToken(value.sessionId);
         else return json(res, 404, { ok: false, error: 'not_found' });
         return json(res, result.ok ? 200 : 409, result);
       }

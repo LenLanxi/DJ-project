@@ -24,10 +24,12 @@ class VideoTests(unittest.TestCase):
     def test01_explicit_fifo_has_documented_units_and_fatal_overrun(self):
         options = parse_qs(driver.VIDEO_URL_OPTIONS.lstrip('?'))
         units = int(options['fifo_size'][0])
-        self.assertEqual(units, 7 * 4096)
-        self.assertEqual(units * 188, 5390336)
+        self.assertLessEqual(units, 2048)
+        self.assertGreaterEqual(units, 1024)
+        self.assertLessEqual(units * 188, 385024)
         self.assertLess(units * 188, 2**31)
         self.assertEqual(options['overrun_nonfatal'], ['0'])
+        self.assertEqual(options['buffer_size'], ['65536'])
 
     def test02_open_failure_never_retries_an_unbounded_plain_url(self):
         decoder = driver._VideoDecoder('udp://127.0.0.1:19999')
@@ -39,6 +41,8 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(opened.call_count, 1)
         self.assertEqual(opened.call_args.args[0], decoder.url + driver.VIDEO_URL_OPTIONS)
         self.assertEqual(opened.call_args.kwargs['timeout'], (5, 2))
+        self.assertEqual(opened.call_args.kwargs['format'], 'h264')
+        self.assertLessEqual(int(opened.call_args.kwargs['options']['probesize']), 32768)
         self.assertTrue(any('open(bounded_udp)' in error for error in decoder.errors))
 
     def test03_decode_overrun_is_visible_then_reconnects_under_the_same_policy(self):
@@ -50,9 +54,12 @@ class VideoTests(unittest.TestCase):
                 return np.zeros((16, 16, 3), np.uint8)
         class Container:
             def __init__(self, fails): self.fails = fails
-            def decode(self, video):
+            def demux(self, video):
                 if self.fails: raise OSError('Circular buffer overrun')
-                yield Frame()
+                class Packet:
+                    def decode(self): return [Frame()]
+                yield Packet()
+                yield Packet()
                 decoder._halt.set()
             def close(self): closed.append(self.fails)
         with patch('av.open', side_effect=[Container(True), Container(False)]) as opened:
@@ -63,6 +70,23 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(decoder.reconnects, 1)
         self.assertEqual(decoder.count, 1)
         self.assertTrue(any('Circular buffer overrun' in error for error in decoder.errors))
+
+    def test_invalid_h264_packet_does_not_reopen_before_next_valid_packet(self):
+        import av
+        decoder = driver._VideoDecoder('udp://127.0.0.1:19999')
+        class Packet:
+            def __init__(self, bad): self.bad = bad
+            def decode(self):
+                if self.bad: raise av.error.InvalidDataError(1094995529, 'missing references')
+                return ['fresh']
+        class Container:
+            def demux(self, video): return iter([Packet(True),Packet(False)])
+        decoder._frame = np.zeros((16,16,3),np.uint8)
+        frames = decoder._decode_packets(Container())
+        self.assertEqual(next(frames), 'fresh')
+        self.assertIsNone(decoder.frame)
+        self.assertEqual(decoder.reconnects, 0)
+        self.assertTrue(any('invalid_packet' in error for error in decoder.errors))
 
     def test04_real_h264_queue_can_be_old_even_when_decode_timestamp_is_new(self):
         import av
@@ -105,7 +129,10 @@ class VideoTests(unittest.TestCase):
         try:
             # The small probe only shortens fixture startup. No low-latency
             # tuning is being adopted in the production driver by this test.
-            container = av.open(f'udp://127.0.0.1:{port}' + driver.VIDEO_URL_OPTIONS,
+            # Keep the previous 5.39MB policy explicit as a historical negative
+            # control. Production now intentionally rejects this queued stream.
+            baseline = '?overrun_nonfatal=0&fifo_size=28672'
+            container = av.open(f'udp://127.0.0.1:{port}' + baseline,
                                 format='h264', options={'probesize': '32768', 'analyzeduration': '0'},
                                 timeout=(3, 1))
             frames = container.decode(video=0)
@@ -127,6 +154,40 @@ class VideoTests(unittest.TestCase):
             thread.join(2)
             if container is not None: container.close()
             self.assertFalse(thread.is_alive())
+
+    def test05_real_production_decoder_discards_post_stall_queue_before_publication(self):
+        from VideoProbe import PROFILES, encode, run_decoder
+        result=run_decoder(PROFILES['small'],encode(PROFILES['small']),stall=True)
+        self.assertTrue(result['decoder_finished'])
+        self.assertTrue(result['sender_finished'])
+        self.assertFalse(result['sender_errors'])
+        self.assertTrue(result['summary']['gap_rejected'],result)
+        self.assertGreaterEqual(result['summary']['reconnects'],1)
+        self.assertGreaterEqual(result['summary']['count'],10)
+        self.assertEqual(result['summary']['unknown_source_count'],0,result)
+        self.assertEqual(result['summary']['published_stale_count'],0,result)
+        self.assertIsNone(result['stats']['age'])  # stopped/failed readers expose no cached frame
+
+    def test06_real_720p_keyframe_bursts_still_decode_under_production_policy(self):
+        from VideoProbe import PROFILES, encode, run_decoder
+        result=run_decoder(PROFILES['large'],encode(PROFILES['large']),stall=False)
+        self.assertTrue(result['decoder_finished'])
+        self.assertTrue(result['sender_finished'])
+        self.assertFalse(result['sender_errors'])
+        self.assertGreaterEqual(result['summary']['count'],60,result)
+        self.assertEqual(result['summary']['reconnects'],0,result)
+        self.assertEqual(result['summary']['unknown_source_count'],0,result)
+        self.assertEqual(result['summary']['published_stale_count'],0,result)
+
+    def test07_continuous_local_processing_overload_never_publishes_the_queued_old_frames(self):
+        from VideoProbe import PROFILES, encode, run_decoder
+        result=run_decoder(PROFILES['small'],encode(PROFILES['small']),stall=False,processing_delay=.1)
+        self.assertTrue(result['decoder_finished'],result)
+        self.assertTrue(result['sender_finished'])
+        self.assertTrue(result['summary']['processing_rejected'],result)
+        self.assertEqual(result['summary']['count'],0,result)
+        self.assertEqual(result['summary']['published_stale_count'],0,result)
+        self.assertIsNone(result['stats']['shape'])
 
 
 if __name__ == '__main__':

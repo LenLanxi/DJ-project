@@ -269,7 +269,7 @@ class FollowService:
                             and packet.timestamp <= self.last_received_timestamp):
                         raise ValueError("new_frame_timestamp_not_advancing")
                 age = wall - packet.timestamp
-                if packet.stale or packet.frame is None or not -FRAME_TIME_EPSILON <= age <= .5+FRAME_TIME_EPSILON:
+                if packet.stale or packet.frame is None or not -FRAME_TIME_EPSILON <= age <= 1.0+FRAME_TIME_EPSILON:
                     with self.lock:
                         if not self.closed and generation == self.generation:
                             self._record("input_frame_rejected", phase="snapshot_validation",
@@ -289,7 +289,7 @@ class FollowService:
                 acquired_at = now-max(0., age)
                 # Leave scheduling room; this is a cooperative budget, not an
                 # interrupt of an OpenCV call. Age is checked again on return.
-                budget_ms = min(self.detection_budget_ms, max(.001, (.5-age-.02)*1000))
+                budget_ms = min(self.detection_budget_ms, max(.001, (1.0-age-.02)*1000))
                 with self.lock:
                     if self.closed:
                         return False

@@ -47,6 +47,35 @@ class R3IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(sdk.is_following())
         self.assertEqual(self.service.controller.reference_size, original)
 
+    async def test_explicit_follow_after_temporary_action_defers_to_original_real_ticket(self):
+        await self.start()
+        original = self.service.controller.reference_size
+        await self.move()
+        ticket = self.gateway.ticket
+        self.assertIsNotNone(ticket)
+        self.assertEqual(type(ticket[2]).__name__,'HandoffTicket')
+        result = await self.gateway.dispatch('start_follow',[],{})
+        self.assertEqual(result['status'],'accepted')
+        self.assertEqual(result['reason'],'resume_after_program_success')
+        self.assertTrue(result['reference_preserved'])
+        self.assertIs(self.gateway.ticket,ticket)
+        self.assertTrue(self.gateway.acquired)
+        self.assertFalse(sdk.is_following())
+        await self.gateway.finish(True)
+        self.assertTrue(sdk.is_following())
+        self.assertIs(sdk._follow._bridge.service,self.service)
+        self.assertEqual(self.service.controller.reference_size,original)
+
+    async def test_deferred_follow_request_does_not_resume_after_program_failure(self):
+        await self.start()
+        original = self.service.controller.reference_size
+        await self.move()
+        result = await self.gateway.dispatch('start_follow',[],{})
+        self.assertTrue(result['deferred'])
+        await self.gateway.finish(False)
+        self.assertFalse(sdk.is_following())
+        self.assertEqual(self.service.controller.reference_size,original)
+
     async def test_explicit_depth_adjustment_applies_after_new_frame_and_success(self):
         await self.start()
         original = self.service.controller.reference_size

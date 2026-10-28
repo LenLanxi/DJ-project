@@ -86,7 +86,7 @@ def _observation_issue(obs, now, max_age):
 
 def create_distance_calibration(observation, reference_distance_m, *, now,
                                 camera_key, marker_key, dictionary="DICT_4X4_50",
-                                max_age=.5, front_facing_confirmed=False):
+                                max_age=1.0, front_facing_confirmed=False):
     """Record a caller-measured camera-axis depth. Never infer this from pixels.
 
     camera_key identifies the camera AND its zoom/crop/lens/settings. marker_key
@@ -118,7 +118,7 @@ def create_distance_calibration(observation, reference_distance_m, *, now,
 
 
 def estimate_distance(observation, calibration, *, now, camera_key, marker_key,
-                      reference_size_ratio, dictionary="DICT_4X4_50", max_age=.5):
+                      reference_size_ratio, dictionary="DICT_4X4_50", max_age=1.0):
     """Return a bound estimate or an explicit unavailable result; no RC changes."""
     if calibration is None:
         return _unavailable("not_calibrated")

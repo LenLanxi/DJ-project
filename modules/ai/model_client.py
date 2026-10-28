@@ -1,4 +1,5 @@
 import os
+import json
 import math
 import threading
 import time
@@ -24,10 +25,15 @@ def accounting_usage(value):
 
 
 class ModelClient:
-    def __init__(self, on_usage=None):
-        self.key = os.environ.get('AI_API_KEY') or os.environ.get('RTC_VLM_API_KEY', '')
-        self.model = os.environ.get('AI_MODEL') or os.environ.get('RTC_VLM_MODEL', '')
-        self.url = os.environ.get('AI_CHAT_URL') or ('https://ark.cn-beijing.volces.com/api/v3/chat/completions' if os.environ.get('RTC_VLM_API_KEY') else '')
+    def __init__(self, on_usage=None, *, key=None, model=None, url=None, max_output_tokens=None):
+        # Explicit server-side credentials keep independent voice providers from
+        # changing process-wide variables or inheriting an unrelated AI route.
+        self.key = key if key is not None else (os.environ.get('AI_API_KEY') or os.environ.get('RTC_VLM_API_KEY', ''))
+        self.model = model if model is not None else (os.environ.get('AI_MODEL') or os.environ.get('RTC_VLM_MODEL', ''))
+        self.url = url if url is not None else (os.environ.get('AI_CHAT_URL') or ('https://ark.cn-beijing.volces.com/api/v3/chat/completions' if os.environ.get('RTC_VLM_API_KEY') else ''))
+        if max_output_tokens is not None and (type(max_output_tokens) is not int or not 1 <= max_output_tokens <= 4096):
+            raise ValueError('invalid_model_output_token_budget')
+        self.max_output_tokens = max_output_tokens
         # Seed 2.1 Lite defaults to long hidden reasoning. This project's
         # real-time visual task needs direct answers instead. Other providers
         # retain their existing request schema unless explicitly configured.
@@ -45,6 +51,29 @@ class ModelClient:
             raise ValueError('请配置AI_CHAT_URL、AI_API_KEY、AI_MODEL')
 
     def complete(self, messages):
+        return self._complete(messages)
+
+    def complete_structured(self, messages, schema):
+        """Ark Chat JSON Schema mode; no silent retry through a weaker format.
+
+        Return the raw content just as complete() does. The caller must retain
+        and validate it against its business rules before authorizing actions.
+        """
+        if not isinstance(schema, dict) or schema.get('type') != 'object':
+            raise ValueError('structured_schema_must_be_object')
+        try:
+            encoded = json.dumps(schema, ensure_ascii=False, allow_nan=False)
+            if len(encoded.encode('utf-8')) > 64000:
+                raise ValueError('structured_schema_too_large')
+            # Snapshot the caller's dictionary before the HTTP request begins.
+            schema = json.loads(encoded)
+        except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+            raise ValueError('invalid_structured_schema') from exc
+        return self._complete(messages, response_format={
+            'type': 'json_schema',
+            'json_schema': {'name': 'navigation_observation', 'strict': True, 'schema': schema}})
+
+    def _complete(self, messages, response_format=None):
         request_id = uuid.uuid4().hex
         started_at, started = time.time(), time.monotonic()
         with self._usage_lock:
@@ -54,6 +83,8 @@ class ModelClient:
             self.last_usage = {}
         base = dict(request_id=request_id, model=self.model, started_at=started_at,
                     attempt=1, retried=False, billing_verified=False)
+        if response_format is not None:
+            base['response_format'] = response_format['type']
         if self.on_usage:
             try:
                 self.on_usage(dict(base, event='model_request_start', status='started'))
@@ -63,6 +94,10 @@ class ModelClient:
         provider_usage = {}
         try:
             body = {'model': self.model, 'messages': messages}
+            if response_format is not None:
+                body['response_format'] = response_format
+            if self.max_output_tokens is not None:
+                body['max_tokens'] = self.max_output_tokens
             if self.thinking is not None:
                 body['thinking'] = {'type': self.thinking}
             result = post_json(self.url, self.key, body)

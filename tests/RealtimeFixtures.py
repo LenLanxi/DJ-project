@@ -1,5 +1,6 @@
 """Reproducible synthetic media, never opens a microphone, speaker or camera."""
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -15,6 +16,28 @@ TEXTS = {
     'Vision': '画面里的帐篷是什么颜色？只回答颜色。',
     'Speech': '请只回答一句话：测试收到。',
 }
+
+
+def synthesize(text):
+    """Generate raw 16k mono PCM in memory; never opens a playback device."""
+    command='''Add-Type -AssemblyName System.Speech
+$synth = [System.Speech.Synthesis.SpeechSynthesizer]::new()
+$stream = [System.IO.MemoryStream]::new()
+try {
+ $synth.SelectVoice('Microsoft Huihui Desktop')
+ $format = [System.Speech.AudioFormat.SpeechAudioFormatInfo]::new(16000,[System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen,[System.Speech.AudioFormat.AudioChannel]::Mono)
+ $synth.SetOutputToAudioStream($stream,$format)
+ $synth.Speak($env:DRONE_QUERY_TEXT)
+ $synth.SetOutputToNull()
+ [Convert]::ToBase64String($stream.ToArray())
+} finally { $synth.Dispose(); $stream.Dispose() }
+'''
+    result=subprocess.run(['pwsh','-NoProfile','-NonInteractive','-Command',command],
+        env=dict(os.environ,DRONE_QUERY_TEXT=text),capture_output=True,check=True,timeout=15,
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+    pcm=base64.b64decode(result.stdout.strip(),validate=True)
+    if not pcm or len(pcm)%2: raise ValueError('invalid_synthetic_pcm')
+    return pcm
 
 
 def generate(output):

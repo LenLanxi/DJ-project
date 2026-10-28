@@ -14,12 +14,13 @@ REQUIRED=('RTC_APP_ID','RTC_APP_KEY','VOLCENGINE_ACCESS_KEY_ID','VOLCENGINE_SECR
           'VOLC_S2S_APP_ID','VOLC_S2S_TOKEN','RTC_VLM_MODEL')
 
 
-def validate_environment(seconds):
-    missing=[name for name in REQUIRED if not os.getenv(name)]
+def validate_environment(seconds, env=None):
+    source=os.environ if env is None else env
+    missing=[name for name in REQUIRED if not isinstance(source.get(name),str) or not source[name].strip()]
     if missing:
         raise ValueError('RTC正式语音缺少配置：'+', '.join(missing)+'；没有旧语音或模拟降级')
-    if not 0 < seconds <= 180:
-        raise ValueError('RTC单次会话必须在0到180秒之间')
+    if not 0 < seconds <= 30000:
+        raise ValueError('RTC单次会话必须在0到30000秒之间')
     node=shutil.which('node')
     if not node:
         raise ValueError('需要Node.js 22+；请先准备项目RTC依赖')
@@ -37,8 +38,12 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class RTCProcess:
-    def __init__(self,log):
+    def __init__(self,log,env=None,*,web_port=0):
+        if type(web_port) is not int or not 0 <= web_port <= 65535:
+            raise ValueError('invalid_rtc_web_port')
         self.log=log
+        self.web_port=web_port
+        self.environment=None if env is None else dict(env)
         self.proc=None
         self.url=None
         self.output=log.path.with_name(log.session_id+'Rtc.log')
@@ -63,10 +68,13 @@ class RTCProcess:
         return value
 
     async def start(self,bridge,seconds,instructions,tools):
-        node=validate_environment(seconds)
+        node=validate_environment(seconds,self.environment)
         self.deadline=time.time()+seconds
-        env=dict(os.environ,RTC_BRIDGE_URL=bridge.url,RTC_BRIDGE_TOKEN=bridge.token,
-                 RTC_PORT='0',RTC_SESSION_SECONDS=str(seconds),
+        env=dict(os.environ)
+        if self.environment is not None:
+            env.update(self.environment)
+        env.update(RTC_BRIDGE_URL=bridge.url,RTC_BRIDGE_TOKEN=bridge.token,
+                 RTC_PORT=str(self.web_port),RTC_SESSION_SECONDS=str(seconds),
                  RTC_RUNTIME_DEADLINE_MS=str(int(self.deadline*1000)),
                  RTC_INSTRUCTIONS=instructions,RTC_TOOLS_JSON=json.dumps(tools,ensure_ascii=False))
         if not env.get('RTC_VLM_API_KEY') and env.get('RTC_VLM_KEY'):

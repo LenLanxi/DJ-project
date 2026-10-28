@@ -5,6 +5,6 @@
   "description": "Local RTC media client and bounded VoiceChat control service",
   "license": "BSD-3-Clause",
   "engines": {"node": ">=22"},
-  "scripts": {"start": "node RTCService.js", "test": "node --test RTCServiceTests.js RTCClientTests.js DoubaoProbeTests.js"},
+  "scripts": {"start": "node RTCService.js", "test": "node --test RTCServiceTests.js RTCClientTests.js DoubaoProbeTests.js OmniClientTests.js"},
   "dependencies": {"@volcengine/openapi": "1.22.0", "@volcengine/rtc": "4.69.3"}
 }

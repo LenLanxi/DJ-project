@@ -54,6 +54,7 @@ class AlibabaConfig:
     free_tier_only: bool = False
     free_quota_tokens: int = 0
     free_quota_expires: str = ''
+    paid_budget_rmb: float = 0
 
     def validate(self) -> str:
         if not isinstance(self.api_key, str) or not self.api_key.strip():
@@ -71,23 +72,29 @@ class AlibabaConfig:
         query = parse_qs(parsed.query, keep_blank_values=True)
         if query and query != {'model': [self.model]}:
             raise AlibabaError('invalid_endpoint_query')
-        if self.free_tier_only is not True or type(self.free_quota_tokens) is not int or self.free_quota_tokens <= 0:
+        if (type(self.paid_budget_rmb) not in (int, float)
+                or not math.isfinite(self.paid_budget_rmb) or not 0 <= self.paid_budget_rmb <= 15):
+            raise AlibabaError('invalid_paid_budget_rmb')
+        if self.free_tier_only is True:
+            if type(self.free_quota_tokens) is not int or self.free_quota_tokens <= 0:
+                raise AlibabaError('free_quota_guard_not_confirmed')
+            try:
+                expiry = datetime.fromisoformat(self.free_quota_expires.replace('Z', '+00:00'))
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+                if expiry <= datetime.now(timezone.utc):
+                    raise AlibabaError('free_quota_expired')
+            except (ValueError, AttributeError):
+                raise AlibabaError('invalid_free_quota_expiry') from None
+        elif self.paid_budget_rmb <= 0:
             raise AlibabaError('free_quota_guard_not_confirmed')
-        try:
-            expiry = datetime.fromisoformat(self.free_quota_expires.replace('Z', '+00:00'))
-            if expiry.tzinfo is None:
-                expiry = expiry.replace(tzinfo=timezone.utc)
-            if expiry <= datetime.now(timezone.utc):
-                raise AlibabaError('free_quota_expired')
-        except (ValueError, AttributeError):
-            raise AlibabaError('invalid_free_quota_expiry') from None
         if not isinstance(self.voice, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', self.voice):
             raise AlibabaError('invalid_voice')
         return urlunsplit((parsed.scheme, parsed.netloc, parsed.path,
                            urlencode({'model': self.model}), ''))
 
     @classmethod
-    def from_credentials(cls, path: str | Path) -> 'AlibabaConfig':
+    def from_credentials(cls, path: str | Path, *, paid_budget_rmb: float = 0) -> 'AlibabaConfig':
         # No global environment mutation and no provider SDK that reads other
         # credentials implicitly. Only this explicit file is consulted.
         try:
@@ -96,11 +103,14 @@ class AlibabaConfig:
             raise AlibabaError('credentials_unreadable') from None
         if not isinstance(value, dict) or value.get('Region') != 'cn-beijing':
             raise AlibabaError('free_trial_requires_beijing')
+        if type(value.get('StopWhenFreeQuotaExhausted')) is not bool:
+            raise AlibabaError('invalid_free_quota_policy')
         result = cls(api_key=value.get('ApiKey', ''), workspace_id=value.get('WorkspaceId', ''),
                      url=value.get('WebSocketUrl', ''), model=value.get('Model', ''),
                      free_tier_only=value.get('StopWhenFreeQuotaExhausted') is True,
                      free_quota_tokens=value.get('FreeQuotaTokens', 0),
-                     free_quota_expires=value.get('FreeQuotaExpires', ''))
+                     free_quota_expires=value.get('FreeQuotaExpires', ''),
+                     paid_budget_rmb=paid_budget_rmb)
         allowed = value.get('AllowedModels')
         if allowed is not None and (not isinstance(allowed, list) or result.model not in allowed):
             raise AlibabaError('model_not_allowed_by_credentials')

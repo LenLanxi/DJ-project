@@ -171,7 +171,7 @@ class ApparentSizeGuard:
 
 
 class FollowController:
-    def __init__(self, target_id=0, max_age=0.5, recovery_window=0.0,
+    def __init__(self, target_id=0, max_age=1.0, recovery_window=0.0,
                  max_request_rate=None, require_geometry=False,
                  steering_mode=_DEFAULT_STEERING, yaw_limit=0.20,
                  forward_limit=0.30,
