@@ -1,0 +1,952 @@
+{
+  "schema_version": 1,
+  "scope": "natural_language_planning_real_Docker_Gateway_Vision_TargetTracker_synthetic_device",
+  "real_cloud": true,
+  "voice_input_verified": false,
+  "physical_devices_opened": false,
+  "physical_arrival_or_flight_verified": false,
+  "follow_dynamics_verified": false,
+  "tello_driver_or_ArUco_recognition_exercised": false,
+  "started_at": "2026-10-27T09:15:22.629244+00:00",
+  "plans": [
+    {
+      "input_text": "请先检查当前模拟设备的连接、飞行状态与电量；如果已连接、电量至少30且尚未起飞，就起飞，然后开始跟随向前行走的用户。只依据实际返回，不重复起飞。",
+      "input_confirmed": true,
+      "events": [
+        {
+          "type": "session.created",
+          "event_id": "event_Mqqc3Pw7kzHIaQF64Z3MK"
+        },
+        {
+          "type": "session.updated",
+          "event_id": "event_BdBlPxvDklbWeRylFWlri"
+        },
+        {
+          "type": "conversation.item.created",
+          "event_id": "event_Z9kDudW1dj34dG2BUaGJg"
+        },
+        {
+          "type": "response.created",
+          "event_id": "event_D3GNqq45sCuXvBMyiabQw"
+        },
+        {
+          "type": "response.output_item.added",
+          "event_id": "event_Ja4iTthtnmTbL89qVaCgP"
+        },
+        {
+          "type": "conversation.item.created",
+          "event_id": "event_R93K3AOkQlXmR9RVAOuL1"
+        },
+        {
+          "type": "response.content_part.added",
+          "event_id": "event_Xd9nKlhXft1k3xheZ3ZFW"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_WaQwbkOXP9Ef7XBBQdnWc"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_AvecfYuQ7bOn7AaI8u5hf"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_UNEEyDteCQN7ew9X9rv3L"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Q5UgbM8BrPWT3fZR8NAkF"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_DICjBEyEFIdSRtVB9Xfuo"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_BwdhLjfZgXcFNqaHnkdEL"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_RSwdSBVEitVqE5vekHtJf"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Pob13aBsB7ysT7EO9uc69"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_QzeFJSGPBPOpHZcPF3pyk"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_WklYHDH7De4b5yi9Rd7I2"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_AnbUIS4az5fw32PQSRmKx"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_UBe7BRA2RZr6v8o2q13P8"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Pk6lxxxzGvmBq5FcuaAQX"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Q7PqrIJcfkJ7Hutw2bz1K"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_BmT876AurINscwpHFMdKb"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_KeZJlUJEJ13xLhX3V29S4"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Xbb2LfCnqAMaoj5m6j8wf"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_PaT3hPJnTSeehR1vf4XtD"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_PKXcKTxlWYCWYEqRyJdfY"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_IyX2GSAdouUTvawgOH5zE"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_OaETON1krtDuzJZy2r1LR"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_N6nUCBRsRl3FAZ4rOudxw"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Ksvpx3vzPHXQQhiE1Gov9"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_LNcLygIsxY5fN96t99S6P"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_VAastmijcmW9JaK3B1yjd"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_XAe1RENW7VGF2KYFSsPIW"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_LlhdvxbO2W6vlZnpT4bhs"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Ko6vrhgkmCCD2j3fOZdjF"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Cu8bdZmOma9PF4DAvaYfr"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_GmuQPbamayv6paxLEhW3a"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_TBhTUhAweOXaLqWXSZHDN"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_LmBSoagsxqmTsdtJOERXX"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_EiN1TUKG35Ehns2Rrr473"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_AHcvKuk8GWLg2hah4W7IW"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Ysxk9sGY9sGjUSBY14ILY"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_LY2ep3bJVtnydgcRwR3fy"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_DjHJJVc3qIHWp9pj5lEke"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_TfFZhdnU2W5oMHnTG9cPn"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_ZAwMiV1xoRypT5OyxbT5g"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_ApIdWB6QvdeFfezCtHUAY"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_UryLSeZ5WjS8X3huBHuGn"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_H2Z3RUNNcbUqCdg9YUbLd"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Y4TkngEghBQkMGhJrwGll"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_W9xTFTR5BbNicHwO9RcNy"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_I7VQQXSnJkilMr6x1eTg6"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_FiZN7SycrUBTikcd83PTz"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_TvkenmQE5UYHX4mFNg3n6"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_RW7gZ8BbPjJvRV8XO3n3M"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_EyXDAQxCTLtqIqHz5iYZG"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_NbWYjRfuCwqQyfF82Ta1B"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_RHA6PBNKXOoGPqiDVeXx6"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Lhi7gvJgCOT4yafLiJXai"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_EXs6GFQIRYMQENxJZTV9b"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_GaOZb4HIsOUZTpBGnmmwu"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_WZmGprDSKjQsvlS24oObE"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_ZxEtk8T7PlLJjxFMwbVq1"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_KnKPPwBxttUaLR8gT8hWh"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Kro1O5VsDdm2uHFwg5CUT"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_QhNwOSwlMxdTCtt9d2QFG"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_VhRwhuVMxorxQPZjROWAz"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_ElzQ6u7zXGLp6RXRppbri"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_K72NAAOGDTnVzgmuONwIJ"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Tfh8RLaMmLTv1S8VBUqyv"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_N4a6Uio16INfeVN2BvF4n"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Mbw6gnxgrtCQB4Y3zox7f"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_G4ZWnVHaXn1Zd98oWGgrt"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_XMGzJMIdUURLhsTWigE3E"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_LTuTxXvJGbH7jJ5inrTIZ"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Ea3PMugeoox8EhyMwPq8S"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_Z4HDIe1Y6gge5dsnqpRgC"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_GSjkr57waqjB8Ast9VrMK"
+        },
+        {
+          "type": "response.text.delta",
+          "event_id": "event_GhatDFmHoIqCOtcQ4Kdsm"
+        },
+        {
+          "type": "response.text.done",
+          "event_id": "event_HNMYdY2CipbbtkUKkwUqD"
+        },
+        {
+          "type": "response.content_part.done",
+          "event_id": "event_PysTY9CwbNO4VZWorcR22"
+        },
+        {
+          "type": "response.output_item.done",
+          "event_id": "event_CXcXu99fCOyxM42s724ZS"
+        },
+        {
+          "type": "response.done",
+          "event_id": "event_HxqNEXJdUzJtoe3lyw4HA"
+        }
+      ],
+      "code": "import sys\n\n# 1. Check status\nstatus = get_status()\nprint(f\"Status check: {status}\")\n\nconnected = status.get('connected')\nbattery = status.get('battery')\nflight_state = status.get('flight_state')\n\nif not connected:\n    raise Exception(\"Device is not connected.\")\n\nif battery < 30:\n    raise Exception(f\"Battery too low: {battery}%\")\n\n# 2. Takeoff if grounded\nif flight_state == 'grounded':\n    print(\"Taking off...\")\n    takeoff()\nelse:\n    print(f\"Not taking off, current state: {flight_state}\")\n\n# 3. Start following\nprint(\"Starting follow...\")\nstart_follow()",
+      "usage": [
+        {
+          "total_tokens": 1056,
+          "input_tokens": 831,
+          "output_tokens": 225,
+          "input_tokens_details": {
+            "text_tokens": 831
+          },
+          "output_tokens_details": {
+            "text_tokens": 225
+          }
+        }
+      ],
+      "raw_reply": "{\n  \"code\": \"import sys\\n\\n# 1. Check status\\nstatus = get_status()\\nprint(f\\\"Status check: {status}\\\")\\n\\nconnected = status.get('connected')\\nbattery = status.get('battery')\\nflight_state = status.get('flight_state')\\n\\nif not connected:\\n    raise Exception(\\\"Device is not connected.\\\")\\n\\nif battery < 30:\\n    raise Exception(f\\\"Battery too low: {battery}%\\\")\\n\\n# 2. Takeoff if grounded\\nif flight_state == 'grounded':\\n    print(\\\"Taking off...\\\")\\n    takeoff()\\nelse:\\n    print(f\\\"Not taking off, current state: {flight_state}\\\")\\n\\n# 3. Start following\\nprint(\\\"Starting follow...\\\")\\nstart_follow()\",  \"explanation\": \"Checks connection, battery (>=30%), and flight state. If connected, battery sufficient, and grounded, it takes off. Then it starts following the user.\"\n}",
+      "explanation": "Checks connection, battery (>=30%), and flight state. If connected, battery sufficient, and grounded, it takes off. Then it starts following the user."
+    }
+  ],
+  "stages": [
+    {
+      "index": 1,
+      "result": {
+        "ok": false,
+        "status": "failed",
+        "reason": "NameError: name 'get_status' is not defined",
+        "simulated": true,
+        "journal": [],
+        "follow_cleanup": {
+          "status": "no_control"
+        },
+        "debug": ""
+      },
+      "following_after": false,
+      "status_after": {
+        "battery": 80,
+        "height_cm": 0,
+        "connected": true,
+        "flight_state": "landed",
+        "control_owner": "none",
+        "timestamp": 1793092527.6282017,
+        "control_epoch": 0,
+        "command_epoch": 0,
+        "simulated": true
+      },
+      "sandbox_cleanup": {
+        "container_name": "companion-c70ae997fede412782cd4a1b8d4915ae",
+        "pending_container": null,
+        "cleanup_errors": [],
+        "confirmed": true,
+        "follow_cleanup_error": null
+      }
+    }
+  ],
+  "ok": false,
+  "api_budget_rmb_authorized": 15.0,
+  "budget_is_not_provider_bill_hard_cap": true,
+  "retries": 0,
+  "image_source": "synthetic_textured_tent",
+  "photo_sha256": null,
+  "photo_3D_or_field_navigation_verified": false,
+  "scene_mapping": {
+    "starting_target_width_pixels": 120,
+    "width_pixels_per_fake_cm": 0.6,
+    "demonstration_stop_width_fraction": 0.29,
+    "physical_distance_claimed": false
+  },
+  "failure": {
+    "type": "RuntimeError",
+    "reason": "readiness_stage_1_failed"
+  },
+  "events": [
+    {
+      "event": "readiness_planner_event",
+      "type": "session.created",
+      "event_id": "event_Mqqc3Pw7kzHIaQF64Z3MK",
+      "timestamp": 1793092523.1041481
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "session.updated",
+      "event_id": "event_BdBlPxvDklbWeRylFWlri",
+      "timestamp": 1793092523.210651
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "conversation.item.created",
+      "event_id": "event_Z9kDudW1dj34dG2BUaGJg",
+      "timestamp": 1793092523.3025246
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.created",
+      "event_id": "event_D3GNqq45sCuXvBMyiabQw",
+      "timestamp": 1793092523.5986962
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.output_item.added",
+      "event_id": "event_Ja4iTthtnmTbL89qVaCgP",
+      "timestamp": 1793092523.5986962
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "conversation.item.created",
+      "event_id": "event_R93K3AOkQlXmR9RVAOuL1",
+      "timestamp": 1793092523.5986962
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.content_part.added",
+      "event_id": "event_Xd9nKlhXft1k3xheZ3ZFW",
+      "timestamp": 1793092523.5986962
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_WaQwbkOXP9Ef7XBBQdnWc",
+      "timestamp": 1793092523.5986962
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_AvecfYuQ7bOn7AaI8u5hf",
+      "timestamp": 1793092523.6200576
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_UNEEyDteCQN7ew9X9rv3L",
+      "timestamp": 1793092523.6413991
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Q5UgbM8BrPWT3fZR8NAkF",
+      "timestamp": 1793092523.6655843
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_DICjBEyEFIdSRtVB9Xfuo",
+      "timestamp": 1793092523.6877952
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_BwdhLjfZgXcFNqaHnkdEL",
+      "timestamp": 1793092523.7112164
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_RSwdSBVEitVqE5vekHtJf",
+      "timestamp": 1793092523.7306175
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Pob13aBsB7ysT7EO9uc69",
+      "timestamp": 1793092523.7542694
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_QzeFJSGPBPOpHZcPF3pyk",
+      "timestamp": 1793092523.775919
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_WklYHDH7De4b5yi9Rd7I2",
+      "timestamp": 1793092523.798738
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_AnbUIS4az5fw32PQSRmKx",
+      "timestamp": 1793092523.822183
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_UBe7BRA2RZr6v8o2q13P8",
+      "timestamp": 1793092523.8441198
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Pk6lxxxzGvmBq5FcuaAQX",
+      "timestamp": 1793092523.866909
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Q7PqrIJcfkJ7Hutw2bz1K",
+      "timestamp": 1793092523.8903377
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_BmT876AurINscwpHFMdKb",
+      "timestamp": 1793092523.91301
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_KeZJlUJEJ13xLhX3V29S4",
+      "timestamp": 1793092523.9353483
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Xbb2LfCnqAMaoj5m6j8wf",
+      "timestamp": 1793092523.9589992
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_PaT3hPJnTSeehR1vf4XtD",
+      "timestamp": 1793092523.9809635
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_PKXcKTxlWYCWYEqRyJdfY",
+      "timestamp": 1793092524.0050607
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_IyX2GSAdouUTvawgOH5zE",
+      "timestamp": 1793092524.031136
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_OaETON1krtDuzJZy2r1LR",
+      "timestamp": 1793092524.0500417
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_N6nUCBRsRl3FAZ4rOudxw",
+      "timestamp": 1793092524.0790746
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Ksvpx3vzPHXQQhiE1Gov9",
+      "timestamp": 1793092524.0939524
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_LNcLygIsxY5fN96t99S6P",
+      "timestamp": 1793092524.1170297
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_VAastmijcmW9JaK3B1yjd",
+      "timestamp": 1793092524.14216
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_XAe1RENW7VGF2KYFSsPIW",
+      "timestamp": 1793092524.1636574
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_LlhdvxbO2W6vlZnpT4bhs",
+      "timestamp": 1793092524.1840472
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Ko6vrhgkmCCD2j3fOZdjF",
+      "timestamp": 1793092524.2089589
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Cu8bdZmOma9PF4DAvaYfr",
+      "timestamp": 1793092524.2293725
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_GmuQPbamayv6paxLEhW3a",
+      "timestamp": 1793092524.2543168
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_TBhTUhAweOXaLqWXSZHDN",
+      "timestamp": 1793092524.2752182
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_LmBSoagsxqmTsdtJOERXX",
+      "timestamp": 1793092524.2987049
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_EiN1TUKG35Ehns2Rrr473",
+      "timestamp": 1793092524.3206582
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_AHcvKuk8GWLg2hah4W7IW",
+      "timestamp": 1793092524.3430514
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Ysxk9sGY9sGjUSBY14ILY",
+      "timestamp": 1793092524.364408
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_LY2ep3bJVtnydgcRwR3fy",
+      "timestamp": 1793092524.390126
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_DjHJJVc3qIHWp9pj5lEke",
+      "timestamp": 1793092524.4116178
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_TfFZhdnU2W5oMHnTG9cPn",
+      "timestamp": 1793092524.4338348
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_ZAwMiV1xoRypT5OyxbT5g",
+      "timestamp": 1793092524.4585984
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_ApIdWB6QvdeFfezCtHUAY",
+      "timestamp": 1793092524.4818625
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_UryLSeZ5WjS8X3huBHuGn",
+      "timestamp": 1793092524.5006921
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_H2Z3RUNNcbUqCdg9YUbLd",
+      "timestamp": 1793092524.5230365
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Y4TkngEghBQkMGhJrwGll",
+      "timestamp": 1793092524.5459263
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_W9xTFTR5BbNicHwO9RcNy",
+      "timestamp": 1793092524.5691712
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_I7VQQXSnJkilMr6x1eTg6",
+      "timestamp": 1793092524.591539
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_FiZN7SycrUBTikcd83PTz",
+      "timestamp": 1793092524.615901
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_TvkenmQE5UYHX4mFNg3n6",
+      "timestamp": 1793092524.6427615
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_RW7gZ8BbPjJvRV8XO3n3M",
+      "timestamp": 1793092524.6587956
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_EyXDAQxCTLtqIqHz5iYZG",
+      "timestamp": 1793092524.6812572
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_NbWYjRfuCwqQyfF82Ta1B",
+      "timestamp": 1793092524.7038968
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_RHA6PBNKXOoGPqiDVeXx6",
+      "timestamp": 1793092524.7273705
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Lhi7gvJgCOT4yafLiJXai",
+      "timestamp": 1793092524.7492902
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_EXs6GFQIRYMQENxJZTV9b",
+      "timestamp": 1793092524.7732227
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_GaOZb4HIsOUZTpBGnmmwu",
+      "timestamp": 1793092524.7951446
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_WZmGprDSKjQsvlS24oObE",
+      "timestamp": 1793092524.8175485
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_ZxEtk8T7PlLJjxFMwbVq1",
+      "timestamp": 1793092524.859836
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_KnKPPwBxttUaLR8gT8hWh",
+      "timestamp": 1793092524.8856885
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Kro1O5VsDdm2uHFwg5CUT",
+      "timestamp": 1793092524.90725
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_QhNwOSwlMxdTCtt9d2QFG",
+      "timestamp": 1793092524.9307299
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_VhRwhuVMxorxQPZjROWAz",
+      "timestamp": 1793092524.9524934
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_ElzQ6u7zXGLp6RXRppbri",
+      "timestamp": 1793092524.975789
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_K72NAAOGDTnVzgmuONwIJ",
+      "timestamp": 1793092524.998482
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Tfh8RLaMmLTv1S8VBUqyv",
+      "timestamp": 1793092525.0217524
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_N4a6Uio16INfeVN2BvF4n",
+      "timestamp": 1793092525.046601
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Mbw6gnxgrtCQB4Y3zox7f",
+      "timestamp": 1793092525.0663977
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_G4ZWnVHaXn1Zd98oWGgrt",
+      "timestamp": 1793092525.0893476
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_XMGzJMIdUURLhsTWigE3E",
+      "timestamp": 1793092525.1121967
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_LTuTxXvJGbH7jJ5inrTIZ",
+      "timestamp": 1793092525.1337452
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Ea3PMugeoox8EhyMwPq8S",
+      "timestamp": 1793092525.1815157
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_Z4HDIe1Y6gge5dsnqpRgC",
+      "timestamp": 1793092525.2084143
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_GSjkr57waqjB8Ast9VrMK",
+      "timestamp": 1793092525.209669
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.delta",
+      "event_id": "event_GhatDFmHoIqCOtcQ4Kdsm",
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.text.done",
+      "event_id": "event_HNMYdY2CipbbtkUKkwUqD",
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.content_part.done",
+      "event_id": "event_PysTY9CwbNO4VZWorcR22",
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.output_item.done",
+      "event_id": "event_CXcXu99fCOyxM42s724ZS",
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_planner_event",
+      "type": "response.done",
+      "event_id": "event_HxqNEXJdUzJtoe3lyw4HA",
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_Qwen_usage",
+      "usage": {
+        "total_tokens": 1056,
+        "input_tokens": 831,
+        "output_tokens": 225,
+        "input_tokens_details": {
+          "text_tokens": 831
+        },
+        "output_tokens_details": {
+          "text_tokens": 225
+        }
+      },
+      "timestamp": 1793092525.2286336
+    },
+    {
+      "event": "readiness_planner_reply",
+      "input_text": "请先检查当前模拟设备的连接、飞行状态与电量；如果已连接、电量至少30且尚未起飞，就起飞，然后开始跟随向前行走的用户。只依据实际返回，不重复起飞。",
+      "input_confirmed": true,
+      "reply": "{\n  \"code\": \"import sys\\n\\n# 1. Check status\\nstatus = get_status()\\nprint(f\\\"Status check: {status}\\\")\\n\\nconnected = status.get('connected')\\nbattery = status.get('battery')\\nflight_state = status.get('flight_state')\\n\\nif not connected:\\n    raise Exception(\\\"Device is not connected.\\\")\\n\\nif battery < 30:\\n    raise Exception(f\\\"Battery too low: {battery}%\\\")\\n\\n# 2. Takeoff if grounded\\nif flight_state == 'grounded':\\n    print(\\\"Taking off...\\\")\\n    takeoff()\\nelse:\\n    print(f\\\"Not taking off, current state: {flight_state}\\\")\\n\\n# 3. Start following\\nprint(\\\"Starting follow...\\\")\\nstart_follow()\",  \"explanation\": \"Checks connection, battery (>=30%), and flight state. If connected, battery sufficient, and grounded, it takes off. Then it starts following the user.\"\n}",
+      "timestamp": 1793092525.2286336
+    }
+  ],
+  "finished_at": "2026-10-27T09:15:27.628201+00:00",
+  "synthetic_camera_timing": {
+    "frames": 73,
+    "maximum_frame_gap_seconds": 0.16862821578979492,
+    "maximum_render_seconds": 0.0940000000409782
+  },
+  "cleanup": {
+    "synthetic_camera_thread_finished": true,
+    "no_cloud_stream_left_open": true,
+    "gateway_result_cleanup_recorded": true
+  }
+}

@@ -21,7 +21,8 @@ def test_plan_generates_without_constructing_device(tmp_path, monkeypatch):
     from unittest.mock import Mock
     hardware=Mock(side_effect=AssertionError('plan must not open hardware'))
     monkeypatch.setattr('app.Application.DeviceSession',hardware)
-    monkeypatch.setattr('providers.model_client.ModelClient',lambda **kw: type('Client',(),{'complete':lambda self,messages:'{"code":"print(1)"}'})())
+    monkeypatch.setattr('providers.DoubaoConfig.load_config',lambda *a,**kw: None)
+    monkeypatch.setattr('providers.DoubaoVision.DoubaoVisionClient',lambda *a,**kw: type('Client',(),{'complete':lambda self,messages:'{"code":"print(1)"}'})())
     assert main(['plan','--text','hello','--log-file',str(tmp_path/'Plan.jsonl')])==0
     hardware.assert_not_called()
 
@@ -46,3 +47,16 @@ def test_rejected_program_finishes_cleanup_and_next_query_succeeds():
         result=await runtime.run('get_status')
         assert result['ok'] and result['journal'][0]['result']['battery']==80
     asyncio.run(exercise())
+
+
+def test_invalid_doubao_credentials_fail_before_hardware_or_docker(tmp_path, monkeypatch):
+    from app.Application import main
+    from unittest.mock import Mock
+    hardware = Mock(side_effect=AssertionError('credentials must precede hardware'))
+    docker = Mock(side_effect=AssertionError('credentials must precede Docker'))
+    monkeypatch.setattr('app.Application.DeviceSession', hardware)
+    monkeypatch.setattr('execution.sandbox_runner.SandboxRunner', docker)
+    assert main(['voice', '--real-drone', '--doubao-credentials', str(tmp_path/'Missing.json'),
+                 '--log-file', str(tmp_path/'Failure.jsonl')]) == 1
+    hardware.assert_not_called()
+    docker.assert_not_called()

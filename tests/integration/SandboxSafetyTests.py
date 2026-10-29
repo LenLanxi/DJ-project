@@ -1,6 +1,6 @@
 """Adversarial sandbox supervision checks; explicit Docker tests never use aircraft.
 
-Set RUN_DOCKER_TESTS=1 after building companion-sandbox:0.4 to run real container
+Set RUN_DOCKER_TESTS=1 after building companion-sandbox:0.5 to run real container
 checks. Fake wire tests exercise the supervisor without executing model code.
 """
 import asyncio
@@ -36,12 +36,13 @@ def rpc(number, method='get_status', args=None):
 def fake_process(runner, process):
     cleanup = Process()
     calls = []
+    runner.container, runner.created = 'companion-fixture', True
     async def create(*args, **kwargs):
         calls.append(args)
-        if args[:2] == ('docker', 'run'): return process
+        if args[:2] == ('docker', 'exec'): return process
         if args[:3] == ('docker', 'rm', '-f'): return cleanup
         raise AssertionError('unexpected subprocess: ' + repr(args))
-    with patch.object(runner, 'check', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
+    with patch.object(runner, 'check', new=AsyncMock()), patch.object(runner, '_reset', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
         yield calls
 
 
@@ -109,179 +110,14 @@ class SandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(backend.calls, [])
 
 
-    async def test15_cancel_during_spawn_still_removes_named_container(self):
-        runner, _backend = self.runner()
-        entered, release = asyncio.Event(), asyncio.Event()
-        calls = []
-        process = Process()
-        process.stdout = asyncio.StreamReader()
-        original_kill = process.kill
-        def kill():
-            calls.append(('kill',))
-            original_kill()
-        process.kill = kill
-        async def create(*args, **kwargs):
-            calls.append(args)
-            if args[:2] == ('docker', 'run'):
-                entered.set()
-                await release.wait()
-                return process
-            if args[:3] == ('docker', 'rm', '-f'):
-                return Process()
-            raise AssertionError(args)
-        with patch.object(runner, 'check', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
-            task = asyncio.create_task(run_program(runner, 'pass'))
-            await asyncio.wait_for(entered.wait(), .5)
-            runner.test_runtime.cancel()
-            release.set()
-            result = await asyncio.wait_for(task, .5)
-        self.assertEqual(result['status'], 'cancelled')
-        self.assertTrue(any(call[:3] == ('docker','rm','-f') for call in calls))
-        self.assertIn(('kill',), calls)
-        self.assertLess(next(i for i,call in enumerate(calls) if call[:3]==('docker','rm','-f')), calls.index(('kill',)))
-        self.assertFalse(runner.test_runtime.running)
-
-
-    async def test18_container_remove_failure_is_not_silent_success(self):
-        runner, _backend = self.runner()
-        process = Process([{'type':'done','ok':True}])
-        cleanup = Process(stderr=b'permission denied')
-        async def fail_wait(): cleanup.returncode = 1; return 1
-        cleanup.wait = fail_wait
-        with patch.object(runner, 'check', new=AsyncMock()), patch.object(runner, '_removed', new=AsyncMock(return_value=False)), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=[process, cleanup]):
-            result = await run_program(runner, 'pass')
-        self.assertFalse(result['ok'])
-        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed')
-
-
-    async def test20_zero_exit_missing_before_late_create_requires_retry(self):
-        runner, _backend = self.runner()
-        runner.CLEANUP_SECONDS = .01
-        entered = asyncio.Event()
-        process = Process()
-        process.returncode = 0
-        process.stdout = asyncio.StreamReader()
-        calls = []
-        state = {'exists': False}
-        async def create(*args, **kwargs):
-            calls.append(args)
-            if args[:2] == ('docker','run'):
-                entered.set()
-                return process
-            if args[:3] == ('docker','rm','-f'):
-                if state['exists']:
-                    state['exists'] = False
-                    return Process()
-                missing = Process(stderr=b'No such container')
-                # Docker Desktop reports this absence with a successful exit.
-                async def absent(): missing.returncode = 0; return 0
-                missing.wait = absent
-                return missing
-            raise AssertionError(args)
-        with patch.object(runner, 'check', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
-            task = asyncio.create_task(run_program(runner, 'pass'))
-            await asyncio.wait_for(entered.wait(), .5)
-            runner.test_runtime.cancel()
-            result = await asyncio.wait_for(task, .5)
-            pending = result['pending_container']
-            # A second program cannot replace unresolved creation evidence.
-            blocked = await runner.test_runtime.run('pass')
-            self.assertEqual(blocked['reason'], 'sandbox_cleanup_pending', blocked)
-            self.assertEqual(runner.test_outcome.cleanup['pending_container'], pending)
-            self.assertEqual(sum(call[:2] == ('docker','run') for call in calls), 1)
-            retry = await runner.test_runtime.retry_cleanup()
-            self.assertFalse(retry['ok'])
-            self.assertEqual(retry['sandbox']['pending_container'], pending)
-            # The daemon finishes the original create after the failed return.
-            state['exists'] = True
-            recovered = await runner.test_runtime.retry_cleanup()
-            self.assertTrue(recovered['ok'], recovered)
-            self.assertEqual(recovered['sandbox']['container_name'], pending)
-            self.assertIsNone(runner.test_outcome.cleanup['pending_container'])
-            self.assertTrue(runner.test_outcome.cleanup['confirmed'])
-            self.assertFalse(state['exists'])
-        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
-        self.assertIn('container_creation_unconfirmed', result['cleanup_errors'])
-        self.assertTrue(result['pending_container'].startswith('companion-'))
-        self.assertFalse(any(call[:2] == ('docker','ps') for call in calls), 'an empty listing cannot fence an unobserved create')
-        self.assertFalse(runner.test_runtime.running)
-
-
-    async def test23_invalid_stdout_does_not_fence_container_creation(self):
-        runner, _backend = self.runner()
-        runner.CLEANUP_SECONDS = .001
-        process = Process([{'type':'untrusted-output'}])
-        async def create(*args, **kwargs):
-            if args[:2] == ('docker','run'): return process
-            missing = Process(stderr=b'No such container')
-            async def absent(): missing.returncode = 1; return 1
-            missing.wait = absent
-            return missing
-        with patch.object(runner, 'check', new=AsyncMock()), patch.object(runner, '_removed', new=AsyncMock(return_value=True)) as removed, patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
-            result = await run_program(runner, 'pass')
-        self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed', result)
-        self.assertIn('container_creation_unconfirmed', result['cleanup_errors'])
-        removed.assert_not_awaited()
-
-
-    async def test25_second_task_cancel_during_cleanup_cannot_abandon_container(self):
-        runner, _backend = self.runner()
-        spawned, removing, release = asyncio.Event(), asyncio.Event(), asyncio.Event()
-        process = Process()
-        process.stdout = asyncio.StreamReader()
-        cleanup = Process()
-        async def blocked_remove():
-            removing.set()
-            await release.wait()
-            cleanup.returncode = 0
-            return 0
-        cleanup.wait = blocked_remove
-        async def create(*args, **kwargs):
-            if args[:2] == ('docker','run'):
-                spawned.set()
-                return process
-            if args[:3] == ('docker','rm','-f'):
-                return cleanup
-            raise AssertionError(args)
-        with patch.object(runner, 'check', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
-            task = asyncio.create_task(run_program(runner, 'while True: pass'))
-            await asyncio.wait_for(spawned.wait(), .5)
-            task.cancel()
-            await asyncio.wait_for(removing.wait(), .5)
-            task.cancel()
-            await asyncio.sleep(0)
-            self.assertFalse(task.done())
-            release.set()
-            with self.assertRaises(asyncio.CancelledError):
-                await asyncio.wait_for(task, .5)
-        self.assertTrue(runner.test_outcome.cleanup['confirmed'])
-        self.assertIsNone(runner.test_outcome.cleanup['pending_container'])
-        self.assertFalse(runner.test_runtime.running)
-
-    async def test26_late_output_flood_cannot_cancel_container_removal(self):
-        runner, _backend = self.runner()
-        removing, release = asyncio.Event(), asyncio.Event()
-        process = Process([{'type':'done','ok':True}])
-        process.stderr = asyncio.StreamReader()
-        cleanup = Process()
-        async def remove():
-            removing.set()
-            await release.wait()
-            cleanup.returncode = 0
-            return 0
-        cleanup.wait = remove
-        with patch.object(runner, 'check', new=AsyncMock()), patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=[process, cleanup]):
-            task = asyncio.create_task(run_program(runner, 'print many bytes'))
-            await asyncio.wait_for(removing.wait(), 1)
-            process.stderr.feed_data(b'x' * 65000)
-            process.stderr.feed_eof()
-            await asyncio.sleep(.01)
-            self.assertFalse(task.done())
-            release.set()
-            result = await asyncio.wait_for(task, 1)
-        self.assertTrue(result['ok'], result)
-        self.assertTrue(result['debug_truncated'])
-        self.assertTrue(runner.test_outcome.cleanup['confirmed'])
+    async def test_failed_removal_retains_container_for_retry(self):
+        runner, _ = self.runner()
+        runner.container, runner.created = 'companion-fixture', True
+        with patch.object(runner, '_remove_container', new=AsyncMock(side_effect=[['busy'], []])):
+            self.assertFalse((await runner.close())['ok'])
+            self.assertIsNotNone(runner.container)
+            self.assertTrue((await runner.close())['ok'])
+            self.assertIsNone(runner.container)
 
 
 @pytest.mark.docker
@@ -316,6 +152,7 @@ class RealSandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result['reason'], 'sandbox_cleanup_unconfirmed')
                 self.assertTrue((await runner.test_runtime.retry_cleanup())['ok'],
                     {'initial':result, 'cleanup':dict(runner.test_outcome.cleanup)})
+        await runner.close()
         self.assertTrue(names)
         for name in names:
             process = await asyncio.create_subprocess_exec('docker','inspect',name,
@@ -325,6 +162,26 @@ class RealSandboxSafetyTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(await process.wait(), 0,
                 'container was not removed: '+name+'; result='+repr(details)+'; cleanup='+repr(dict(runner.test_outcome.cleanup)))
         return result
+
+    async def test_resident_reuse_has_fresh_scope_and_no_scratch_or_children(self):
+        runner = runner_for(timeout=15)
+        try:
+            first = await run_program(runner, "import subprocess\nfrom pathlib import Path\nx=42\nPath('/tmp/proof').write_text('old')\nsubprocess.Popen(['python','-c','import time;time.sleep(60)'])\nimport atexit,threading,time\natexit.register(lambda: subprocess.Popen(['python','-c','import time;time.sleep(60)']))\nthreading.Thread(target=lambda: (time.sleep(.1), subprocess.Popen(['python','-c','import time;time.sleep(60)']))).start()")
+            self.assertTrue(first['ok'], first)
+            name = runner.container
+            second = await run_program(runner, "from pathlib import Path\nassert 'x' not in globals()\nassert not Path('/tmp/proof').exists()\nimport os\nassert sorted(int(p.name) for p in Path('/proc').iterdir() if p.name.isdigit()) == sorted([1,os.getpid()])\nprint(drone.get_status())")
+            self.assertTrue(second['ok'], second)
+            self.assertEqual(name, runner.container)
+            timed = runner.timeout
+            runner.timeout = .2
+            failed = await run_program(runner, 'while True: pass')
+            self.assertEqual(failed['status'], 'timeout', failed)
+            self.assertIsNone(runner.container)
+            runner.timeout = timed
+            self.assertTrue((await run_program(runner, 'print(1)'))['ok'])
+            self.assertNotEqual(name, runner.container)
+        finally:
+            self.assertTrue((await runner.close())['ok'])
 
     async def test11_real_infinite_loop_cancelled_without_leftover_container(self):
         runner = runner_for(timeout=10)

@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "scope": "licensed_transformed_photo_Vision_TargetTracker_only",
+  "image_source": "transformed_photo_not_drone_footage",
+  "physical_devices_opened": false,
+  "voice_or_language_planner_tested": false,
+  "real_cloud": true,
+  "ok": false,
+  "photo_sha256": "84e22c73d2c9f268b824ab8524749c3c31d1d33696bad75319af8056339ec772",
+  "photo": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\FieldReadiness20261027\\TentPhoto.jpg",
+  "generated_3D_or_physical_arrival_verified": false,
+  "retries": 0,
+  "api_budget_rmb_authorized": 15.0,
+  "actual_bill_verified": false,
+  "result": {
+    "ok": false,
+    "status": "timeout",
+    "reason": "program_deadline_exceeded",
+    "simulated": true,
+    "journal": [
+      {
+        "method": "observe",
+        "args": [
+          "红色帐篷"
+        ],
+        "kwargs": {}
+      }
+    ],
+    "follow_cleanup": {
+      "status": "released"
+    },
+    "debug": ""
+  },
+  "sandbox_cleanup": {
+    "container_name": "companion-f02c28f456824582bea41f95eb31dc09",
+    "pending_container": null,
+    "cleanup_errors": [],
+    "confirmed": true,
+    "follow_cleanup_error": null
+  },
+  "cloud_requests": 1,
+  "observation": null,
+  "flight_actions": [],
+  "events": [
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793093139.531216
+    },
+    {
+      "readiness_call_id": "e86cc35a72d0492b960491219ef3cb07",
+      "model": "doubao-seed-2-1-lite-260915",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "visible": {
+            "type": "boolean",
+            "description": "True only for one unambiguous visible matching target."
+          },
+          "ambiguous": {
+            "type": "boolean",
+            "description": "True if multiple possible matching targets or uncertain identity."
+          },
+          "candidate_count": {
+            "type": "integer",
+            "description": "Number of matching candidates in the entire image, from 0 to 100."
+          },
+          "bbox_format": {
+            "type": "string",
+            "enum": [
+              "xyxy"
+            ],
+            "description": "Normalized [left, top, right, bottom], not xywh or 0..1000."
+          },
+          "bbox": {
+            "description": "Complete target bounding box, exactly four normalized numbers in [0,1]; null unless uniquely visible.",
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "description": "left x / image width, 0..1, smaller than right"
+                  },
+                  {
+                    "type": "number",
+                    "description": "top y / image height, 0..1, smaller than bottom"
+                  },
+                  {
+                    "type": "number",
+                    "description": "right x / image width, 0..1, larger than left"
+                  },
+                  {
+                    "type": "number",
+                    "description": "bottom y / image height, 0..1, larger than top"
+                  }
+                ],
+                "items": false
+              }
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief visible evidence in Chinese, at most 500 characters."
+          }
+        },
+        "required": [
+          "visible",
+          "ambiguous",
+          "candidate_count",
+          "bbox_format",
+          "bbox",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "structured": true,
+      "retried": false,
+      "event": "readiness_Ark_call_start",
+      "timestamp": 1793093139.864558
+    },
+    {
+      "request_id": "0adf51b4a9ec414c88abaddb40e5eb8c",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793093139.864558,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "response_format": "json_schema",
+      "event": "model_request_start",
+      "status": "started",
+      "readiness_call_id": "e86cc35a72d0492b960491219ef3cb07",
+      "timestamp": 1793093139.864558
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793093168.537265
+    }
+  ],
+  "cleanup": {
+    "synthetic_camera_finished": true
+  }
+}

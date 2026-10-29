@@ -1,6 +1,6 @@
 # 模型程序与内部接口
 
-模型提示和工具契约集中在 `app/Tools.py`；动作宿主在 `execution/Host.py`。云模型只有 `run_program(code)` 和 `interrupt(land: boolean)` 两个工具，不直接访问设备、文件或密钥。工具结果须与原工具 ID 对应；豆包由服务端 `UpdateVoiceChat` 回传。
+模型提示和工具契约集中在 `app/Tools.py`；动作宿主在 `execution/Host.py`。云模型只有 `run_program(code)` 和 `interrupt(land: boolean)` 两个工具，不直接访问设备、文件或密钥。工具结果须与原工具 ID 对应。
 
 ## 完整 Python
 
@@ -13,11 +13,13 @@ if not state["connected"]:
 print(state)
 ```
 
-程序仅在无网络、只读、无宿主挂载的受限 Docker 中执行，无宿主回退；有时间、请求次数和输出预算。`print` 仅保留前 16 KB 调试内容，超出部分继续排空并标记 debug_truncated，不中断程序。两家本地程序上限均为解析后的 `code` 的 60000 UTF-8 字节，JSON 转义不重复计入该预算；入站消息与豆包真实 RTS 包仍有独立约束，不能据此认定底层通道支持 60 KB。
+程序仅在无网络、只读、无宿主挂载的受限 Docker 中执行，无宿主回退；有时间、请求次数和输出预算。`print` 仅保留前 16 KB 调试内容，超出部分继续排空并标记 debug_truncated，不中断程序。程序上限为解析后的 `code` 的 60000 UTF-8 字节，JSON 转义不重复计入该预算。RTC 还有独立传输限制：默认消息容量为 1 KB，控制台启用 RTS 高级功能后最多 64 KB；工具名、ID、JSON 转义等外层开销也占容量，因此 60000 字节代码不保证能通过整包传输。会话内复用容器，每段程序使用独立进程和 Python 作用域；正常结束清理残留进程和临时文件，取消或超时销毁容器。应用退出调用 close_sandbox 回收容器。
 
 ## drone 接口
 
 RPC 只允许位置参数；返回字典中的 `ok`、`status`、`reason` 必须检查。未处理的异常会终止程序；程序可以捕获可恢复异常，历史失败仍保留在 journal，不覆盖最终正常完成状态。不重复可能已执行的动作。
+
+SDK 动作异常的具体结果保存在工具输出 `action_error` 以及 journal 中。`details` 包含动作、参数、阶段、是否发送、耗时和底层原因；`status=unknown`／`outcome_unknown=true` 表示完成情况未确认，不等于没有执行。程序整体失败与单个动作结果未知可同时成立。模型报告原始原因，不能把发送后响应超时说成驱动拒绝。
 
 | 接口 | 参数、结果与边界 |
 | --- | --- |
@@ -46,12 +48,12 @@ RPC 只允许位置参数；返回字典中的 `ok`、`status`、`reason` 必须
 - Host 持有本次 `ControlGrant`、取消事件、跟随票据和导航证据，取消后不复用。`request_control(owner)` 返回 `ControlResult.grant`；`move_forward(grant, cm)` 等真实 SDK 动作必须传授权，`release_control(grant)` 释放它。成功的 stop/land 从 `CommandResult.grant` 取新授权；`priority_interrupt(land)` 是独立紧急入口。模型 RPC 不接收授权对象。
 - `begin_interrupt()` 同步撤权并返回停止凭据，`finish_interrupt()` 执行异步停止；后续外部停止会使旧凭据失效。降落意图不能被普通停止降级。
 - 待清理 Host 未确认时先重试；仍失败则只允许状态/跟随状态查询、停止和降落。不承诺恢复模式可读取画面，不允许新运动或导航。
-- `FollowService.status()` 是唯一动态快照，配置单独从 `config` 读取。内部运动统一使用 RC，固定顺序为 lr/fb/ud/yaw，SDK 前取整；配置对应 `horizontal_limit_rc`、`forward_limit_rc`、`slew_rc_per_second`。`FollowService(device, config=...)` 拥有常驻识别；`stop()` 停运动并作废恢复票据，`close()` 确认线程退出；临时交接用 `pause_if_active()` / `finish_action()`。
+- `FollowService.status()` 是唯一动态快照，配置单独从 `config` 读取。算法固定为 adaptive／relative_size／responsive_v1；短时画面失效时归零并等待新鲜稳定目标恢复，显式停止不会自动重启。内部运动统一使用 RC，固定顺序为 lr/fb/ud/yaw，SDK 前取整；配置对应 `horizontal_limit_rc`、`forward_limit_rc`、`slew_rc_per_second`。`FollowService(device, config=...)` 拥有常驻识别；`stop()` 停运动并作废恢复票据，`close()` 确认线程退出；临时交接用 `pause_if_active()` / `finish_action()`。
 - 设备内部 `get_frame()` 唯一返回 SDK `FrameResult(frame, frame_id, timestamp, stale)`；不得因重复读取或相同像素而编造新身份，也不能把重复帧刷新成新帧。
 
 `validate_tool` 负责外部工具参数，Host 负责不可信容器 RPC，Vision 负责云观察解析，SDK controller 负责公开动作参数。下游内部组件使用这些固定契约；测试替身也须提供真实接口，不能依靠缺方法、缺字段触发生产备用路径。`Observation.parse()` 是云观察解析入口，`to_dict()` 是唯一公开序列化出口。TargetTracker 只消费 NavigationFrames 提供的新帧和 xyxy 目标框；跟随 PID 消费 Controller 已验证的观测。
 
-`AlibabaConfig` 在构造时验证并保存规范化的 `url`，后续直接读取。豆包环境在连接设备之前预检，所得 Node 路径通过 `RTCProcess(..., node=...)` 传入，启动子进程时不再重复预检。
+`providers/DoubaoConfig.py` 是唯一豆包凭据加载入口。长期凭据只留在服务端：RTC 使用房间临时 token，Node 使用 OpenAPI 签名管理云任务，独立文字计划和图片请求使用官方 Ark SDK。没有多供应商路由或自动切换。
 
 边界参数验证、取消检查和最终发送检查不能为迁移测试而删去。结果中的 accepted 与 completed、软件停止与物理停止必须区分。
 

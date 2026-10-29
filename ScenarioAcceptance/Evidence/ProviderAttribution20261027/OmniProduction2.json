@@ -1,0 +1,1314 @@
+{
+  "schema_version": 1,
+  "attempt_id": "ed03667cf4ab438b9379cddf32c79220",
+  "started_at": "2026-10-27T08:51:28.699061+00:00",
+  "ok": false,
+  "real_cloud": true,
+  "scope": "production_omni_http_ws_docker_prerecorded_media_fake_device",
+  "physical_devices": false,
+  "turns": [
+    {
+      "task": "status",
+      "fixture": {
+        "name": "Status",
+        "sha256": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138",
+        "bytes": 176000,
+        "expected_text": "请查询模拟无人机的电量。不要操作飞机。",
+        "synthetic": true
+      },
+      "transcripts": [
+        "请查询模拟无人机的电量，不要操作飞机。"
+      ],
+      "replies": [
+        "电量",
+        "8",
+        "0%，",
+        "当前",
+        "处于",
+        "降落",
+        "状态。"
+      ],
+      "program_results": [
+        {
+          "ok": true,
+          "status": "completed",
+          "reason": "",
+          "simulated": true,
+          "journal": [
+            {
+              "method": "get_status",
+              "args": [],
+              "kwargs": {},
+              "result": {
+                "battery": 80,
+                "height_cm": 0,
+                "connected": true,
+                "flight_state": "landed",
+                "control_owner": "none",
+                "timestamp": 1793091097.6515157,
+                "control_epoch": 0,
+                "command_epoch": 0,
+                "simulated": true,
+                "source": "synthetic_test_fixture_not_real_aircraft"
+              }
+            }
+          ],
+          "follow_cleanup": {
+            "status": "no_control"
+          },
+          "debug": "电量: 80%\n"
+        }
+      ],
+      "packets_sent": 500,
+      "output_audio_bytes": 172800,
+      "speech_started_count": 1,
+      "speech_item_ids": [
+        "item_H3qCcJsIekejRNWFi7a8e"
+      ],
+      "committed_item_ids": [
+        "item_H3qCcJsIekejRNWFi7a8e"
+      ],
+      "completed_asr_items": [
+        {
+          "item_id": "item_H3qCcJsIekejRNWFi7a8e",
+          "transcript": "请查询模拟无人机的电量，不要操作飞机。"
+        }
+      ],
+      "images_to_model": 11,
+      "browser_frame_count": 89,
+      "input_complete": true,
+      "audio_started_ms": 896.372,
+      "speech_started_ms": 1371.303,
+      "speech_end_anchor_ms": 5765.361,
+      "input_complete_ms": 6556.856,
+      "tool_result_sent_ms": 9488.418,
+      "first_reply_ms": 10849.424,
+      "audio_activity": {
+        "first_window_received_ms": 11258.157,
+        "sample_offset": 2160,
+        "confirmed_received_ms": 11258.157,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_nonzero_audio_ms": 11258.157,
+      "post_tool_nonzero_audio_ms": 11258.157,
+      "completed_ms": 11729.946,
+      "verification": {
+        "completed_asr": true,
+        "single_speech_started": true,
+        "asr_identity_chain": true,
+        "asr_complete_keyphrases": true,
+        "asr_exact_ignoring_punctuation": true,
+        "required_asr_phrases": [
+          "查询",
+          "模拟无人机",
+          "电量",
+          "不要操作飞机"
+        ],
+        "input_fully_sent": true,
+        "real_docker_get_status": true,
+        "nonzero_pcm_received": true,
+        "post_tool_nonzero_audio": true,
+        "semantic_reply": false,
+        "delivery_verified": true,
+        "required_task_path": true,
+        "audio_played": false,
+        "assistant_audio_independently_transcribed": false
+      },
+      "ok": false,
+      "latency_ms": {
+        "first_reply_ms": 5084.063,
+        "first_nonzero_audio_ms": 5492.796,
+        "tool_result_sent_ms": 3723.057,
+        "post_tool_nonzero_audio_ms": 5492.796,
+        "completed_ms": 5964.585
+      }
+    },
+    {
+      "task": "vision",
+      "fixture": {
+        "name": "Vision",
+        "sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "bytes": 167520,
+        "expected_text": "画面里的帐篷是什么颜色？只回答颜色。",
+        "synthetic": true
+      },
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "红色",
+        "。"
+      ],
+      "program_results": [],
+      "packets_sent": 331,
+      "output_audio_bytes": 53760,
+      "speech_started_count": 1,
+      "speech_item_ids": [
+        "item_BMnyvca9rFDeiYu9JEkIV"
+      ],
+      "committed_item_ids": [
+        "item_BMnyvca9rFDeiYu9JEkIV"
+      ],
+      "completed_asr_items": [
+        {
+          "item_id": "item_BMnyvca9rFDeiYu9JEkIV",
+          "transcript": "画面里的帐篷是什么颜色？只回答颜色。"
+        }
+      ],
+      "images_to_model": 7,
+      "browser_frame_count": 59,
+      "input_complete": true,
+      "audio_started_ms": 11739.258,
+      "speech_started_ms": 12199.359,
+      "speech_end_anchor_ms": 16200.6,
+      "input_complete_ms": 17007.788,
+      "first_reply_ms": 18955.961,
+      "audio_activity": {
+        "first_window_received_ms": 19287.312,
+        "sample_offset": 1920,
+        "confirmed_received_ms": 19287.312,
+        "rms_threshold": 64,
+        "window_ms": 10,
+        "consecutive_windows": 2
+      },
+      "first_nonzero_audio_ms": 19287.312,
+      "completed_ms": 19462.38,
+      "verification": {
+        "completed_asr": true,
+        "single_speech_started": true,
+        "asr_identity_chain": true,
+        "asr_complete_keyphrases": true,
+        "asr_exact_ignoring_punctuation": true,
+        "required_asr_phrases": [
+          "画面",
+          "帐篷",
+          "什么颜色",
+          "只回答颜色"
+        ],
+        "input_fully_sent": true,
+        "real_docker_get_status": false,
+        "nonzero_pcm_received": true,
+        "post_tool_nonzero_audio": false,
+        "semantic_reply": true,
+        "delivery_verified": true,
+        "required_task_path": true,
+        "audio_played": false,
+        "assistant_audio_independently_transcribed": false
+      },
+      "ok": true,
+      "latency_ms": {
+        "first_reply_ms": 2755.361,
+        "first_nonzero_audio_ms": 3086.712,
+        "tool_result_sent_ms": null,
+        "post_tool_nonzero_audio_ms": null,
+        "completed_ms": 3261.78
+      }
+    }
+  ],
+  "cleanup": {
+    "local_websocket_closed": true,
+    "production_service_closed": true,
+    "cloud_closed": true,
+    "stop_confirmed": true,
+    "http_thread_stopped": true,
+    "pending": false,
+    "sandbox_not_running": true,
+    "sandbox_last_cleanup": {
+      "container_name": "companion-cefb036322ea44c9b9b9a9594df9c430",
+      "pending_container": null,
+      "cleanup_errors": [],
+      "confirmed": true,
+      "follow_cleanup_error": null
+    }
+  },
+  "billing_verified": false,
+  "cost_rmb": null,
+  "limits": {
+    "session_seconds": 60,
+    "speech_started_deadline_seconds": 8,
+    "max_api_budget_rmb": 15.0,
+    "no_automatic_retry": true,
+    "no_audio_compression": true
+  },
+  "limitations": [
+    "No browser permissions, Bluetooth, microphone, playback, camera or aircraft tested.",
+    "Assistant text and nonzero PCM are checked; returned audio is not independently transcribed.",
+    "Offline mode uses scripted protocol text and a tone; it is not ASR, model or TTS evidence."
+  ],
+  "events": [
+    {
+      "event": "omni_local_ready",
+      "url": "http://127.0.0.1:1678",
+      "provider": "alibaba",
+      "max_session_seconds": 60,
+      "hardware_verified": false,
+      "monotonic_ms": 466.435
+    },
+    {
+      "event": "effective_cloud_session",
+      "config": {
+        "model": "qwen3.8-omni-flash-realtime",
+        "turn_detection": {
+          "type": "server_vad",
+          "threshold": 0.5,
+          "prefix_padding_ms": 300,
+          "silence_duration_ms": 1200,
+          "create_response": true,
+          "interrupt_response": true
+        },
+        "max_tokens": 512,
+        "input_audio_transcription": {
+          "model": "qwen3-asr-flash-realtime"
+        },
+        "input_format": {
+          "type": "pcm",
+          "sample_rate": 16000,
+          "sample_format": "s16le",
+          "channels": 1,
+          "packing": "interleaved",
+          "channel_layout": "mono"
+        },
+        "output_format": {
+          "type": "pcm",
+          "sample_rate": 24000
+        }
+      },
+      "monotonic_ms": 891.587
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "session.updated",
+      "epoch": 0,
+      "monotonic_ms": 891.876
+    },
+    {
+      "event": "omni_effective_config",
+      "model": "qwen3.8-omni-flash-realtime",
+      "turn_detection": {
+        "type": "server_vad",
+        "silence_duration_ms": 1200,
+        "create_response": true,
+        "interrupt_response": true
+      },
+      "input_format": {
+        "type": "pcm",
+        "sample_rate": 16000
+      },
+      "output_format": {
+        "type": "pcm",
+        "sample_rate": 24000
+      },
+      "max_tokens": 512,
+      "monotonic_ms": 891.931
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 933.908
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.speech_started",
+      "epoch": 0,
+      "monotonic_ms": 1371.255
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 1,
+      "monotonic_ms": 1579.217
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 1579.34
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 1583.332
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 1880.281
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 1887.633
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 1975.776
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 2489.073
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 2494.026
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 2501.849
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 3122.982
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 3237.549
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 3241.685
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 3247.154
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 4145.081
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 5213.858
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 5360.284
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 5360.366
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 5366.359
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 5366.618
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 5366.691
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 6222.753
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.speech_stopped",
+      "epoch": 1,
+      "monotonic_ms": 7180.141
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.committed",
+      "epoch": 1,
+      "monotonic_ms": 7180.246
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 7323.332
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 7324.14
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 7326.507
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 1,
+      "monotonic_ms": 7333.052
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.completed",
+      "epoch": 1,
+      "monotonic_ms": 7341.464
+    },
+    {
+      "event": "user_text",
+      "transport": "alibaba",
+      "text": "请查询模拟无人机的电量，不要操作飞机。",
+      "epoch": 1,
+      "monotonic_ms": 7341.529
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.created",
+      "epoch": 1,
+      "monotonic_ms": 7540.113
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.added",
+      "epoch": 1,
+      "monotonic_ms": 7543.642
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 1,
+      "monotonic_ms": 7543.693
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7543.718
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7544.692
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7552.93
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7576.153
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7598.325
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7624.294
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7644.176
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7667.885
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.delta",
+      "epoch": 1,
+      "monotonic_ms": 7693.118
+    },
+    {
+      "event": "cloud_function_call_received",
+      "source": "response.function_call_arguments.done",
+      "response_id": "resp_H5GtFkUMLQaj1xTkGuShO",
+      "call_id": "call_76a98576b0564000933ff3d8",
+      "name": "run_program",
+      "arguments_total_utf8": 83,
+      "arguments_retained_utf8": 83,
+      "arguments_truncated": false,
+      "arguments": "{\"code\": \"status = drone.get_status()\\nprint(f\\\"电量: {status['battery']}%\\\")\\n\"}",
+      "monotonic_ms": 7714.361
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.function_call_arguments.done",
+      "epoch": 1,
+      "monotonic_ms": 7714.513
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.done",
+      "epoch": 1,
+      "monotonic_ms": 7714.622
+    },
+    {
+      "event": "cloud_function_call_received",
+      "source": "response.done",
+      "response_id": "resp_H5GtFkUMLQaj1xTkGuShO",
+      "call_id": "call_76a98576b0564000933ff3d8",
+      "name": "run_program",
+      "arguments_total_utf8": 83,
+      "arguments_retained_utf8": 83,
+      "arguments_truncated": false,
+      "arguments": "{\"code\": \"status = drone.get_status()\\nprint(f\\\"电量: {status['battery']}%\\\")\\n\"}",
+      "monotonic_ms": 7714.667
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.done",
+      "epoch": 1,
+      "monotonic_ms": 7714.741
+    },
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 2616,
+        "input_tokens": 2571,
+        "output_tokens": 45,
+        "input_tokens_details": {
+          "text_tokens": 1876,
+          "audio_tokens": 35,
+          "video_tokens": 660
+        },
+        "output_tokens_details": {
+          "text_tokens": 45
+        }
+      },
+      "epoch": 1,
+      "monotonic_ms": 7714.871
+    },
+    {
+      "event": "program_start",
+      "code": "status = drone.get_status()\nprint(f\"电量: {status['battery']}%\")\n",
+      "monotonic_ms": 7716.324
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 8314.731
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 9393.023
+    },
+    {
+      "event": "program_result",
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "battery": 80,
+              "height_cm": 0,
+              "connected": true,
+              "flight_state": "landed",
+              "control_owner": "none",
+              "timestamp": 1793091097.6515157,
+              "control_epoch": 0,
+              "command_epoch": 0,
+              "simulated": true,
+              "source": "synthetic_test_fixture_not_real_aircraft"
+            }
+          }
+        ],
+        "follow_cleanup": {
+          "status": "no_control"
+        },
+        "debug": "电量: 80%\n"
+      },
+      "monotonic_ms": 9484.19
+    },
+    {
+      "event": "tool_result",
+      "transport": "alibaba",
+      "epoch": 1,
+      "id": "call_76a98576b0564000933ff3d8",
+      "result": {
+        "ok": true,
+        "simulated": true,
+        "status": "completed",
+        "reason": "",
+        "debug": "电量: 80%\n",
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "result": {
+              "battery": 80,
+              "height_cm": 0,
+              "connected": true,
+              "flight_state": "landed",
+              "control_owner": "none",
+              "timestamp": 1793091097.6515157,
+              "control_epoch": 0,
+              "command_epoch": 0,
+              "simulated": true,
+              "source": "synthetic_test_fixture_not_real_aircraft"
+            }
+          }
+        ]
+      },
+      "monotonic_ms": 9487.665
+    },
+    {
+      "event": "cloud_tool_output_sent",
+      "call_id": "call_76a98576b0564000933ff3d8",
+      "monotonic_ms": 9488.378
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 1,
+      "monotonic_ms": 9571.747
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 10421.659
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.created",
+      "epoch": 1,
+      "monotonic_ms": 10847.838
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.added",
+      "epoch": 1,
+      "monotonic_ms": 10847.955
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 1,
+      "monotonic_ms": 10848.014
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.content_part.added",
+      "epoch": 1,
+      "monotonic_ms": 10848.072
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 10848.134
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11051.187
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11053.086
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11053.961
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11054.297
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11054.741
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 1,
+      "monotonic_ms": 11055.231
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11255.007
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11299.283
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11329.879
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11376.11
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11425.402
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11477.42
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 11478.109
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11522.222
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11571.491
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11624.537
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11671.476
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11714.535
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 1,
+      "monotonic_ms": 11723.223
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.done",
+      "epoch": 1,
+      "monotonic_ms": 11729.106
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.done",
+      "epoch": 1,
+      "monotonic_ms": 11729.172
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.content_part.done",
+      "epoch": 1,
+      "monotonic_ms": 11729.206
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.done",
+      "epoch": 1,
+      "monotonic_ms": 11729.257
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.done",
+      "epoch": 1,
+      "monotonic_ms": 11729.376
+    },
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 2830,
+        "input_tokens": 2774,
+        "output_tokens": 56,
+        "input_tokens_details": {
+          "text_tokens": 2079,
+          "audio_tokens": 35,
+          "video_tokens": 660
+        },
+        "output_tokens_details": {
+          "text_tokens": 11,
+          "audio_tokens": 45
+        }
+      },
+      "epoch": 1,
+      "monotonic_ms": 11729.773
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.speech_started",
+      "epoch": 1,
+      "monotonic_ms": 12199.272
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 2,
+      "monotonic_ms": 12329.771
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 12329.961
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 12330.986
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 12559.707
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 12566.1
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 12571.025
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13238.873
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13238.933
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13249.803
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 13569.517
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13911.775
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13916.802
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13922.273
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 13929.436
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 14564.578
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 15594.964
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15886.589
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15892.879
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15897.836
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15904.304
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15919.494
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 15919.564
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 16642.005
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.speech_stopped",
+      "epoch": 2,
+      "monotonic_ms": 17714.27
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "input_audio_buffer.committed",
+      "epoch": 2,
+      "monotonic_ms": 17715.508
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 17967.54
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 17967.64
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.delta",
+      "epoch": 2,
+      "monotonic_ms": 17967.692
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.input_audio_transcription.completed",
+      "epoch": 2,
+      "monotonic_ms": 17968.241
+    },
+    {
+      "event": "user_text",
+      "transport": "alibaba",
+      "text": "画面里的帐篷是什么颜色？只回答颜色。",
+      "epoch": 2,
+      "monotonic_ms": 17968.281
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 17993.801
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.created",
+      "epoch": 2,
+      "monotonic_ms": 18875.186
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.added",
+      "epoch": 2,
+      "monotonic_ms": 18875.272
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "conversation.item.created",
+      "epoch": 2,
+      "monotonic_ms": 18875.31
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.content_part.added",
+      "epoch": 2,
+      "monotonic_ms": 18881.159
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 2,
+      "monotonic_ms": 18881.233
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.delta",
+      "epoch": 2,
+      "monotonic_ms": 18971.305
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 2,
+      "monotonic_ms": 19222.826
+    },
+    {
+      "event": "cloud_image_sent",
+      "monotonic_ms": 19277.966
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 2,
+      "monotonic_ms": 19284.757
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 2,
+      "monotonic_ms": 19291.715
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.delta",
+      "epoch": 2,
+      "monotonic_ms": 19297.485
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio_transcript.done",
+      "epoch": 2,
+      "monotonic_ms": 19458.435
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.audio.done",
+      "epoch": 2,
+      "monotonic_ms": 19458.516
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.content_part.done",
+      "epoch": 2,
+      "monotonic_ms": 19458.701
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.output_item.done",
+      "epoch": 2,
+      "monotonic_ms": 19458.772
+    },
+    {
+      "event": "omni_cloud_event",
+      "type": "response.done",
+      "epoch": 2,
+      "monotonic_ms": 19458.83
+    },
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 3514,
+        "input_tokens": 3496,
+        "output_tokens": 18,
+        "input_tokens_details": {
+          "text_tokens": 2106,
+          "audio_tokens": 70,
+          "video_tokens": 1320
+        },
+        "output_tokens_details": {
+          "text_tokens": 4,
+          "audio_tokens": 14
+        }
+      },
+      "epoch": 2,
+      "monotonic_ms": 19462.299
+    },
+    {
+      "event": "interrupt_result",
+      "land": false,
+      "requested_land": false,
+      "effective_land": false,
+      "result": {
+        "ok": true,
+        "status": "accepted",
+        "priority": true
+      },
+      "monotonic_ms": 19479.409
+    }
+  ],
+  "effective_session": {
+    "model": "qwen3.8-omni-flash-realtime",
+    "turn_detection": {
+      "type": "server_vad",
+      "threshold": 0.5,
+      "prefix_padding_ms": 300,
+      "silence_duration_ms": 1200,
+      "create_response": true,
+      "interrupt_response": true
+    },
+    "max_tokens": 512,
+    "input_audio_transcription": {
+      "model": "qwen3-asr-flash-realtime"
+    },
+    "input_format": {
+      "type": "pcm",
+      "sample_rate": 16000,
+      "sample_format": "s16le",
+      "channels": 1,
+      "packing": "interleaved",
+      "channel_layout": "mono"
+    },
+    "output_format": {
+      "type": "pcm",
+      "sample_rate": 24000
+    }
+  },
+  "static_assets": {
+    "/": {
+      "bytes": 3574,
+      "sha256": "97fd58aa88f12c3ddfd7b1db7727ff4ec41f8e192177de959b4f40458a8c57a3",
+      "camera_policy": "camera=()"
+    },
+    "/OmniClient.js": {
+      "bytes": 22076,
+      "sha256": "f1f43917af2e462ed052a98e239f7cdf6d96eb69d60169de989892cf8718bab5",
+      "camera_policy": "camera=()"
+    },
+    "/OmniAudio.js": {
+      "bytes": 4154,
+      "sha256": "b9e8beb44a414b1c829ae3dc2c88c85f1be7835b20ef07e9da46bbf46171fb7c",
+      "camera_policy": "camera=()"
+    }
+  },
+  "production_failure": null,
+  "rejected_actions": [],
+  "usage": [
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 2616,
+        "input_tokens": 2571,
+        "output_tokens": 45,
+        "input_tokens_details": {
+          "text_tokens": 1876,
+          "audio_tokens": 35,
+          "video_tokens": 660
+        },
+        "output_tokens_details": {
+          "text_tokens": 45
+        }
+      },
+      "epoch": 1,
+      "monotonic_ms": 7714.871
+    },
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 2830,
+        "input_tokens": 2774,
+        "output_tokens": 56,
+        "input_tokens_details": {
+          "text_tokens": 2079,
+          "audio_tokens": 35,
+          "video_tokens": 660
+        },
+        "output_tokens_details": {
+          "text_tokens": 11,
+          "audio_tokens": 45
+        }
+      },
+      "epoch": 1,
+      "monotonic_ms": 11729.773
+    },
+    {
+      "event": "model_usage",
+      "provider": "alibaba",
+      "usage": {
+        "total_tokens": 3514,
+        "input_tokens": 3496,
+        "output_tokens": 18,
+        "input_tokens_details": {
+          "text_tokens": 2106,
+          "audio_tokens": 70,
+          "video_tokens": 1320
+        },
+        "output_tokens_details": {
+          "text_tokens": 4,
+          "audio_tokens": 14
+        }
+      },
+      "epoch": 2,
+      "monotonic_ms": 19462.299
+    }
+  ],
+  "finished_at": "2026-10-27T08:51:49.696381+00:00",
+  "cloud_media_verified": false
+}

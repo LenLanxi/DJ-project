@@ -16,6 +16,7 @@ class CommandResult:
     reason: str = ""
     is_blocking: bool = True
     grant: Optional[ControlGrant] = None
+    details: Optional[dict] = None
 
 @dataclass
 class ControlResult:

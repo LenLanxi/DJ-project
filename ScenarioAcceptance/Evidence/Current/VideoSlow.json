@@ -1,0 +1,201 @@
+{
+  "av_version": "16.1.0",
+  "library_versions": {
+    "libavutil": [
+      60,
+      8,
+      100
+    ],
+    "libavcodec": [
+      62,
+      11,
+      100
+    ],
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "libavdevice": [
+      62,
+      1,
+      100
+    ],
+    "libavfilter": [
+      11,
+      4,
+      100
+    ],
+    "libswscale": [
+      9,
+      1,
+      100
+    ],
+    "libswresample": [
+      6,
+      1,
+      100
+    ]
+  },
+  "samples": [
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 256,
+        "height": 128,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": null
+      },
+      "stall_seconds": 0,
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.1,
+      "decoded": [
+        {
+          "number": 0,
+          "send_age_ms": 203.0
+        },
+        {
+          "number": 1,
+          "send_age_ms": 250.0
+        },
+        {
+          "number": 2,
+          "send_age_ms": 328.0
+        },
+        {
+          "number": 3,
+          "send_age_ms": 391.0
+        },
+        {
+          "number": 4,
+          "send_age_ms": 468.0
+        },
+        {
+          "number": 5,
+          "send_age_ms": 531.0
+        },
+        {
+          "number": 6,
+          "send_age_ms": 610.0
+        },
+        {
+          "number": 7,
+          "send_age_ms": 656.0
+        },
+        {
+          "number": 8,
+          "send_age_ms": 735.0
+        },
+        {
+          "number": 9,
+          "send_age_ms": 796.0
+        },
+        {
+          "number": 10,
+          "send_age_ms": 875.0
+        },
+        {
+          "number": 11,
+          "send_age_ms": 938.0
+        },
+        {
+          "number": 12,
+          "send_age_ms": 1016.0
+        },
+        {
+          "number": 13,
+          "send_age_ms": 1078.0
+        },
+        {
+          "number": 14,
+          "send_age_ms": 1156.0
+        },
+        {
+          "number": 15,
+          "send_age_ms": 1219.0
+        },
+        {
+          "number": 75,
+          "send_age_ms": 188.0
+        },
+        {
+          "number": 76,
+          "send_age_ms": 250.0
+        },
+        {
+          "number": 77,
+          "send_age_ms": 313.0
+        },
+        {
+          "number": 78,
+          "send_age_ms": 391.0
+        },
+        {
+          "number": 79,
+          "send_age_ms": 453.0
+        },
+        {
+          "number": 80,
+          "send_age_ms": 531.0
+        },
+        {
+          "number": 81,
+          "send_age_ms": 610.0
+        },
+        {
+          "number": 82,
+          "send_age_ms": 672.0
+        },
+        {
+          "number": 83,
+          "send_age_ms": 735.0
+        },
+        {
+          "number": 84,
+          "send_age_ms": 796.0
+        }
+      ],
+      "stats": {
+        "backend": "av",
+        "count": 26,
+        "reconnects": 2,
+        "opened": 3,
+        "errors": [
+          "decode: [Errno 5] I/O error: 'udp://127.0.0.1:56399?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'"
+        ],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 26,
+        "max_send_age_ms": 1219.0,
+        "unknown_source_count": 0,
+        "published_stale_count": 16,
+        "reconnects": 2,
+        "gap_rejected": false
+      },
+      "driver_lf_sha256": "5d41cf38d1d8d4517790418780e8946d2f73d47a7b639b8dae74666d1cedf764",
+      "driver_policy": "bounded FIFO and probe; decode-gap guard only; no conversion-time guard"
+    }
+  ],
+  "sources": [
+    "https://ffmpeg.org/ffmpeg-protocols.html#udp",
+    "https://ffmpeg.org/ffmpeg-formats.html#Format-Options"
+  ],
+  "scope": "generated pixels and local UDP send times; not camera or aircraft latency"
+}

@@ -1,0 +1,827 @@
+{
+  "schema_version": 1,
+  "scope": "natural_language_planning_real_Docker_Gateway_Vision_TargetTracker_synthetic_device",
+  "real_cloud": false,
+  "voice_input_verified": false,
+  "physical_devices_opened": false,
+  "physical_arrival_or_flight_verified": false,
+  "started_at": "2026-10-27T09:10:07.854022+00:00",
+  "plans": [
+    {
+      "input_text": "请先检查当前模拟设备的连接、飞行状态与电量；如果已连接、电量至少30且尚未起飞，就起飞，然后开始跟随向前行走的用户。只依据实际返回，不重复起飞。",
+      "input_confirmed": false,
+      "offline_fake_planner": true,
+      "code": "state=drone.get_status()\nprint(\"prepare_status\",state)\nif not state.get(\"connected\") or state.get(\"battery\",0)<30:\n    raise RuntimeError(\"preflight_failed\")\nif state.get(\"flight_state\")==\"landed\":\n    print(\"takeoff\",drone.takeoff())\nelif state.get(\"flight_state\")!=\"flying\":\n    raise RuntimeError(\"unknown_flight_state\")\nprint(\"follow\",drone.start_follow())\n"
+    },
+    {
+      "input_text": "当前模拟设备已经起飞且正在跟随。请飞向前面的红色帐篷，在本次保守演示停止点原地旋转一周，然后恢复原跟随。这不是实际到达证明。每次先observe确认唯一可见且居中的红帐篷，最多前进累计200厘米，每步20厘米；当width_fraction至少0.29时停止靠近。在最多10次观察内未达到条件就抛错停止。不作横移、上下移动或其他探索，不调整原跟随参考；程序成功后由现有票据恢复原跟随，不另行start_follow。每步检查工具结果，失败即抛错；打印关键观察、动作与未完成分支。",
+      "input_confirmed": false,
+      "offline_fake_planner": true,
+      "code": "total=0\nready=False\nfor step in range(10):\n    observed=drone.observe(\"前面的红色帐篷\")\n    print(\"observation\",observed)\n    if not observed.get(\"visible\") or abs(observed.get(\"center_x\",0)-0.5)>0.12:\n        raise RuntimeError(\"target_not_usable\")\n    if observed[\"width_fraction\"]>=0.29:\n        ready=True\n        break\n    if total+20>200:\n        raise RuntimeError(\"distance_budget\")\n    result=drone.move_forward(20)\n    print(\"move_result\",result)\n    if not result.get(\"ok\"):raise RuntimeError(\"move_failed\")\n    total+=20\nif not ready:raise RuntimeError(\"demonstration_stop_not_reached\")\nprint(\"rotation\",drone.rotate(360))\nprint(\"stage_status\",\"program_finished_wait_for_follow_cleanup\",total)\n"
+    }
+  ],
+  "stages": [
+    {
+      "index": 1,
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "battery": 80,
+              "height_cm": 0,
+              "connected": true,
+              "flight_state": "landed",
+              "control_owner": "none",
+              "timestamp": 1793092208.712748,
+              "control_epoch": 0,
+              "command_epoch": 0,
+              "simulated": true
+            }
+          },
+          {
+            "method": "takeoff",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "start_follow",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "current_owner": "follow",
+              "control_epoch": 3,
+              "command_epoch": 3
+            }
+          }
+        ],
+        "follow_cleanup": {
+          "status": "no_control"
+        },
+        "debug": "prepare_status {'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793092208.712748, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\ntakeoff {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nfollow {'ok': True, 'current_owner': 'follow', 'control_epoch': 3, 'command_epoch': 3}\n"
+      },
+      "following_after": true,
+      "status_after": {
+        "battery": 80,
+        "height_cm": 80,
+        "connected": true,
+        "flight_state": "flying",
+        "control_owner": "follow",
+        "timestamp": 1793092208.9573078,
+        "control_epoch": 3,
+        "command_epoch": 3,
+        "simulated": true
+      }
+    },
+    {
+      "index": 2,
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 48,
+              "timestamp": 1793092210.853598,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.40833425521850586,
+                0.44814365528247974,
+                0.5937539418538411,
+                0.7185103239836517
+              ],
+              "visible": true,
+              "center_x": 0.5010440985361735,
+              "width_fraction": 0.18541968663533528,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 58,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.42274675569032605,
+                  "occupied_cells": 13,
+                  "appearance_ncc": 0.9999224392689172,
+                  "appearance_good_fraction": 1.0,
+                  "second_region_score": 0.4963235557079315,
+                  "forward_backward_max": 0.003877173876389861
+                },
+                "updates": 9,
+                "source_age_seconds": 0.2138211727142334,
+                "semantic_age_seconds": 1.1547744274139404,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy",
+              "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result",
+              "ambiguous": false,
+              "candidate_count": 1
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 62,
+              "timestamp": 1793092211.7362418,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.3980592409769694,
+                0.4155988622594763,
+                0.6045968373616536,
+                0.7219923231336806
+              ],
+              "visible": true,
+              "center_x": 0.5013280391693116,
+              "width_fraction": 0.20653759638468425,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 58,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.41340756039086,
+                  "occupied_cells": 13,
+                  "appearance_ncc": 0.9908948987114604,
+                  "appearance_good_fraction": 0.9841269841269841,
+                  "second_region_score": 0.5001371502876282,
+                  "forward_backward_max": 0.005985258612781763
+                },
+                "updates": 17,
+                "source_age_seconds": 0.16075658798217773,
+                "semantic_age_seconds": 1.9843535423278809,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy"
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 76,
+              "timestamp": 1793092212.6125004,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.38792896270751953,
+                0.38289690370912904,
+                0.6154315312703451,
+                0.7256122165256076
+              ],
+              "visible": true,
+              "center_x": 0.5016802469889323,
+              "width_fraction": 0.22750256856282552,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 55,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.3937635981013956,
+                  "occupied_cells": 12,
+                  "appearance_ncc": 0.9774601736111449,
+                  "appearance_good_fraction": 0.9702632107695399,
+                  "second_region_score": 0.5099519491195679,
+                  "forward_backward_max": 0.004818009678274393
+                },
+                "updates": 25,
+                "source_age_seconds": 0.1138918399810791,
+                "semantic_age_seconds": 2.8137474060058594,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy"
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 88,
+              "timestamp": 1793092213.371396,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.37778186798095703,
+                0.3510325679072627,
+                0.6261501948038737,
+                0.7284107349537037
+              ],
+              "visible": true,
+              "center_x": 0.5019660313924154,
+              "width_fraction": 0.24836832682291668,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 55,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.3892568897721322,
+                  "occupied_cells": 12,
+                  "appearance_ncc": 0.9643922905068067,
+                  "appearance_good_fraction": 0.9626280892103677,
+                  "second_region_score": 0.5090696215629578,
+                  "forward_backward_max": 0.004519951064139605
+                },
+                "updates": 32,
+                "source_age_seconds": 0.13235902786254883,
+                "semantic_age_seconds": 3.5911102294921875,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy"
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 100,
+              "timestamp": 1793092214.1496007,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.3678508122762044,
+                0.3188519795735677,
+                0.6366198857625325,
+                0.7312650327329282
+              ],
+              "visible": true,
+              "center_x": 0.5022353490193685,
+              "width_fraction": 0.2687690734863281,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 55,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.38532414877993,
+                  "occupied_cells": 12,
+                  "appearance_ncc": 0.9526556972806186,
+                  "appearance_good_fraction": 0.9570022101667671,
+                  "second_region_score": 0.49245214462280273,
+                  "forward_backward_max": 0.005924656055867672
+                },
+                "updates": 39,
+                "source_age_seconds": 0.12404441833496094,
+                "semantic_age_seconds": 4.361000299453735,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy"
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 113,
+              "timestamp": 1793092215.0309663,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.3578600247701009,
+                0.28646135683412904,
+                0.6471022288004558,
+                0.7343751130280671
+              ],
+              "visible": true,
+              "center_x": 0.5024811267852783,
+              "width_fraction": 0.28924220403035483,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "b7129087dbcd4a1c841a4736f68f7af9",
+                "seed_frame_id": 33,
+                "semantic_timestamp": 1793092209.9126449,
+                "quality": {
+                  "features": 55,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.38164344282687634,
+                  "occupied_cells": 12,
+                  "appearance_ncc": 0.9424224108288394,
+                  "appearance_good_fraction": 0.9527828008840667,
+                  "second_region_score": 0.4974784851074219,
+                  "forward_backward_max": 0.005982146132737398
+                },
+                "updates": 47,
+                "source_age_seconds": 0.11660337448120117,
+                "semantic_age_seconds": 5.234924793243408,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy"
+            }
+          },
+          {
+            "method": "move_forward",
+            "args": [
+              20
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "result": {
+              "frame_id": 141,
+              "timestamp": 1793092216.8547127,
+              "source": "sdk_camera",
+              "simulated": true,
+              "bbox": [
+                0.35208374659220376,
+                0.2814876697681568,
+                0.6479148864746094,
+                0.7185310081199363
+              ],
+              "visible": true,
+              "center_x": 0.49999931653340657,
+              "width_fraction": 0.2958311398824056,
+              "fresh": true,
+              "target_tracking": {
+                "track_id": "545856365aed4b5ca0e6f621ea082cd4",
+                "seed_frame_id": 126,
+                "semantic_timestamp": 1793092215.8895805,
+                "quality": {
+                  "features": 120,
+                  "inlier_fraction": 1.0,
+                  "coverage": 0.42068339818707745,
+                  "occupied_cells": 12,
+                  "appearance_ncc": 0.9999236919789605,
+                  "appearance_good_fraction": 1.0,
+                  "second_region_score": 0.5067063570022583,
+                  "forward_backward_max": 0.0030834083445370197
+                },
+                "updates": 9,
+                "source_age_seconds": 0.189971923828125,
+                "semantic_age_seconds": 1.155104160308838,
+                "max_semantic_age_seconds": 6.0,
+                "method": "seed_appearance_LK_FB_RANSAC_affine",
+                "identity_verified": false,
+                "hardware_verified": false
+              },
+              "bbox_format": "xyxy",
+              "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result",
+              "ambiguous": false,
+              "candidate_count": 1
+            }
+          },
+          {
+            "method": "rotate",
+            "args": [
+              360
+            ],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          }
+        ],
+        "follow_cleanup": {
+          "status": "follow_resumed"
+        },
+        "debug": "observation {'frame_id': 48, 'timestamp': 1793092210.853598, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.40833425521850586, 0.44814365528247974, 0.5937539418538411, 0.7185103239836517], 'visible': True, 'center_x': 0.5010440985361735, 'width_fraction': 0.18541968663533528, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 58, 'inlier_fraction': 1.0, 'coverage': 0.42274675569032605, 'occupied_cells': 13, 'appearance_ncc': 0.9999224392689172, 'appearance_good_fraction': 1.0, 'second_region_score': 0.4963235557079315, 'forward_backward_max': 0.003877173876389861}, 'updates': 9, 'source_age_seconds': 0.2138211727142334, 'semantic_age_seconds': 1.1547744274139404, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy', 'description': 'offline pixel segmentation of declared synthetic red fabric, not a cloud result', 'ambiguous': False, 'candidate_count': 1}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 62, 'timestamp': 1793092211.7362418, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.3980592409769694, 0.4155988622594763, 0.6045968373616536, 0.7219923231336806], 'visible': True, 'center_x': 0.5013280391693116, 'width_fraction': 0.20653759638468425, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 58, 'inlier_fraction': 1.0, 'coverage': 0.41340756039086, 'occupied_cells': 13, 'appearance_ncc': 0.9908948987114604, 'appearance_good_fraction': 0.9841269841269841, 'second_region_score': 0.5001371502876282, 'forward_backward_max': 0.005985258612781763}, 'updates': 17, 'source_age_seconds': 0.16075658798217773, 'semantic_age_seconds': 1.9843535423278809, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy'}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 76, 'timestamp': 1793092212.6125004, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.38792896270751953, 0.38289690370912904, 0.6154315312703451, 0.7256122165256076], 'visible': True, 'center_x': 0.5016802469889323, 'width_fraction': 0.22750256856282552, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 55, 'inlier_fraction': 1.0, 'coverage': 0.3937635981013956, 'occupied_cells': 12, 'appearance_ncc': 0.9774601736111449, 'appearance_good_fraction': 0.9702632107695399, 'second_region_score': 0.5099519491195679, 'forward_backward_max': 0.004818009678274393}, 'updates': 25, 'source_age_seconds': 0.1138918399810791, 'semantic_age_seconds': 2.8137474060058594, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy'}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 88, 'timestamp': 1793092213.371396, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.37778186798095703, 0.3510325679072627, 0.6261501948038737, 0.7284107349537037], 'visible': True, 'center_x': 0.5019660313924154, 'width_fraction': 0.24836832682291668, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 55, 'inlier_fraction': 1.0, 'coverage': 0.3892568897721322, 'occupied_cells': 12, 'appearance_ncc': 0.9643922905068067, 'appearance_good_fraction': 0.9626280892103677, 'second_region_score': 0.5090696215629578, 'forward_backward_max': 0.004519951064139605}, 'updates': 32, 'source_age_seconds': 0.13235902786254883, 'semantic_age_seconds': 3.5911102294921875, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy'}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 100, 'timestamp': 1793092214.1496007, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.3678508122762044, 0.3188519795735677, 0.6366198857625325, 0.7312650327329282], 'visible': True, 'center_x': 0.5022353490193685, 'width_fraction': 0.2687690734863281, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 55, 'inlier_fraction': 1.0, 'coverage': 0.38532414877993, 'occupied_cells': 12, 'appearance_ncc': 0.9526556972806186, 'appearance_good_fraction': 0.9570022101667671, 'second_region_score': 0.49245214462280273, 'forward_backward_max': 0.005924656055867672}, 'updates': 39, 'source_age_seconds': 0.12404441833496094, 'semantic_age_seconds': 4.361000299453735, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy'}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 113, 'timestamp': 1793092215.0309663, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.3578600247701009, 0.28646135683412904, 0.6471022288004558, 0.7343751130280671], 'visible': True, 'center_x': 0.5024811267852783, 'width_fraction': 0.28924220403035483, 'fresh': True, 'target_tracking': {'track_id': 'b7129087dbcd4a1c841a4736f68f7af9', 'seed_frame_id': 33, 'semantic_timestamp': 1793092209.9126449, 'quality': {'features': 55, 'inlier_fraction': 1.0, 'coverage': 0.38164344282687634, 'occupied_cells': 12, 'appearance_ncc': 0.9424224108288394, 'appearance_good_fraction': 0.9527828008840667, 'second_region_score': 0.4974784851074219, 'forward_backward_max': 0.005982146132737398}, 'updates': 47, 'source_age_seconds': 0.11660337448120117, 'semantic_age_seconds': 5.234924793243408, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy'}\nmove_result {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nobservation {'frame_id': 141, 'timestamp': 1793092216.8547127, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.35208374659220376, 0.2814876697681568, 0.6479148864746094, 0.7185310081199363], 'visible': True, 'center_x': 0.49999931653340657, 'width_fraction': 0.2958311398824056, 'fresh': True, 'target_tracking': {'track_id': '545856365aed4b5ca0e6f621ea082cd4', 'seed_frame_id': 126, 'semantic_timestamp': 1793092215.8895805, 'quality': {'features': 120, 'inlier_fraction': 1.0, 'coverage': 0.42068339818707745, 'occupied_cells': 12, 'appearance_ncc': 0.9999236919789605, 'appearance_good_fraction': 1.0, 'second_region_score': 0.5067063570022583, 'forward_backward_max': 0.0030834083445370197}, 'updates': 9, 'source_age_seconds': 0.189971923828125, 'semantic_age_seconds': 1.155104160308838, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy', 'description': 'offline pixel segmentation of declared synthetic red fabric, not a cloud result', 'ambiguous': False, 'candidate_count': 1}\nrotation {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nstage_status program_finished_wait_for_follow_cleanup 120\n"
+      },
+      "following_after": true,
+      "status_after": {
+        "battery": 80,
+        "height_cm": 80,
+        "connected": true,
+        "flight_state": "flying",
+        "control_owner": "follow",
+        "timestamp": 1793092217.4380953,
+        "control_epoch": 7,
+        "command_epoch": 14,
+        "simulated": true
+      }
+    }
+  ],
+  "ok": true,
+  "api_budget_rmb_authorized": 15,
+  "budget_is_not_provider_bill_hard_cap": true,
+  "retries": 0,
+  "image_source": "synthetic_textured_tent",
+  "photo_sha256": null,
+  "photo_3D_or_field_navigation_verified": false,
+  "checks": {
+    "takeoff_called": true,
+    "start_follow_called": true,
+    "observe_called": true,
+    "move_forward_called": true,
+    "rotate_one_turn_called": true,
+    "final_following": true,
+    "movement_cm": 120,
+    "movement_within_200cm": true,
+    "fresh_tracker_observed": true,
+    "follow_ticket_restored": true
+  },
+  "failure_cleanup_probe": {
+    "result": {
+      "ok": false,
+      "status": "failed",
+      "reason": "RuntimeError: controlled_failure_after_handoff",
+      "simulated": true,
+      "journal": [
+        {
+          "method": "get_status",
+          "args": [],
+          "kwargs": {},
+          "result": {
+            "battery": 80,
+            "height_cm": 0,
+            "connected": true,
+            "flight_state": "landed",
+            "control_owner": "none",
+            "timestamp": 1793092218.1409943,
+            "control_epoch": 0,
+            "command_epoch": 0,
+            "simulated": true
+          }
+        },
+        {
+          "method": "takeoff",
+          "args": [],
+          "kwargs": {},
+          "result": {
+            "ok": true,
+            "status": "completed",
+            "is_blocking": true,
+            "simulated": true
+          }
+        },
+        {
+          "method": "start_follow",
+          "args": [],
+          "kwargs": {},
+          "result": {
+            "ok": true,
+            "current_owner": "follow",
+            "control_epoch": 3,
+            "command_epoch": 3
+          }
+        },
+        {
+          "method": "stop_motion",
+          "args": [],
+          "kwargs": {},
+          "result": {
+            "ok": true,
+            "status": "accepted",
+            "is_blocking": false,
+            "simulated": true
+          }
+        }
+      ],
+      "follow_cleanup": {
+        "status": "released"
+      },
+      "debug": "prepare_status {'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793092218.1409943, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\ntakeoff {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nfollow {'ok': True, 'current_owner': 'follow', 'control_epoch': 3, 'command_epoch': 3}\n{'ok': True, 'status': 'accepted', 'is_blocking': False, 'simulated': True}\n"
+    },
+    "following_after_failure": false,
+    "passed": true
+  },
+  "events": [
+    {
+      "event": "mock_action_completed",
+      "name": "takeoff",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092208.716014
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092209.6037264
+    },
+    {
+      "event": "offline_cloud_seed",
+      "delay_seconds": 1.0,
+      "image_sha256": "154d17a96a78347df9b0d2599641af6a2014aee5e546623266f506f62c818531",
+      "result": {
+        "visible": true,
+        "ambiguous": false,
+        "candidate_count": 1,
+        "bbox": [
+          0.4083333333333333,
+          0.44814814814814813,
+          0.59375,
+          0.7185185185185186
+        ],
+        "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result"
+      },
+      "timestamp": 1793092210.9581635
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 20.0,
+      "timestamp": 1793092211.4876935
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 20.0,
+      "timestamp": 1793092211.4928603
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 40.0,
+      "timestamp": 1793092212.3212798
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 40.0,
+      "timestamp": 1793092212.3313951
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 60.0,
+      "timestamp": 1793092213.1407676
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 60.0,
+      "timestamp": 1793092213.1440055
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 80.0,
+      "timestamp": 1793092213.9205043
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 80.0,
+      "timestamp": 1793092213.9236786
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 100.0,
+      "timestamp": 1793092214.6960664
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 100.0,
+      "timestamp": 1793092214.6998131
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "move_forward",
+      "args": [
+        20
+      ],
+      "simulated": true,
+      "forward_cm": 120.0,
+      "timestamp": 1793092215.5569289
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 120.0,
+      "timestamp": 1793092215.5597947
+    },
+    {
+      "event": "offline_cloud_seed",
+      "delay_seconds": 1.0,
+      "image_sha256": "95443990ff1812187e4a28c7a284eebb38d7d0eda9064d3bf7c98343a337133b",
+      "result": {
+        "visible": true,
+        "ambiguous": false,
+        "candidate_count": 1,
+        "bbox": [
+          0.35208333333333336,
+          0.2814814814814815,
+          0.6479166666666667,
+          0.7185185185185186
+        ],
+        "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result"
+      },
+      "timestamp": 1793092216.9365842
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "rotate",
+      "args": [
+        360
+      ],
+      "simulated": true,
+      "forward_cm": 120.0,
+      "timestamp": 1793092217.2015617
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "takeoff",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092218.1444728
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092218.1499608
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092218.3875473
+    }
+  ],
+  "finished_at": "2026-10-27T09:10:18.390631+00:00",
+  "synthetic_camera_timing": {
+    "frames": 165,
+    "maximum_frame_gap_seconds": 0.07901597023010254,
+    "maximum_render_seconds": 0.01600000006146729
+  },
+  "cleanup": {
+    "synthetic_camera_thread_finished": true,
+    "no_cloud_stream_left_open": true,
+    "gateway_result_cleanup_recorded": true
+  }
+}

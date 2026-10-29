@@ -1,64 +1,69 @@
 # 环境、凭据与入口
 
-本页负责安装和配置；运行顺序见 [Flight](Flight.md)，内部职责见 [Architecture](Architecture.md)。以下命令从仓库根目录执行。
+以下命令从仓库根目录执行；现场流程见 [Flight](Flight.md)。
 
-## 环境与安装
+## 安装
 
-需要 Windows、uv 管理的 Python 3.11、Node.js 22+、已运行的 Docker Desktop Linux containers。电脑同时连接 Tello Wi-Fi 与互联网，可用独立网络接口或 USB 共享。其他程序/手机 App 不得争用同一飞机或 UDP 端口。
+使用 Windows、uv 管理的 Python 3.11、Node.js 22+、Docker Desktop Linux containers。Node 运行本机 RTC 服务，浏览器使用官方 RTC SDK 传输音视频。电脑同时连接 Tello Wi-Fi 和互联网；其他程序／手机 App 不得争用飞机或 UDP 端口。
 
 ```powershell
 uv sync --frozen
 npm --prefix web ci --ignore-scripts --no-audit --no-fund
-docker build -t companion-sandbox:0.4 execution/sandbox
+docker build -t companion-sandbox:0.5 execution/sandbox
 .\Check.ps1
 .\Check.ps1 -Docker
 ```
 
-默认检查是离线 Python 与 JavaScript；`-Docker` 才实际执行容器项，均不调用收费云或连接飞机。换机重新安装，不复制旧虚拟环境、临时令牌或音频设备索引；依赖由 uv/npm 管理，不向全局 Python 安装。
+Python 的方舟请求使用官方 volcengine-ark-runtime（导入名 volcenginesdkarkruntime）；网页使用 @volcengine/rtc，Node 使用 @volcengine/openapi 签名调用云端。依赖由 uv.lock 与 web/package-lock.json 固定，启动时不自动安装。
 
-## 服务端凭据
+换机重新安装依赖，不复制旧虚拟环境、临时授权和音频设备索引。默认 Check 不访问收费云和真实设备；Docker 模式实际运行本地容器。
 
-正式语音读取所选路线的 JSON 文件。长期密钥留在服务端，不进网页、模型程序、Git 或证据。`.env.example` 只是字段模板，不会自动加载，也不是无文件语音启动方式。
+## 豆包凭据
 
-| 路线 | 默认文件（相对当前用户目录） | 覆盖方式 |
+豆包 RTC 是唯一正式路线，没有阿里备选或自动切换。凭据 JSON 包含以下字段组，填入本账号真实配置：
+
+| 分组 | 字段 | 用途 |
 | --- | --- | --- |
-| `alibaba` 默认 | `Desktop/tmp/DomesticAiTrials/AlibabaCredentials.json` | `-AlibabaCredentials` 或 `ALIBABA_CREDENTIALS_FILE` |
-| `doubao` 备选 | `Desktop/tmp/DoubaoRealtime/Credentials.json` | `-DoubaoCredentials` 或 `DOUBAO_CREDENTIALS_FILE` |
+| RTC | AppId、AppKey | RTC 房间和临时 token |
+| OpenAPI | AccessKeyId、SecretAccessKey | 云端 VoiceChat 任务签名 |
+| Speech | AppId、AccessToken | volcano_duplex 原生实时语音 |
+| Ark | ModelName、APIKey | 混合编排中的视觉／工具模型，以及独立文字计划和图片请求 |
 
-阿里文件提供 ApiKey、WorkspaceId、WebSocketUrl、Model、Region。默认 Qwen3.8 Omni Flash Realtime；本机观察/问答使用 `AlibabaVisionClient`，无需豆包凭据。豆包文件分别提供 RTC、Seeduplex 和 Ark 字段，本机视觉使用方舟 `ModelClient`。底层字段的用途不可互换：
+本机默认文件：
 
-- `RTC_APP_ID` / `RTC_APP_KEY`：RTC 应用与短期入房 Token。
-- `VOLCENGINE_ACCESS_KEY_ID` / `VOLCENGINE_SECRET_ACCESS_KEY`：VoiceChat OpenAPI 签名。
-- `VOLC_S2S_APP_ID` / `VOLC_S2S_TOKEN`：Seeduplex。
-- `RTC_VLM_MODEL` / `RTC_VLM_API_KEY`：方舟视觉模型与密钥。
+```text
+C:\Users\bente\Desktop\tmp\DoubaoRealtime\Credentials.json
+```
 
-旧直连语音的 X-Api-Key 不能替代这些字段。必要配置与 Docker 在连接飞机前预检，预检成功仍不证明真实云可用。模型与 endpoint 保持现有配置；阿里仍经本机 WebSocket 转发 PCM/JPEG，没有迁移至阿里 WebRTC。
+PowerShell 启动器使用 `-DoubaoCredentials`，Python 使用 `--doubao-credentials`；也可设置 DOUBAO_CREDENTIALS_FILE。`.env.example` 只列出环境配置，不会自动加载。具体默认路径以启动器和 `providers/DoubaoConfig.py` 为准。
 
-服务商可能分别收取语音、视觉、云任务与 RTC 费用；本地不设金额限制，会话时长/轮数/token/消息预算也不代替账单。诊断的真实云请求要求显式 `--real`；先看脚本帮助和账户状态，参数传文件路径，密钥不要直接写命令行。
+长期密钥只留在服务端，不进入网页、模型程序、Git 或证据。网页取得的是有期限的房间 token。配置、Node 依赖和 Docker 在连接飞机前检查；本地预检通过不证明账号权限、云模型或媒体链路可用。
 
-## 入口与参数
+## 云端能力与容量
+
+StartVoiceChat 使用 `S2SConfig.Provider=volcano_duplex` 与 `LLMConfig.Mode=ArkV3` 混合编排：语音送给原生实时语音服务，方舟模型处理视觉和工具请求。工具程序由方舟模型生成，不能称为语音模型直接生成。持续无人机视频由 RTC SDK 发布，导航的独立 `describe`／`observe` 请求使用官方 Ark SDK。
+
+RTC 工具二进制消息默认容量为 1 KB；在 RTC 控制台启用 RTS 高级功能后，消息最多可到 64 KB，修改后需重新初始化 RTC 引擎。代码应用上限仍为 60000 UTF-8 字节，但外层 JSON、转义、工具名和 ID 同样占传输容量，不能保证达到该代码上限的消息一定可传。没有本地 600 字节限制。现场前先用实际任务核对账号消息容量。
+
+混合编排配置使用 `<NOVISION>` 规则选择回答来源；普通对话且不需画面或工具时输出此标记，需要看图或工具时不得输出。该规则由服务配置提供。
+
+## 入口
 
 ```powershell
 .\start_flight.ps1 -DryRun
-uv run --frozen python -m app.Application --help
-```
-
-启动器只组装并转发参数，Python 负责参数与配置的单点校验。`-DryRun` 仅打印命令，不运行 Python、不读取验证配置、不打开设备或云服务；它不能证明配置正确。需要独立检查跟随文件时，可先查 `uv run --frozen python diagnostics/follow/check_follow_config.py --help`。
-
-现场优先用 `start_flight.ps1`，默认跟随配置位于 `follow/configs`。默认网页 http://127.0.0.1:18848；`-WebPort 18849` 显式改端口，占用时报错，不自动选择其他端口。重启会话后刷新页面取得新授权；设备由用户手动选择，不跨电脑复用索引。
-
-Python 使用三个独立子命令：
-
-```powershell
-uv run --frozen python -m app.Application plan --text "查询飞机状态的程序"
+uv run --frozen python -m app.Application plan --text "查询飞机状态的程序" --doubao-credentials C:\Path\Credentials.json
 uv run --frozen python -m app.Application run --real-drone --program Task.py
-uv run --frozen python -m app.Application voice --real-drone --voice-provider alibaba
+uv run --frozen python -m app.Application voice --real-drone --doubao-credentials C:\Path\Credentials.json
 ```
 
-`plan` 调真实文本模型但不连接飞机，只有它接受 `--image`。`run` 的 `--program` 与 `--text` 二选一；文件程序默认不创建视觉客户端，需要时显式加 `--vision`，文字任务使用文本 ModelClient 的视觉能力。文本模型读取 `AI_CHAT_URL`、`AI_API_KEY`、`AI_MODEL` 环境配置。`voice` 才接受供应商凭据、会话时长及网页端口参数。用 `<子命令> --help` 查看对应参数。
+- plan：调用方舟模型生成程序，不连接飞机；可用 `--image` 提供静态图片。
+- run：`--program` 与 `--text` 二选一。文件程序默认不创建视觉客户端，需要时加 `--vision`；文字任务使用方舟模型生成程序。
+- voice：耳机语音和无人机视频经 RTC 持续传输，支持多轮程序执行；本地不等待最终 ASR 字幕才接受工具，普通插话不关闭 RTC 会话。
 
-现场启动器默认 `voice`；`-Program` / `-Text` 映射到 `run`，`-Text ... -PlanOnly` 映射到 `plan`。静态图片和文件视觉参数使用上述 Python 子命令。默认阿里，启动前用 `-VoiceProvider doubao` 选择备选。失败后先停止、核对飞机，再重启选择路线；不自动切换、重放旧指令或恢复旧授权。没有生产模拟入口或本地 STT/TTS 降级。
+启动器只转发参数，Python 负责校验。`-DryRun` 不运行 Python、不验证配置、不打开资源。`-Program` / `-Text` 映射到 run，`-Text ... -PlanOnly` 映射到 plan。
 
-豆包备选沿用 OpenAPI `2025-06-01`、`S2SConfig.Provider="volcano_duplex"`、`OutputMode=1`、`VisionConfig.Enable=true`；`ThinkingType="disabled"` 减少额外思考延迟，但不保证时效达标。`LLMConfig.ModelName` 可为模型 ID 或 ep- 接入点，自定义资源另需 APIKey，不改用旧接口的 EndPointId。
+默认跟随配置为 follow/configs/aircraft_A_ID0_motion_follow.json。算法固定为 adaptive、relative_size、responsive_v1；可调整数值参数，其他候选算法和米制标定入口已移除。
 
-协议依据：[阿里实时多模态与工具](https://help.aliyun.com/zh/model-studio/realtime)、[豆包混合编排](https://docs.volcengine.com/docs/real_time_communication/Accessend-to-endreal-timespeechlargemodel?lang=zh)、[LLM 配置](https://docs.volcengine.com/docs/real_time_communication/ConfigureLargeModelLLM?lang=zh)、[工具调用](https://docs.volcengine.com/docs/real_time_communication/FunctionCalling-1?lang=zh)。
+网页默认 http://127.0.0.1:18848；用 `-WebPort` 显式修改，占用时失败，不自动换端口。会话重启后刷新页面，重新选择麦克风和耳机。没有生产模拟入口或本地语音降级。
+
+云端调用可能计费，本地不设金额限制。真实云诊断须显式授权；把凭据路径而非密钥传给命令。

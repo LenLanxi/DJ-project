@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-27T08:34:10.807420+00:00",
+  "aggregate": [
+    {
+      "provider": "QwenRealtime",
+      "samples": 8,
+      "confirmed_inputs": 8,
+      "semantic_goals_passed": 8,
+      "tool_policy_passed": 7,
+      "overall_task_passed": 7,
+      "unexpected_readonly_tool_calls": [
+        "RedLeft"
+      ],
+      "format_only_differences_not_counted_as_model_ability_failures": true
+    },
+    {
+      "provider": "ArkSeed",
+      "samples": 8,
+      "confirmed_inputs": 8,
+      "semantic_goals_passed": 8,
+      "tool_policy_passed": 8,
+      "overall_task_passed": 8,
+      "unexpected_readonly_tool_calls": [],
+      "format_only_differences_not_counted_as_model_ability_failures": true
+    }
+  ],
+  "all_raw_attempts_retained": 19,
+  "semantic_samples": 16,
+  "protocol_probe_failures": 1,
+  "media_controls": 2,
+  "physical_devices_opened": false,
+  "cost": {
+    "reported_direct_model_usage_estimated_rmb": 0.0270691,
+    "includes_RTC_Speech_cost": false,
+    "actual_bill_verified": false,
+    "test_transactions": 20,
+    "transaction_definition": "Qwen_WS_session_or_Ark_HTTP_inference_or_RTC_media_session",
+    "RTC_Start_Stop_control_calls_additional": 2,
+    "reported_direct_model_generations": 19,
+    "RTC_Speech_Ark_generation_counts_unknown": true
+  },
+  "media_controls_summary": [
+    {
+      "provider": "QwenRealtime",
+      "requested_VAD": "semantic_vad_800ms",
+      "server_echo": "unknown",
+      "input_confirmed": false,
+      "result": "no_speech_ASR_or_response_events_before_deadline",
+      "model_comprehension_failure": false,
+      "current_production_default_tested": false,
+      "root_cause": "unresolved_between_audio_ingress_VAD_and_service_state"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "complete_ASR": true,
+      "one_user_bot_round_id": 1,
+      "correct_red_answer": true,
+      "Stop_confirmed": true
+    }
+  ],
+  "selection_evidence": {
+    "semantic_ability_winner_established": false,
+    "both_models_solved_all_eight_core_goals_with_confirmed_text_JPEG": true,
+    "Qwen_additional_readonly_tool_request_observed_once": true,
+    "not_a_pure_model_speed_comparison": true,
+    "current_Qwen_production_server_vad_1200_requires_separate_integration_evidence": true,
+    "synthetic_single_trial_cases_not_field_accuracy_or_safety_rate": true
+  },
+  "handoff": "Media/Handoff.json",
+  "raw_receipts": "Results.json",
+  "budget": "Budget.json"
+}

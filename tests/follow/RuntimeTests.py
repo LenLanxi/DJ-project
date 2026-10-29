@@ -255,7 +255,7 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(sdk.get_status().command_epoch, state.command_epoch)
             self.assertEqual(self.follow.events(), events)
             self.follow.control_once()
-            self.assertEqual(sdk.get_status().control_owner, 'none')
+            self.assertEqual(sdk.get_status().control_owner, 'follow')
             self.assertEqual(sdk.get_status().velocity, (0,0,0,0))
 
     def test_event_snapshot_uses_observations_and_motion_and_is_bounded(self):

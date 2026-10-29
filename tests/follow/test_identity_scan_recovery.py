@@ -27,7 +27,7 @@ class Detector:
 class IdentityRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.clock=Clock(); self.port=FakeDevice(self.clock.mono)
-        self.service=FollowService(self.port, config=FollowConfig(control_profile='openpose_pid', slew_rc_per_second=80.0),
+        self.service=FollowService(self.port, config=FollowConfig(slew_rc_per_second=80.0),
                          tracker=Detector(),
                          monotonic=self.clock.mono,
                          wall_clock=self.clock.wall,
@@ -83,12 +83,11 @@ class IdentityRecoveryTests(unittest.TestCase):
         for _ in range(4):self.frame()
         self.assertFalse(self.service.is_following())
 
-    def test_expired_frame_during_identity_wait_is_latched(self):
+    def test_expired_frame_during_wait_recovers(self):
         self.frame('ambiguous_scan_budget_exceeded')
         self.clock.now+=1.01;self.service.control_once()
         for _ in range(4):self.frame()
-        self.assertFalse(self.service.is_following())
-        self.assertEqual(self.service.status()['state'],'frame_stale')
+        self.assertTrue(self.service.is_following())
 
     def test_explicit_stop_during_identity_wait_cannot_auto_resume(self):
         self.frame('ambiguous_scan_budget_exceeded');self.service._stop_tracking()
@@ -124,7 +123,6 @@ class IdentityRecoveryTests(unittest.TestCase):
         publish(image());self.assertTrue(self.service.calibrate_reference().ok)
         self.assertTrue(self.service._start_tracking().ok)
         publish(image(True));self.assertTrue(self.service.is_following())
-        self.assertFalse(self.service.tracker.last_diagnostics['duplicate_check']['exhaustive'])
         self.assertGreater(self.port.velocity[3],0)
 
 

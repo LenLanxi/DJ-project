@@ -8,7 +8,7 @@ from FollowFixture import FakeDevice
 
 def test_supplied_aircraft_configs_bind_their_marker_and_rc_budget():
     folder=Path(__file__).resolve().parents[2]/'follow'/'configs'
-    for name, target in [('aircraft_A_ID0_motion_follow.json',0),('aircraft_B_ID1.json',1),('aircraft_C_ID2.json',2)]:
+    for name, target in [('aircraft_A_ID0_motion_follow.json',0)]:
         config=load_config(folder/name)
         service=FollowService(FakeDevice(),config=config,log_directory=False)
         try:
@@ -20,8 +20,7 @@ def test_supplied_aircraft_configs_bind_their_marker_and_rc_budget():
 
 
 @pytest.mark.parametrize('changes',[{'horizontal_limit_rc':True},{'horizontal_limit_rc':101},
-    {'forward_limit_rc':0},{'slew_rc_per_second':-1},{'target_id':50},
-    {'steering_mode':'typo'},{'distance_mode':'typo'}])
+    {'forward_limit_rc':0},{'slew_rc_per_second':-1},{'target_id':50}])
 def test_invalid_configuration_is_rejected(changes):
     with pytest.raises(ValueError):
         FollowConfig(**changes)

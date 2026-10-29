@@ -8,8 +8,6 @@ param(
     [int]$MinBattery = 30,
     [int]$MaxSessionSeconds = 30000,
     [int]$WebPort = 18848,
-    [string]$VoiceProvider = 'alibaba',
-    [string]$AlibabaCredentials = '',
     [string]$DoubaoCredentials = '',
     [string]$ExitAction = 'land',
     [string]$Program = '',
@@ -27,27 +25,21 @@ $env:PYTHONUTF8 = '1'
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     throw 'uv is required. Install uv first; this launcher never installs into global Python.'
 }
-if (-not $AlibabaCredentials) {
-    $AlibabaCredentials = if ($env:ALIBABA_CREDENTIALS_FILE) { $env:ALIBABA_CREDENTIALS_FILE } else {
-        Join-Path $HOME 'Desktop\tmp\DomesticAiTrials\AlibabaCredentials.json'
-    }
-}
 if (-not $DoubaoCredentials) {
     $DoubaoCredentials = if ($env:DOUBAO_CREDENTIALS_FILE) { $env:DOUBAO_CREDENTIALS_FILE } else {
         Join-Path $HOME 'Desktop\tmp\DoubaoRealtime\Credentials.json'
     }
 }
-
 $configPath = if ([IO.Path]::IsPathRooted($Config)) { $Config } else { Join-Path $projectRoot $Config }
 # Python owns argument and configuration validation for every entry path.
 $configPath = [IO.Path]::GetFullPath($configPath)
 Write-Host ('Follow config: {0}' -f $configPath)
 Write-Host ('Takeoff authorized: {0}; min battery: {1}%; exit action: {2}' -f $AllowTakeoff.IsPresent, $MinBattery, $ExitAction)
 Write-Host 'Emergency: Ctrl+Shift+Alt+A = stop; Ctrl+Shift+Alt+L = land; F12/F11 are alternatives.'
-Write-Host 'One process controls one Tello. Three ordinary Tellos do not become a swarm from three config files.'
+Write-Host 'One process controls one Tello.'
 
 $mode = if ($PlanOnly) {'plan'} elseif ($Program -or $Text) {'run'} else {'voice'}
-$runtimeArgs = @('-m', 'app.Application', $mode)
+$runtimeArgs = @('-m', 'app.Application', $mode, '--doubao-credentials', $DoubaoCredentials)
 if (-not $PlanOnly) { $runtimeArgs += @('--follow-config', $configPath,
     '--min-battery', "$MinBattery", '--exit-action', $ExitAction) }
 if (-not $PlanOnly) { $runtimeArgs += '--real-drone' }
@@ -58,9 +50,8 @@ if ($Text) { $runtimeArgs += @('--text', $Text) }
 
 if ($ShowVideo -and -not $PlanOnly) { $runtimeArgs += '--show-video' }
 if (-not $Text -and -not $Program) {
-    $runtimeArgs += @('--max-session-seconds', "$MaxSessionSeconds", '--web-port', "$WebPort", '--voice-provider', $VoiceProvider, '--alibaba-credentials', $AlibabaCredentials,
-        '--doubao-credentials', $DoubaoCredentials)
-    Write-Host ('Voice provider: {0}; explicit alternative: -VoiceProvider doubao; no mid-flight provider switch.' -f $VoiceProvider)
+    $runtimeArgs += @('--max-session-seconds', "$MaxSessionSeconds", '--web-port', "$WebPort")
+    Write-Host 'Voice provider: Doubao'
     Write-Host ('Local page: http://127.0.0.1:{0}; occupied ports cause an error instead of selecting another port.' -f $WebPort)
 }
 if ($DryRun) {
@@ -69,7 +60,7 @@ if ($DryRun) {
     exit 0
 }
 if (-not $Text -and -not $Program) {
-    Write-Host 'Provider and Ark credentials are checked before aircraft connection. File paths, not keys, are passed to Python.'
+    Write-Host 'Doubao credentials are checked before aircraft connection. File paths, not keys, are passed to Python.'
     Write-Host 'Open the printed local URL manually and select the Bluetooth microphone and speaker in the browser.'
 }
 & uv run --frozen --python 3.11 python -X utf8 -B @runtimeArgs

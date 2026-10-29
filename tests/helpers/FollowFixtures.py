@@ -1,9 +1,5 @@
 """Shared deterministic follow test fixtures; no test cases are collected here."""
-import json
-import math
 
-import cv2
-import numpy as np
 
 from follow.r3_follow.core import Observation
 
@@ -54,24 +50,3 @@ def control_observation(seq, time, *, x=.5, size=.2, width=640, found=True, narr
                        cx if found else None, cy if found else None,
                        size if found else None, corners if found else (),
                        "" if found else "not_found")
-
-
-def calibration(path):
-    value = dict(schema='r3_camera_calibration_v1', camera_id='synthetic-camera',
-                 image_size=[640,480], camera_matrix=[[500,0,320],[0,500,240],[0,0,1]],
-                 dist_coeffs=[0,0,0,0,0], rms_px=0., source='synthetic_not_hardware')
-    path.write_text(json.dumps(value),encoding='utf8')
-    return value
-
-
-def projected(seq, t, depth=2., angle=0., x=0., y=0.):
-    side=.24; h=side/2
-    points=np.array([[-h,h,0],[h,h,0],[h,-h,0],[-h,-h,0]])
-    a=math.radians(angle)
-    R=np.array([[math.cos(a),0,math.sin(a)],[0,1,0],[-math.sin(a),0,math.cos(a)]])@np.diag([1.,-1.,-1.])
-    corners=cv2.projectPoints(points,cv2.Rodrigues(R)[0],np.array([x,y,depth]),
-        np.array([[500.,0,320],[0,500.,240],[0,0,1]]),np.zeros(5))[0].reshape(4,2)
-    size=float(np.linalg.norm(np.roll(corners,-1,axis=0)-corners,axis=1).mean()/640)
-    center=corners.mean(axis=0)
-    return Observation(seq,t,'synthetic',640,480,0,True,float(center[0]),float(center[1]),size,
-                       tuple(map(tuple,corners.tolist())))

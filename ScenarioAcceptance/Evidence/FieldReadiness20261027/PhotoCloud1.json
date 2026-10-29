@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "scope": "licensed_transformed_photo_Vision_TargetTracker_only",
+  "image_source": "transformed_photo_not_drone_footage",
+  "physical_devices_opened": false,
+  "voice_or_language_planner_tested": false,
+  "real_cloud": true,
+  "ok": false,
+  "photo_sha256": "84e22c73d2c9f268b824ab8524749c3c31d1d33696bad75319af8056339ec772",
+  "photo": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\FieldReadiness20261027\\TentPhoto.jpg",
+  "generated_3D_or_physical_arrival_verified": false,
+  "retries": 0,
+  "api_budget_rmb_authorized": 15.0,
+  "actual_bill_verified": false,
+  "result": {
+    "ok": false,
+    "status": "failed",
+    "reason": "RuntimeError: invalid_visual_bbox",
+    "simulated": true,
+    "journal": [
+      {
+        "method": "observe",
+        "args": [
+          "红色帐篷"
+        ],
+        "kwargs": {},
+        "error": "invalid_visual_bbox"
+      }
+    ],
+    "follow_cleanup": {
+      "status": "released"
+    },
+    "debug": ""
+  },
+  "sandbox_cleanup": {
+    "container_name": "companion-e5a83b5f052447c692306fb143064504",
+    "pending_container": null,
+    "cleanup_errors": [],
+    "confirmed": true,
+    "follow_cleanup_error": null
+  },
+  "cloud_requests": 1,
+  "observation": null,
+  "flight_actions": [],
+  "events": [
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092598.3794115
+    },
+    {
+      "request_id": "fbf1e623947c4e208504f05ae69e1881",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793092598.7192147,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_start",
+      "status": "started",
+      "timestamp": 1793092598.7192147
+    },
+    {
+      "request_id": "fbf1e623947c4e208504f05ae69e1881",
+      "model": "doubao-seed-2-1-lite-260915",
+      "started_at": 1793092598.7192147,
+      "attempt": 1,
+      "retried": false,
+      "billing_verified": false,
+      "event": "model_request_end",
+      "status": "completed",
+      "ended_at": 1793092601.2139091,
+      "duration_ms": 2500.0,
+      "usage": {
+        "completion_tokens": 69,
+        "prompt_tokens": 1495,
+        "total_tokens": 1564,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "usage_unknown": false,
+      "timestamp": 1793092601.2139091
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092601.5533862
+    }
+  ],
+  "cleanup": {
+    "synthetic_camera_finished": true
+  }
+}

@@ -42,5 +42,9 @@ except OSError:
 else:
  raise RuntimeError('unexpected network access')
 """
-        result=await run_program(runner_for(MockBackend(), MockBackend(), vision=None, timeout=15), code)
+        runner=runner_for(MockBackend(), MockBackend(), vision=None, timeout=15)
+        try:
+            result=await run_program(runner, code)
+        finally:
+            await runner.close()
         self.assertTrue(result['ok'],result)

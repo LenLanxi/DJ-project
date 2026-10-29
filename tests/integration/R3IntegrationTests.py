@@ -185,8 +185,10 @@ class R3IntegrationTests(unittest.IsolatedAsyncioTestCase):
             if args[0] == 'back':
                 self.feed.size = .15
             return result
+        runner = runner_for(sdk, self.follow)
+        self.addAsyncCleanup(runner.close)
         with patch.object(driver, 'execute', side_effect=simulated_move):
-            result = await run_program(runner_for(sdk, self.follow),
+            result = await run_program(runner,
                 "drone.move_back(20)\ndrone.adjust_follow_reference('depth')")
         self.assertTrue(result['ok'], result)
         self.assertEqual(result['follow_cleanup']['reference_adjusted'], 'depth')

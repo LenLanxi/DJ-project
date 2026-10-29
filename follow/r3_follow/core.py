@@ -174,7 +174,7 @@ class ApparentSizeGuard:
 
 class FollowController:
     def __init__(self, *, config, max_age=1.0, auto_recover=False,
-                 require_geometry=False, pose_estimator=None):
+                 require_geometry=False):
         target_id, control_profile = config.target_id, config.control_profile
         steering_mode, vertical_follow = config.steering_mode, config.vertical_follow
         distance_mode, pid_tuning = config.distance_mode, config.pid_tuning
@@ -182,13 +182,11 @@ class FollowController:
         slew_rc_per_second, reference_size_limit = config.slew_rc_per_second, config.reference_size_limit
         if type(max_age) not in (int, float) or not math.isfinite(max_age) or max_age <= 0:
             raise ValueError("max_age must be finite and positive")
-        if distance_mode == "pose" and pose_estimator is None:
-            raise ValueError("pose mode requires calibrated pose_estimator")
         self.reference_size_limit = reference_size_limit
         self.target_id, self.max_age = target_id, max_age
         self.auto_recover, self.slew_rc_per_second = auto_recover, slew_rc_per_second
-        self.distance_mode, self.pose_estimator = distance_mode, pose_estimator
-        self.pose, self.reference_depth_m, self._image_size = None, None, None
+        self.distance_mode = distance_mode
+        self._image_size = None
         self._steering_mode = steering_mode
         self.control_profile = control_profile
         self._openpose = OpenPoseMarkerControl(config, max_dt=max_age)
@@ -198,13 +196,13 @@ class FollowController:
         self.forward_limit_rc = forward_limit_rc
         self._depth_brake = DepthBrake(forward_limit_rc, proportional_scale=(
             self._openpose.pitch_gains[0]*128),
-            braking_allowance=.40 if pid_tuning == 'responsive_v1' else .25)
+            braking_allowance=.40)
         self._motion_at = None
         self._motion_values = (0.0, 0.0, 0.0, 0.0)
         self._last_found = None
         self._recovery_anchor = None
         self._quick_recovery = False
-        self.fast_reacquire = pid_tuning == 'responsive_v1'
+        self.fast_reacquire = True
         self._good_since = None
         self._good_count = 0
         self.state = State.STOPPED
@@ -217,7 +215,7 @@ class FollowController:
         self.last_request = MotionRequest(self.state)
         self.last_stop_reason = ""
         self.last_observation_rejection = ""
-        self.confirmation_max_gap = max_age if distance_mode != "apparent_pixels" else .2
+        self.confirmation_max_gap = max_age
         self.distance_guard = ApparentSizeGuard(required=require_geometry,
                                                confirmation_max_gap=self.confirmation_max_gap)
 
@@ -279,7 +277,7 @@ class FollowController:
         if (self.observation is not None
                 and self.state in (State.TRACKING, State.RECOVERING)
                 and obs.acquired_at-self.observation.acquired_at > self.max_age + FRAME_TIME_EPSILON):
-            self.state = State.STALE
+            self.state = State.RECOVERING if self.auto_recover else State.STALE
             self.last_stop_reason = "frame_gap"
             self._clear_recovery()
             self.distance_guard.block("frame_gap")
@@ -318,8 +316,6 @@ class FollowController:
             self._depth_brake.reset("target_unavailable")
         self.distance_guard.confirmation_min_s = .05 if self._quick_recovery else .2
         self.distance_guard.observe(obs)
-        if self.pose_estimator is not None:
-            self.pose = self.pose_estimator.estimate(obs)
         return True
 
     def _clear_recovery(self):
@@ -355,11 +351,7 @@ class FollowController:
             return False, "Pause or stop before calibrating"
         if self._issue(now):
             return False, "A fresh valid target is required"
-        if self.distance_mode == "pose":
-            if self.pose is None or not self.pose.valid:
-                return False, "Reliable calibrated pose required for reference"
-            self.reference_depth_m = self.pose.depth_m
-        elif not self.distance_guard.calibrate(self.observation):
+        if not self.distance_guard.calibrate(self.observation):
             return False, "Front-facing marker geometry required for reference"
         self.reference_size = self.observation.size_ratio
         # A close startup/rebase must not teach the controller to chase to that
@@ -436,14 +428,8 @@ class FollowController:
                     distance_measurement=self.distance_status())
 
     def distance_status(self):
-        pose_valid = bool(self.pose is not None and self.pose.valid)
-        return {"mode": self.distance_mode,
-                "forward_allowed": pose_valid if self.distance_mode == "pose" else not self.distance_guard.blocked,
-                "reason": (self.pose.reason if self.pose else "pose_unavailable") if self.distance_mode == "pose" else self.distance_guard.reason,
-                "reference_depth_m": self.reference_depth_m,
-                "depth_m": self.pose.depth_m if pose_valid else None,
-                "pose": self.pose.status() if self.pose else None,
-                "physical_accuracy_verified": False}
+        return {"mode": "relative_size", "forward_allowed": not self.distance_guard.blocked,
+                "reason": self.distance_guard.reason, "physical_accuracy_verified": False}
 
     def tick(self, now):
         """Call periodically even when video produces no frames."""
@@ -452,9 +438,7 @@ class FollowController:
         issue = self._issue(now)
         if self.state == State.RECOVERING:
             if issue in (State.STALE, State.INVALID):
-                self.state = issue
                 self._clear_recovery()
-                self.distance_guard.block(str(issue))
                 return self._zero(str(issue))
             confirmation = .05 if self._quick_recovery else .15
             if (issue is None and self._good_count >= 3 and self._good_since is not None
@@ -463,8 +447,8 @@ class FollowController:
                 self._clear_recovery()
             else:
                 return self._zero("waiting_for_stable_target")
-        elif (issue == State.LOST and self.auto_recover
-              and self.observation.reason in RECOVERABLE_MISS_REASONS):
+        elif (self.auto_recover and (issue in (State.STALE, State.INVALID) or
+              issue == State.LOST and self.observation.reason in RECOVERABLE_MISS_REASONS)):
             self.state = State.RECOVERING
             self._recovery_anchor = self._last_found
             self._quick_recovery = False
@@ -479,11 +463,7 @@ class FollowController:
             return self._zero(reason)
         obs = self.observation
         depth_status = self.distance_status()
-        depth_error = None
-        if self.distance_mode == "relative_size":
-            depth_error = self.reference_size/obs.size_ratio - 1
-        elif self.distance_mode == "pose" and depth_status["forward_allowed"]:
-            depth_error = self.pose.depth_m/self.reference_depth_m - 1
+        depth_error = self.reference_size/obs.size_ratio - 1
         desired = self._openpose.update(
             frame_id=obs.frame_id, acquired_at=obs.acquired_at,
             center_x=obs.center_x, image_width=obs.width,
@@ -500,14 +480,11 @@ class FollowController:
         # Trend lead and filtered PID history cannot request forward motion
         # when the latest valid measurement is already at/inside the setpoint.
         # Keep normal far-target chase and early approach braking unchanged.
-        at_or_inside = (depth_error is not None and depth_error <= 0
-                        if self.distance_mode == 'pose'
-                        else obs.size_ratio >= self.reference_size)
+        at_or_inside = obs.size_ratio >= self.reference_size
         near_forward_blocked = at_or_inside and desired[1] > 0
         if near_forward_blocked:
             desired = (desired[0], 0., desired[2], desired[3])
-        if (self.distance_mode != 'apparent_pixels'
-                and self.last_request.forward*desired[1] < 0):
+        if self.last_request.forward*desired[1] < 0:
             # Zero-crossing is required even when acceleration smoothing is
             # explicitly disabled (slew_rc_per_second=None).
             desired = (desired[0],0.,desired[2],desired[3])

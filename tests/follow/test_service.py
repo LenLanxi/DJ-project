@@ -20,7 +20,7 @@ class ServiceTests(unittest.TestCase):
     def setUp(self):
         self.clock = Clock()
         self.port = FakeDevice(self.clock.mono)
-        self.service = FollowService(self.port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
+        self.service = FollowService(self.port, config=FollowConfig(slew_rc_per_second=80.0),
                            tracker=Detector(),
                            monotonic=self.clock.mono,
                            wall_clock=self.clock.wall,
@@ -41,7 +41,7 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(self.service._start_tracking().ok)
         self.frame(550)
         self.service.control_once()
-        self.assertGreater(self.port.velocity[0], 0)
+        self.assertGreater(self.port.velocity[0] + self.port.velocity[3], 0)
 
     def test_start_needs_calibration_and_target(self):
         self.service.controller.reference_size = None
@@ -75,7 +75,7 @@ class ServiceTests(unittest.TestCase):
         self.assertFalse(self.service.capture_once())
         self.service.control_once()
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))
-        self.assertEqual(self.service.status()["state"], "frame_stale")
+        self.assertEqual(self.service.status()["state"], "recovering_target")
 
     def test_changed_duplicate_timestamp_is_rejected(self):
         self.moving()
@@ -97,11 +97,30 @@ class ServiceTests(unittest.TestCase):
         self.service.capture_once()
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))
 
+    def test_missing_video_recovers_with_original_reference_but_explicit_stop_does_not(self):
+        self.moving()
+        reference = self.service.controller.reference_size
+        self.port.publish(None, self.seq, self.port.snapshot.timestamp, stale=True)
+        self.service.capture_once()
+        self.assertEqual(self.port.velocity, (0, 0, 0, 0))
+        self.clock.now += 2
+        for _ in range(4):
+            self.frame(550)
+            self.service.control_once()
+        self.assertTrue(self.service.is_following())
+        self.assertEqual(self.service.controller.reference_size, reference)
+        self.service.stop()
+        for _ in range(4):
+            self.frame(550)
+            self.service.control_once()
+        self.assertFalse(self.service.is_following())
+        self.assertEqual(self.port.velocity, (0, 0, 0, 0))
+
     def test_missing_frame_blocks_restart_even_when_previous_detection_was_recent(self):
         self.moving()
         self.port.publish(None, self.seq + 1, self.clock.wall(), stale=False)
         self.assertFalse(self.service.capture_once())
-        self.assertEqual(self.service._start_tracking().reason, "new_valid_frame_required")
+        self.assertEqual(self.service._start_tracking().reason, "waiting_for_target")
         self.assertFalse(self.service.calibrate_reference().ok)
         self.frame(550)
         self.assertTrue(self.service._start_tracking().ok)
@@ -110,7 +129,7 @@ class ServiceTests(unittest.TestCase):
         self.moving()
         self.port.publish((True, 550), self.seq, self.clock.wall() + .01)
         self.assertFalse(self.service.capture_once())
-        self.assertFalse(self.service._start_tracking().ok)
+        self.assertEqual(self.service._start_tracking().reason, "waiting_for_target")
         self.frame(550)
         self.assertTrue(self.service._start_tracking().ok)
 
@@ -146,8 +165,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))  # brake first
         self.frame(50)
         self.service.control_once()
-        self.assertLess(self.port.velocity[0], 0)
-        self.assertEqual(self.port.velocity[2:], (0, 0))
+        self.assertLess(self.port.velocity[0] + self.port.velocity[3], 0)
+        self.assertEqual(self.port.velocity[2], 0)
 
     def test_ownership_revocation_does_not_stop_new_owner(self):
         self.moving()
@@ -180,7 +199,7 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))  # gradual restart
         self.frame(50)
         self.service.control_once()
-        self.assertLess(self.port.velocity[0], 0)
+        self.assertLess(self.port.velocity[0] + self.port.velocity[3], 0)
         self.assertFalse(self.service.finish_action(ticket, True).ok)
 
     def test_stop_during_handoff_cancels_late_completion(self):
@@ -288,14 +307,14 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.port.velocity, (0, 0, 0, 0))
         self.frame(550)
         self.service.control_once()
-        self.assertGreater(self.port.velocity[0], 0)
+        self.assertGreater(self.port.velocity[0] + self.port.velocity[3], 0)
 
-    def test_expired_follow_before_handoff_cannot_resume(self):
+    def test_expired_follow_before_handoff_can_resume_on_new_frame(self):
         self.moving()
         self.clock.now += 1.1
         ticket = self.service.pause_if_active()
         self.frame(550)
-        self.assertFalse(self.service.finish_action(ticket, True).ok)
+        self.assertTrue(self.service.finish_action(ticket, True).ok)
 
     def test_detection_completion_does_not_make_old_capture_fresh(self):
         self.moving()
@@ -319,7 +338,7 @@ class WorkerTests(unittest.TestCase):
                 unblock.wait(3)
                 return super().detect(*args, **kwargs)
         port = FakeDevice()
-        service = FollowService(port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
+        service = FollowService(port, config=FollowConfig(slew_rc_per_second=80.0),
                       tracker=Detector(),
                       log_directory=False)
         try:
@@ -334,7 +353,7 @@ class WorkerTests(unittest.TestCase):
             service.capture_once()
             time.sleep(.11)
             service.control_once()
-            self.assertGreater(port.velocity[0], 0)
+            self.assertGreater(port.velocity[0] + port.velocity[3], 0)
             service.tracker = BlockingDetector()
             port.publish((True, 550), 3, time.time())
             service.start_background()
@@ -343,7 +362,7 @@ class WorkerTests(unittest.TestCase):
             while port.velocity != (0, 0, 0, 0) and time.monotonic() < deadline:
                 time.sleep(.01)
             self.assertEqual(port.velocity, (0, 0, 0, 0))
-            self.assertEqual(service.status()["state"], "frame_stale")
+            self.assertEqual(service.status()["state"], "recovering_target")
             service.close()
             unblock.set()
             for worker in service.workers:

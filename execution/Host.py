@@ -10,6 +10,12 @@ MOTION = DISTANCE | {'takeoff', 'land', 'stop_motion', 'rotate', 'update_velocit
 LAND_CONFIRM_TIMEOUT_S = 25.
 
 
+class SDKActionError(RuntimeError):
+    def __init__(self, result):
+        self.result = {key: value for key, value in result.items() if key != 'grant'}
+        super().__init__('SDK_action_failed: ' + str(self.result))
+
+
 class NavigationGuard:
     """Carry the timestamp validated by Host to the final UDP send deadline."""
     def __init__(self, event, timestamp, *, clock=time.monotonic, wall_clock=time.time):
@@ -301,7 +307,7 @@ class Host:
         permitted = ('completed', 'accepted') if method in ('stop_motion', 'land', 'update_velocity') else ('completed',)
         if not result.get('ok') or result.get('status') not in permitted:
             self.resume = False
-            raise RuntimeError('SDK_action_failed: ' + str(result))
+            raise SDKActionError(result)
         if result.get('grant') is not None:
             self.grant = result['grant']
         if method == 'land':

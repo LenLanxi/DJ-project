@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "recomputed_offline": true,
+  "new_cloud_calls": 0,
+  "criterion_revision": "Status answer must match real Docker get_status battery80. Spoken simulation disclosure is observed separately, because the input already asks about a simulated device and does not require that exact word in the reply.",
+  "original_attempts_preserved": true,
+  "hardware_verified": false,
+  "attempts": [
+    {
+      "source": "OmniProduction1.json",
+      "source_sha256": "0ac059b439c122c018ff96a07cc938ee46b7ea3c5028278437be6403b3d3fed5",
+      "original_overall_ok": false,
+      "core_criteria_pass": false,
+      "classification": "harness_AST_restriction_blocked_legitimate_Python",
+      "turns": [
+        {
+          "task": "status",
+          "original_ok": false,
+          "original_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "查询",
+              "模拟无人机",
+              "电量",
+              "不要操作飞机"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": true,
+            "semantic_reply": false,
+            "delivery_verified": true,
+            "required_task_path": false,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          },
+          "revised_ok": false,
+          "revised_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "查询",
+              "模拟无人机",
+              "电量",
+              "不要操作飞机"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": true,
+            "simulation_disclosure_observed": false,
+            "core_answer": false,
+            "semantic_reply": false,
+            "delivery_verified": true,
+            "required_task_path": false,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          }
+        },
+        {
+          "task": "vision",
+          "original_ok": true,
+          "original_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "画面",
+              "帐篷",
+              "什么颜色",
+              "只回答颜色"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": false,
+            "semantic_reply": true,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          },
+          "revised_ok": true,
+          "revised_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "画面",
+              "帐篷",
+              "什么颜色",
+              "只回答颜色"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": false,
+            "simulation_disclosure_observed": null,
+            "core_answer": true,
+            "semantic_reply": true,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          }
+        }
+      ],
+      "original_source_unchanged": true
+    },
+    {
+      "source": "OmniProduction2.json",
+      "source_sha256": "0059dfc755f0b470d2f1a8c57fd8f269df5bb32a250cfef7f303e0af090a24eb",
+      "original_overall_ok": false,
+      "core_criteria_pass": true,
+      "classification": "extra_spoken_simulation_word_requirement_removed",
+      "turns": [
+        {
+          "task": "status",
+          "original_ok": false,
+          "original_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "查询",
+              "模拟无人机",
+              "电量",
+              "不要操作飞机"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": true,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": true,
+            "semantic_reply": false,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          },
+          "revised_ok": true,
+          "revised_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "查询",
+              "模拟无人机",
+              "电量",
+              "不要操作飞机"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": true,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": true,
+            "simulation_disclosure_observed": false,
+            "core_answer": true,
+            "semantic_reply": true,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          }
+        },
+        {
+          "task": "vision",
+          "original_ok": true,
+          "original_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "画面",
+              "帐篷",
+              "什么颜色",
+              "只回答颜色"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": false,
+            "semantic_reply": true,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          },
+          "revised_ok": true,
+          "revised_verification": {
+            "completed_asr": true,
+            "single_speech_started": true,
+            "asr_identity_chain": true,
+            "asr_complete_keyphrases": true,
+            "asr_exact_ignoring_punctuation": true,
+            "required_asr_phrases": [
+              "画面",
+              "帐篷",
+              "什么颜色",
+              "只回答颜色"
+            ],
+            "input_fully_sent": true,
+            "real_docker_get_status": false,
+            "nonzero_pcm_received": true,
+            "post_tool_nonzero_audio": false,
+            "simulation_disclosure_observed": null,
+            "core_answer": true,
+            "semantic_reply": true,
+            "delivery_verified": true,
+            "required_task_path": true,
+            "audio_played": false,
+            "assistant_audio_independently_transcribed": false
+          }
+        }
+      ],
+      "original_source_unchanged": true
+    }
+  ]
+}

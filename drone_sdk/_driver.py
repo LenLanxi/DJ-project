@@ -22,6 +22,7 @@ import math
 import re
 import threading
 import time
+import traceback
 
 from .contract import FrameResult
 
@@ -241,15 +242,18 @@ def _current_height(tello=None):
     return value
 
 
-def _plan_ascent(cm):
+def _plan_ascent(cm, details=None):
     height, source = _height_probe()
     if height is None:
+        if details is not None: details.update(stage='height_check', reason='height_unknown', source=source)
         _record('height_limit_rejected', requested=cm, height_cm=None,
                 ceiling_cm=MAX_HEIGHT_CM, reason='height_unknown', source=source)
         return None
     room = MAX_HEIGHT_CM - height
     if cm <= room: return cm
     if room < 20:
+        if details is not None:
+            details.update(stage='height_check', reason='height_limit', height_cm=height, ceiling_cm=MAX_HEIGHT_CM)
         _record('height_limit_rejected', requested=cm, height_cm=height, ceiling_cm=MAX_HEIGHT_CM)
         return None
     _record('height_limit_clamped', requested=cm, granted=int(room), height_cm=height, ceiling_cm=MAX_HEIGHT_CM)
@@ -282,18 +286,29 @@ def _sanitise_rc(channels):
     return (left_right, forward_back, up_down, yaw)
 
 
-def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None):
+def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None, details=None):
     """Run one blocking Tello command on a worker and cap the caller's wait.
 
     取消语义：调用时绑定当时的取消编号；worker 真正拿到命令锁后、调用 fn 之前
     再比对一次。若期间发生过 cancel_pending（急停/降落/停止），命令直接丢弃，
     绝不发给飞机。
     """
+    started = time.monotonic()
+    outcome = {'ok': False, 'error': 'timeout', 'wire_sent': False, 'stage': 'command_lock'}
+    def finish(ok, error):
+        detail = dict(outcome, action=action, elapsed_seconds=round(time.monotonic()-started, 4),
+                      caller_deadline_seconds=deadline, reason=error,
+                      outcome_unknown=bool(not ok and not outcome.get('reply_received') and
+                                           (outcome['wire_sent'] or error.startswith('caller_deadline_'))))
+        detail.pop('ok', None)
+        detail.pop('error', None)
+        if details is not None: details.update(detail)
+        if not ok: _record('action_error', **detail)
+        return ok, error
     with _lock:
         bound_epoch = _cancel_epoch if epoch is None else epoch
         if _response_quarantine is not None and action not in ('land', 'streamoff'):
-            return False, 'command_channel_ambiguous'
-    outcome = {'ok': False, 'error': 'timeout', 'wire_sent':False}
+            return finish(False, 'command_channel_ambiguous')
     done = threading.Event()
 
     with _lock: _pending_commands.add(done)
@@ -320,11 +335,15 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None)
                 if not command_channel_clear() and action not in ('land','streamoff'):
                     outcome['error'] = 'command_channel_ambiguous'
                     return
+                outcome['stage'] = 'send'
                 fn()
+                outcome['stage'] = 'completed'
                 if on_success is not None:
                     on_success()
                 outcome['ok'], outcome['error'] = True, ''
         except Exception as exc:
+            outcome['error_type'] = type(exc).__name__
+            _record('command_exception', action=action, error=str(exc), traceback=traceback.format_exc())
             outcome['error'] = (str(exc) if str(exc) in ('cancelled_before_send', 'cancelled_after_send',
                                                         'response_timeout_after_send','command_channel_ambiguous',
                                                         'operation_cancelled_before_send')
@@ -343,15 +362,15 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None)
         if outcome['wire_sent']:
             _mark_response_unknown(action, 'caller_deadline_after_send')
         _link_fault('deadline_exceeded:%s' % action)
-        return False, 'timeout'
+        return finish(False, 'caller_deadline_after_send' if outcome['wire_sent'] else 'caller_deadline_before_send')
     if outcome['ok']:
         _set_link_ok()
-        return True, ''
+        return finish(True, '')
     if outcome['error'] in ('cancelled_before_send', 'cancelled_after_send', 'command_channel_ambiguous',
                             'operation_cancelled_before_send'):
-        return False, outcome['error']          # 主动丢弃不是链路故障
+        return finish(False, outcome['error'])          # 主动丢弃不是链路故障
     _link_fault(outcome['error'])
-    return False, outcome['error']
+    return finish(False, outcome['error'])
 
 
 def _move_deadline(action, param):
@@ -368,11 +387,13 @@ def _execute_move(tello, action, cm):
         getattr(tello, 'move_%s' % action)(cm)
 
 
-def _execute_real(action, param=None, *, epoch=None, guard=None):
+def _execute_real(action, param=None, *, epoch=None, guard=None, details=None):
     global _flying, _height_cm, _last_error
     with _lock:
         tello = _tello
-        if tello is None: return False
+        if tello is None:
+            if details is not None: details.update(stage='connection', reason='not_connected')
+            return False
     _record('action_queued', action=action, param=param)
     if action in ('takeoff', 'land'):
         def acknowledged():
@@ -386,11 +407,12 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
             _record('action_acknowledged', action=action)
         ok, error = _call_real(getattr(tello, action), action=action,
                                deadline=_move_deadline(action, None), epoch=epoch,
-                               on_success=acknowledged, guard=guard)
+                               on_success=acknowledged, guard=guard, details=details)
         if ok:
             if action == 'takeoff': _current_height(tello)
             return True
-        if action == 'takeoff' and error in ('timeout', 'cancelled_after_send', 'response_timeout_after_send'):
+        if action == 'takeoff' and error in ('timeout', 'caller_deadline_after_send', 'caller_deadline_before_send',
+                                                     'cancelled_after_send', 'response_timeout_after_send'):
             # 超时/被丢弃都不等于没起飞：标记结果未知，交给真实遥测修正，绝不擅自改回 landed。
             token = object()
             with _lock:
@@ -413,11 +435,11 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
                     firmware_threshold=TAKEOFF_FIRMWARE_BATTERY)
         return False
     if action in _MOVES:
-        cm = _plan_ascent(param) if action == 'up' else (
+        cm = _plan_ascent(param, details=details) if action == 'up' else (
              _plan_descent(param) if action == 'down' else param)
         if cm is None: return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, cm), action=action,
-                                deadline=_move_deadline(action, cm), epoch=epoch, guard=guard)
+                                deadline=_move_deadline(action, cm), epoch=epoch, guard=guard, details=details)
         if ok:
             if action in ('up', 'down'):
                 with _lock:
@@ -426,13 +448,14 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
         return ok
     if action == 'rotate':
         ok, _error = _call_real(lambda: _execute_move(tello, action, param), action=action,
-                                deadline=_move_deadline(action, param), epoch=epoch, guard=guard)
+                                deadline=_move_deadline(action, param), epoch=epoch, guard=guard, details=details)
         return ok
+    if details is not None: details.update(stage='dispatch', reason='unknown_action')
     _record('action_rejected', action=action, reason='unknown_action', param=param)
     return False
 
 
-def execute(action, param=None, *, epoch=None, guard=None):
+def execute(action, param=None, *, epoch=None, guard=None, details=None):
     with _lock:
         real, delay = not SIMULATED, _delay
     if not real:
@@ -445,7 +468,7 @@ def execute(action, param=None, *, epoch=None, guard=None):
         _record('action_sent', action=action, param=param)
         if delay: time.sleep(delay)
         return True
-    return _execute_real(action, param, epoch=epoch, guard=guard)
+    return _execute_real(action, param, epoch=epoch, guard=guard, details=details)
 
 
 def _reconcile_later(tello, token=None, delay=1.5):
@@ -646,6 +669,7 @@ def _wire_send(command, send):
             outcome = getattr(_command_context, 'outcome', None)
             if outcome is not None and not command.startswith('rc '):
                 outcome['wire_sent'] = True
+                outcome['stage'] = 'response_wait'
         _record('wire_sent', command=command)
 
 
@@ -685,6 +709,8 @@ def _tello_class(timeout):
             super().__init__(**({} if host is None else {'host': host}))
             self.retry_count = 1
         def send_command_with_return(self, command, timeout=timeout):
+            outcome = getattr(_command_context, 'outcome', None)
+            if outcome is not None: outcome['response_timeout_seconds'] = timeout
             # Copy the narrow 2.5 protocol wait, replacing only its final send
             # with the cancellation gate. Do not hold a lock during a reply.
             elapsed = time.time() - self.last_received_command_timestamp
@@ -710,6 +736,9 @@ def _tello_class(timeout):
                 _record('invalid_command_reply', command=command.split()[0],
                         reply_hex=reply[:256].hex(), reply_bytes=len(reply))
                 raise
+            outcome = getattr(_command_context, 'outcome', None)
+            if outcome is not None:
+                outcome.update(reply_received=True, reply=response, stage='response_received')
             self.last_received_command_timestamp = time.time()
             return response
         def send_command_without_return(self, command):

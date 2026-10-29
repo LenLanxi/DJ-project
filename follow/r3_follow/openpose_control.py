@@ -1,58 +1,8 @@
-"""Marker adapter for tello-openpose's yaw, pitch and throttle PID axes.
+"""Marker PID adapted from vendored tello-openpose/simple-pid.
 
-Control equations are reused from geaxgx/tello-openpose at
-a76c5e2dcd7d444207e79962e93fc1b4956442aa, lines 722, 726 and 739:
-    yaw = int(-pid_yaw(xoff))
-    pitch = int(pid_pitch(shoulders_width - keep_distance))
-    throttle = int(-pid_throttle(ref_y - target_y))
-The pinned source and its MIT license are included under _vendor/tello_openpose.
-The actual PID implementation is the unchanged simple-pid 2.0.1 pid.py.
-
-Necessary adaptations: an ArUco center/mean-side replaces the body keypoint/
-shoulder width; ratios are mapped to the original program's 640-pixel frame
-(its line 145); the RC cap is set per instance by the follow configuration
-(horizontal_limit_rc / forward_limit_rc; the reviewed default is 20/30 RC, aircraft_A_ID0
-raises it to 50/40) instead of the upstream 100/50;
-opt-in throttle retains upstream P=.4, I=D=0 with a provisional +/-20 RC cap
-instead of upstream -80..100. Marker midheight replaces the body reference.
-This vertical addition is not flight calibrated and has no altitude telemetry.
-Outputs use SDK axis order: lateral, forward, up, yaw, in RC channel units.
-There is no new off-axis depth gate or PID law. Frame-time bookkeeping and
-reset/shape protection surround the reused equations; no aircraft I/O is here.
-
-The default marker_v2 parameter set adapts measurement bandwidth to variable
-camera samples. Its depth input has a time-based 80 ms low-pass; each new frame
-updates the PID using actual elapsed capture time, with no sample holding. D is reduced
-from .3 to .06 and I from .04 to .01 (P stays .5). Neither marker_v2 nor
-responsive_v1 is flight-calibrated.
-Marker mode pauses integration while the previous depth output is saturated
-and the new error pushes farther in that direction. Within one equivalent
-640-pixel unit of the reference, depth becomes zero and its history is cleared.
-An explicit reference change clears all history and waits for a new frame.
-
-Optional relative depth uses 128 equivalent input units per unit depth error,
-matching the local small-error slope at a 20%-wide reference marker. This
-removes dependence on its arbitrary reference pixel size, but changes the
-large-error response and still requires physical response/braking validation.
-Calibrated pose and apparent-size ratios are measurements supplied by the R3
-controller, not a change to the vendored PID implementation.
-
-Horizontal routing is an explicit R3 adaptation, not an upstream flight result.
-The same horizontal PID value feeds yaw (default), lateral, or an equal RC
-number split for hybrid. RC translation and RC rotation are different physical
-quantities: this numerical budget does not claim equal thrust, speed or effect.
-The opt-in adaptive mode sends 80% of that budget to lateral near image center,
-smoothly transferring it to yaw at offsets of 15%..55% of image half-width.
-responsive_v1 raises depth P from .5 to .75; the filter, I, D and caps stay the
-same. FollowController couples this to stronger, earlier approach braking.
-Both additions require flight validation and do not provide obstacle avoidance.
-
-Horizontal gains: upstream P=.25 with no damping saturated the +/-50 RC budget
-as soon as the marker was ~120 px off-centre on a 960-wide frame, which made
-the loop behave like bang-bang. The upstream integration now uses P=.16 and
-a small D=.03 damps the approach. The D term deliberately never uses a frame
-interval shorter than YAW_DERIVATIVE_MIN_DT, because a 1 ms interval would
-multiply pixel jitter into a full-scale spike. Neither tuning is flight-verified.
+Fixed adaptive lateral/yaw routing and relative-size depth with responsive gains.
+RC channels are not physical velocity. Named gain constants below remain editable.
+The original sources and licenses are preserved under _vendor.
 """
 import math
 
@@ -93,8 +43,7 @@ class OpenPoseMarkerControl:
         self.tuning = tuning
         self.max_dt = max_dt
         self.depth_filter_tau = DEPTH_FILTER_TAU
-        self.pitch_gains = (RESPONSIVE_PITCH_GAINS if tuning == "responsive_v1" else
-                            PITCH_GAINS)
+        self.pitch_gains = RESPONSIVE_PITCH_GAINS
         self.yaw_pid = PID(*YAW_GAINS, setpoint=0, sample_time=None,
                            output_limits=(-horizontal_limit_rc, horizontal_limit_rc))
         self.pitch_pid = PID(*self.pitch_gains, setpoint=0, sample_time=None,
@@ -113,23 +62,11 @@ class OpenPoseMarkerControl:
         return self._steering_mode
 
     def _route_horizontal(self, value, offset=0.):
-        if self.steering_mode == "yaw":
-            return 0, value
-        if self.steering_mode == "lateral":
-            return value, 0
-        if self.steering_mode == "adaptive":
-            # Offset is a fraction of image half-width. Near the center,
-            # translate primarily; approaching an edge, preserve full yaw.
-            # Smooth spatial blend, no alternating mode switch or blind search.
-            # A single RC-number budget is shared; not equal physical effects.
-            blend = max(0., min(1., (abs(offset)-.15)/.40))
-            blend = blend*blend*(3.-2.*blend)
-            right = int(value*.8*(1.-blend))
-            return right, value-right
-        # Split integer RC first. Rounding each half later could double an odd
-        # unit. Give the remainder to yaw so alignment retains the first unit.
-        right = int(value / 2)
-        return right, value - right
+        # Share one RC budget: translate near center, turn near image edges.
+        blend = max(0., min(1., (abs(offset)-.15)/.40))
+        blend = blend*blend*(3.-2.*blend)
+        right = int(value*.8*(1.-blend))
+        return right, value-right
 
     def reset(self):
         self.yaw_pid.reset()

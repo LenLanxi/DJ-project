@@ -178,3 +178,7 @@ class UnifiedRuntime:
     def close(self):
         self.closed = True
         self.cancel()
+
+
+    async def close_sandbox(self):
+        return await self.runner.close() if isinstance(self.runner, SandboxRunner) else {'ok': True}

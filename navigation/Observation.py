@@ -19,7 +19,7 @@ bbox是目标完整外接矩形，四个数值必须按图像宽高归一化至0
 没有目标或不确定就visible=false且bbox=null。多个可能目标就ambiguous=true，不擅自选其中一个。
 不得推测距离、通行路径、避障、实际到达或已执行动作。'''
 
-# Ark's constrained schema fixes the tuple types and coordinate convention.
+# Ark supports homogeneous arrays; exact length is enforced by the host below.
 # The host also validates exact length, normalized range and edge ordering.
 OBSERVATION_SCHEMA = {
     'type': 'object',
@@ -28,9 +28,8 @@ OBSERVATION_SCHEMA = {
         'ambiguous': {'type': 'boolean'},
         'candidate_count': {'type': 'integer', 'description': 'Matching candidates in the entire image, 0 to 100.'},
         'bbox_format': {'type': 'string', 'enum': ['xyxy']},
-        'bbox': {'description': 'Complete target box: normalized left, top, right, bottom; null unless uniquely visible.',
-            'anyOf': [{'type': 'null'}, {'type': 'array', 'prefixItems': [
-                {'type': 'number'}, {'type': 'number'}, {'type': 'number'}, {'type': 'number'}], 'items': False}]},
+        'bbox': {'description': 'Exactly four normalized numbers [left, top, right, bottom] for a uniquely visible target; otherwise null.',
+            'anyOf': [{'type': 'null'}, {'type': 'array', 'items': {'type': 'number'}}]},
         'description': {'type': 'string', 'description': 'Brief visible evidence in Chinese, at most 500 characters.'}},
     'required': ['visible', 'ambiguous', 'candidate_count', 'bbox_format', 'bbox', 'description'],
     'additionalProperties': False}

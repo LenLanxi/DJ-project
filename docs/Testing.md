@@ -1,75 +1,57 @@
-# 验证、诊断与历史证据
+# 验证与诊断
 
-测试按行为验证当前实现，不以文件数量或历史通过数字作为完成标准。软件、实际容器、真实云媒体、耳机和飞行是不同验证层；前一层通过不能替代后一层。现场步骤见 [Flight](Flight.md)。
+测试验证当前独立行为，不按历史数量补回重复用例。软件、真实容器、云媒体、耳机和飞行分别验证；前一层通过不能替代后一层。现场流程见 [Flight](Flight.md)。
 
-## 日常与针对性检查
+## 日常检查
 
 ```powershell
 .\Check.ps1
 .\Check.ps1 -Docker
 ```
 
-默认依次运行离线 Python 与 JavaScript，强制跳过实际容器项，即使调用者已有 `RUN_DOCKER_TESTS=1`。`-Docker` 显式开启实际容器，需要已构建 `companion-sandbox:0.4`。任一阶段失败就非零退出；脚本恢复原工作目录与环境变量。两种模式均不打开飞机、相机、麦克风或收费云 API。
+默认运行离线 Python 与 JavaScript，强制跳过实际容器项。Docker 模式需要已构建 companion-sandbox:0.5；它验证真实容器，但仍不访问收费云或飞机。任一阶段失败，脚本非零退出并恢复原工作目录和环境。
 
-修改时先运行对应层，再做完整 Check；程序/RPC/容器生命周期改动另加 `-Docker`：
-
-| 修改范围 | 针对性命令 |
+| 修改范围 | 针对性检查 |
 | --- | --- |
-| 设备协议、授权、帧与遥测 | `uv run --frozen python -B -m pytest tests/sdk -q` |
-| 模型协议、视觉解析和跟踪 | `uv run --frozen python -B -m pytest tests/ai -q` |
-| 跟随算法、时效、暂停/恢复 | `uv run --frozen python -B -m pytest tests/follow -q` |
-| Runtime、Host、取消、导航与跨模块 | `uv run --frozen python -B -m pytest tests/integration -q` |
-| RTC 会话与工具契约 | `uv run --frozen python -B -m pytest tests/rtc -q` |
-| 网页设备、音频、视频和服务端结果 | `npm --prefix web test` |
+| 设备协议、授权、帧与遥测 | uv run --frozen pytest tests/sdk -q |
+| 豆包配置、方舟视觉解析和跟踪 | uv run --frozen pytest tests/ai -q |
+| 跟随控制、目标恢复和暂停交接 | uv run --frozen pytest tests/follow -q |
+| Runtime、Host、取消、导航与容器 | uv run --frozen pytest tests/integration -q |
+| RTC 服务、网页耳机、工具转发和画面 | npm --prefix web test |
 
-pytest 只收集 `tests`；`tests/helpers` 提供显式设备/协议替身，`tests/fixtures` 保存固定输入，均不进入生产路径。直接运行 pytest 遵从 `RUN_DOCKER_TESTS`；要保证默认离线行为用 Check。实际容器测试带 docker 标记，但标记本身不授权执行。
+pytest 只收集 tests；helpers 和 fixtures 不进入生产路径。直接运行 pytest 遵从 RUN_DOCKER_TESTS，保证默认离线行为应使用 Check。保留授权、取消竞争、真实容器复用／隔离／回收、跟随恢复、观察时效和媒体恢复等有独立意义的测试。
 
-只保留能证明独立行为或竞争窗口的测试：授权失效与最终发送、取消/清理失败、真实容器隔离与回收、跟随 RC 轨迹、观察时效、云协议及媒体恢复。重复场景、状态字段镜像和测试替身自行实现的业务规则已退役；不按原测试数量补回。协议测试用记录调用/注入结果的简单替身，控制集成使用真实控制代码并替换设备 I/O，真实容器单独验证完整 Python。编排替身通过 `run(code, host, outcome)` 注入，直接调用真实 Host，不模拟另一套 Docker 字节进程。
+常驻容器检查覆盖：连续程序复用容器而不共享变量、程序残留进程与临时文件清理、取消后重建、退出回收。大量 print 只截断诊断内容；已捕获异常不覆盖程序最终成功状态。操作员急停不等待网页反馈。
 
 ## 显式诊断
 
-`diagnostics` 不参加 pytest 自动收集；先看脚本帮助再选资源与参数。目录名不保证所有脚本都访问该种资源。
-
-| 目录 | 当前用途 |
-| --- | --- |
-| `diagnostics/cloud` | 两家文件媒体与工具对照、Omni 会话/重叠输入、归因；CompareRealtime/RouteAnalysis 为离线分析 |
-| `diagnostics/hardware` | Ground/Video 地面与图传检查、FieldProtocol、FieldTakeoff；VideoProbe 是本机 loopback 解码实验，不打开真实硬件 |
-| `diagnostics/local` | Environment 环境存在性检查、IntegrationSmoke、ContainerScenario 载荷、OmniPlayback 播放队列复核 |
-| `diagnostics/follow` | 配置检查、相机/物理标定、生成/打印标记；生产跟随在 `follow` |
+先查看脚本 --help，再决定是否使用真实资源。diagnostics 不参与 pytest 自动收集。历史阿里诊断与 CloudReplay 实验数据用于追溯旧故障，不是当前豆包路线的验证入口。
 
 ```powershell
-uv run --frozen python diagnostics/cloud/RunRealtime.py --help
 uv run --frozen python diagnostics/hardware/Ground.py --help
 uv run --frozen python diagnostics/follow/check_follow_config.py --help
 ```
 
-Ground/Video 保留 `--self-check` 与 `--props-removed`。FieldTakeoff、ContainerScenario 是需要注入 drone 的沙箱载荷，不直接当独立飞行脚本运行。云请求必须显式 `--real`；先核对凭据文件、输入、次数与账户状态，不把密钥写命令行、网页或证据。正式对照串行、同输入，保留失败与超时，调试样本不混进排名。相机/硬件实验由现场人员显式执行，不能由回归代为证明安全或成功。
+Ground／Video 保留 --self-check 与 --props-removed。FieldTakeoff、ContainerScenario 是需要注入 drone 的沙箱载荷，不直接独立运行。真实云请求须显式授权，凭据传文件路径；实际耳机和飞行实验由现场人员执行。
 
-`RunRealtime` 与 `RouteSelection` 共用 `Trials.py` 的串行调度、started/finished 记录、恢复与清理门禁；凭据用 `--alibaba-credentials` / `--doubao-credentials` 或对应文件环境变量指定。状态程序由 `QueryProgram.py` 经真实 Runtime/Docker 执行，Host 只开放 get_status/is_following，不扫描 Python 写法，也不将固定回包伪装成程序已执行。独立的云协议固定回包探测继续用于协议与时序诊断。
+豆包云端验证需要区分三个范围：
 
-`providers/AlibabaRealtime.py` 保留生产共享协议；单轮基准在 `diagnostics/cloud/AlibabaProbe.py`，计时计算在 RealtimeMetrics。豆包原生 `web/NativeProbe.cpp` 不采集设备，与网页编解码/缓冲不同。腾讯与旧直连语音实现已退役，历史三路线数据不代表当前可重跑腾讯。
+- 官方 Ark SDK 的文字／图片请求，验证独立计划与结构化观察。
+- StartVoiceChat／UpdateVoiceChat／StopVoiceChat，验证云任务接收、工具结果回填与停止确认。
+- RTC 成员实际进房、发送音视频并接收工具，验证完整媒体与工具往返。单独 REST 请求成功不能替代这一步。
 
-## 采集与证据解释
+网页只使用选定的耳机和 SDK 无人机画面，不打开电脑摄像头。离线替身可以验证工具不等待最终字幕、去重、旧任务撤权与急停，但不能证明真实账号已启用 RTS 高级消息容量或蓝牙实际发声。工具完整程序的应用上限为 60000 字节，云传输仍受外层 JSON 大小与账号消息容量限制，见 [Setup](Setup.md)。
 
-新云采集默认位于 `ScenarioAcceptance/Evidence/Current/RealtimeComparison` 或 `Current/RouteSelection`，可用 `--output-folder` 改位置。RouteSelection 保留归档路径保护和清理确认，不再要求所有历史材料或源码指纹保持不变；旧报告中的指纹字段仍可读取。历史输入、失败、HTML 与结论不覆盖；重算写到归档以外：
+程序结果与原工具 ID 对应；云结果由 Python 经 Node 的 UpdateVoiceChat(function) 回填，网页只展示执行结果。确认模型后续真的调用工具或依据实际结果回答，不能把“我重新提交”这类口头承诺算作执行。
 
-```powershell
-uv run --frozen python diagnostics/cloud/CompareRealtime.py --folder ScenarioAcceptance/Evidence/RealtimeComparison --output ScenarioAcceptance/Evidence/Current/RealtimeSummary.json
-uv run --frozen python diagnostics/cloud/RouteAnalysis.py --folder ScenarioAcceptance/Evidence/RouteSelection20261027 --output ScenarioAcceptance/Evidence/Current/RouteAnalysis.json
-```
+日志位于 logs/Runtime，Node 服务输出写入同一会话的 Rtc.log。检查工具到达、程序执行、结果回填、停止确认和清理记录；API 接收成功不等于媒体就绪、工具执行或实际动作完成。云端首音计时也不包含网页、声卡、蓝牙和飞机延迟。
 
-这两条只离线分析。`node diagnostics/local/OmniPlayback.js <OmniLive记录.json>` 用模拟时钟重放分块节奏，不证明耳机实际发声。
+## 历史证据
 
-`RealtimeComparison` 是首轮文件媒体比较；`RouteSelection20261027`、`ProviderAttribution20261027` 是后续选型/归因；`R3Integration` 为跟随集成；`Current`、`History`、`Results` 保留各自日期/版本的其他证据。部分现场媒体只存在测试机，不随源码提交。历史文件名、行号、测试数量或语义成功率不能代表本次重构的现状。
+ScenarioAcceptance/Evidence 保留旧版本数据，不作为当前实现通过的证明，也不保证原比较脚本仍存在。新诊断写入独立输出路径，保留失败、超时和清理结果；不覆盖历史输入或结论。日志不包含原图／音频，现场录像单独记录。
 
-比较须区分完整输入、语义回答、实际工具结果、媒体送达与清理。首音计时不含网页、声卡、蓝牙或飞行延迟；小样本仅描述当时网络。供应商接受配置不证明参数实际生效；视觉答对也不证明导航可执行或到达。原生 SDK、Token 和原始 PCM 不入库，来源/复现要求见对应 Setup.json；本机 `web/Build` 不是可移植的完整环境。
+- [原跟随交接](history/FollowHandoff.txt)、[原安装说明](history/FollowSetup.txt)、[原控制说明](history/FollowControl.txt)：旧路径和操作不作为现行说明。
+- [原项目快照](history/ProjectOverview.html)：旧链接可能失效，当前入口以 README 为准。
+- [Companion 需求](../REQUIREMENTS.html/Companion(1).html)：原位保留。
 
-当前新链路仍需真实云工具往返、耳机暂缺/恢复、图传新鲜度及真机逐轴检查。历史局部通过或故障单次复测不能直接证明新实现通过联合验收，也不能证明历史时序故障根因消失。
-
-## 历史入口
-
-- [FollowHandoff.txt](history/FollowHandoff.txt)、[FollowSetup.txt](history/FollowSetup.txt)、[FollowControl.txt](history/FollowControl.txt)：原跟随交接原文，旧路径与操作不作为现行说明。
-- [ProjectOverview.html](history/ProjectOverview.html)：2026-10-27 原文快照；相对链接仍按旧根目录，迁移后部分不可用，代码导航以当前 README 为准。
-- [Companion 原始需求](../REQUIREMENTS.html/Companion(1).html)：保留原位。
-
-许可证、来源记录和既有历史证据原样保留；当前可执行入口以本页和源码为准。
+当前链路仍需真实云工具往返、耳机恢复、图传延迟和真机逐轴联合验证。

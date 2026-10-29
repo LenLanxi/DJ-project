@@ -47,13 +47,12 @@ class WebcamFakeDevice(FakeDevice):
         return (latest[2].copy(),False) if latest else (None,False)
 
 def make_service(reader, target_id=0, log_directory=False,
-                 monotonic=time.monotonic, wall=time.time, *, steering_mode='yaw',
-                 vertical_follow=False, distance_mode='relative_size', config=None):
+                 monotonic=time.monotonic, wall=time.time, *, vertical_follow=False, config=None):
     port = WebcamFakeDevice(reader, monotonic, wall)
     config = load_config(config) if config is not None else FollowConfig(
-        f'cameraFixtureID{target_id}', target_id, 'DICT_4X4_50', 'openpose_pid',
-        steering_mode=steering_mode, vertical_follow=vertical_follow,
-        distance_mode=distance_mode)
+        f'cameraFixtureID{target_id}', target_id, 'DICT_4X4_50',
+        vertical_follow=vertical_follow,
+        )
     service = FollowService(port, config=config,
         log_directory=log_directory, monotonic=monotonic, wall_clock=port.epoch_time)
     return port, service

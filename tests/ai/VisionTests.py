@@ -160,48 +160,62 @@ class VisionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'semantic_request_expired'):visual.observe('tent')
 
 
-class AlibabaImageTests(unittest.TestCase):
-    def client(self, socket):
-        from providers.AlibabaRealtime import AlibabaConfig
-        from providers.AlibabaVision import AlibabaVisionClient
-        config=AlibabaConfig('test-key','workspace1',
-            'wss://workspace1.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime')
-        return AlibabaVisionClient(config,connect=lambda *args,**kwargs:socket)
+class DoubaoImageTests(unittest.TestCase):
+    def client(self, *, content='visible evidence', error=None, audit=None):
+        from providers.DoubaoVision import DoubaoVisionClient
+        calls, closed = [], []
+        class SDK:
+            def __init__(self, **kwargs):
+                calls.append(('client', kwargs))
+                self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+            def __enter__(self): return self
+            def __exit__(self, *args): closed.append(True)
+            def create(self, **kwargs):
+                calls.append(('request', kwargs))
+                if error: raise error
+                return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))],
+                                       usage=None)
+        config = SimpleNamespace(vision_key='test-secret', vision_model='test-model')
+        client = DoubaoVisionClient(config, on_usage=audit, client_factory=SDK)
+        return client, calls, closed
 
-    def test_prepared_image_is_sent_unchanged_without_billing_metadata_gate(self):
-        jpeg=encode_image(np.zeros((20,30,3),np.uint8))
-        raw='provider text that only the host should validate'
-        events=iter([
-            {'type':'session.created'},
-            {'type':'session.updated','session':{'modalities':['text'],'turn_detection':None,'max_tokens':512}},
-            {'type':'input_audio_buffer.committed'},
-            {'type':'conversation.item.created','item':{'type':'message','role':'user',
-                'content':[{'type':'input_text','text':'查找：red tent'}]}},
-            {'type':'response.created','response':{'id':'r1'}},
-            {'type':'response.text.done','response_id':'r1','text':raw},
-            {'type':'response.done','response':{'id':'r1','status':'completed','output':[]}},
-        ])
-        sent=[]
-        class Socket:
-            async def __aenter__(self):return self
-            async def __aexit__(self,*args):pass
-            async def send(self,value):sent.append(json.loads(value))
-            async def recv(self):return json.dumps(next(events))
-        client=self.client(Socket())
-        with patch('cv2.imdecode',side_effect=AssertionError('provider must not decode JPEG')):
-            self.assertEqual(client.observe_image(jpeg,'red tent',timeout=1),raw)
-        image=next(event['image'] for event in sent if event['type']=='input_image_buffer.append')
-        self.assertEqual(base64.b64decode(image),jpeg)
-        self.assertEqual(client.last_usage,{})
-        with self.assertRaises(ValueError):Observation.parse(raw)
+    def test_observation_uses_prepared_jpeg_schema_and_no_retry(self):
+        jpeg = encode_image(np.zeros((20,30,3),np.uint8))
+        raw = 'provider text that only the host should validate'
+        client, calls, closed = self.client(content=raw)
+        with patch('cv2.imdecode', side_effect=AssertionError('must not decode JPEG')):
+            self.assertEqual(client.observe_image(jpeg, 'red tent', timeout=1), raw)
+        self.assertEqual(calls[0][1], dict(api_key='test-secret', timeout=1, max_retries=0))
+        body = calls[1][1]
+        image = body['messages'][1]['content'][1]['image_url']['url']
+        self.assertEqual(base64.b64decode(image.split(',',1)[1]), jpeg)
+        schema = body['response_format']['json_schema']['schema']
+        self.assertEqual(schema['required'], OBSERVATION_SCHEMA['required'])
+        self.assertEqual(schema['properties']['bbox']['anyOf'][1],
+                         {'type':'array', 'items':{'type':'number'}})
+        self.assertEqual(body['thinking'], {'type':'disabled'})
+        self.assertNotIn('max_tokens', body)
+        self.assertEqual(closed, [True])
+        self.assertEqual(client.last_usage, {})
+        with self.assertRaises(ValueError): Observation.parse(raw)
 
-    def test_request_timeout_closes_the_visual_connection(self):
-        closed=[]
-        class Socket:
-            async def __aenter__(self):return self
-            async def __aexit__(self,*args):closed.append(True)
-            async def recv(self):await asyncio.Event().wait()
-        client=self.client(Socket())
-        with self.assertRaises(TimeoutError):
-            client.observe_image(b'prepared JPEG','tent',timeout=.01)
-        self.assertEqual(closed,[True])
+    def test_failure_closes_sdk_and_records_single_failed_request(self):
+        audit = []
+        client, calls, closed = self.client(error=TimeoutError('deadline'), audit=audit.append)
+        with self.assertRaises(TimeoutError): client.describe_image(b'prepared JPEG','tent')
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(closed, [True])
+        self.assertEqual([row['event'] for row in audit], ['model_request_start','model_request_end'])
+        self.assertEqual(audit[-1]['status'], 'failed')
+        self.assertEqual(audit[-1]['error_type'], 'TimeoutError')
+        self.assertNotIn('test-secret', json.dumps(audit))
+
+    def test_text_plan_preserves_messages_and_requests_json(self):
+        raw = json.dumps({'code':'print(drone.get_status())', 'explanation':'query'})
+        client, calls, _ = self.client(content=raw)
+        messages = [{'role':'system','content':'generate Python JSON'},
+                    {'role':'user','content':'status'}]
+        self.assertEqual(client.complete(messages), raw)
+        body = calls[1][1]
+        self.assertEqual(body['messages'], messages)
+        self.assertEqual(body['response_format'], {'type':'json_object'})

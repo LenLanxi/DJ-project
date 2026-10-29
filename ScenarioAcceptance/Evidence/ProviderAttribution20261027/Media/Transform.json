@@ -1,0 +1,17 @@
+{
+  "source_pcm_sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+  "output_pcm_sha256": "6c712555d93615f1e344af2f1118da241911888851e62a8d05866dd35e6547ab",
+  "source_image_sha256": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e",
+  "source_gap_start_sample": 38108,
+  "source_gap_end_sample": 52906,
+  "original_gap_seconds": 0.924875,
+  "retained_gap_seconds": 0.15,
+  "removed_samples": 12398,
+  "removed_peak_amplitude": 15,
+  "removed_RMS": 0.7144262761242596,
+  "all_samples_outside_removed_interval_preserved": true,
+  "speech_pause_assumption": "synthetic_TTS_low_amplitude_pause_not_human_annotation",
+  "same_transform_both_providers": true,
+  "full_text": "画面里的帐篷是什么颜色？只回答颜色。",
+  "semantic_expected_color": "红"
+}

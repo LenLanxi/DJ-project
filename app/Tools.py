@@ -1,5 +1,4 @@
 """Host tool contract shared by voice providers; provider identity stays in adapters."""
-import copy
 
 PROGRAM_MAX_BYTES = 60000
 
@@ -47,19 +46,7 @@ observe会先暂停跟随、归零并等待多张新图的图像稳定；这不�
 不添加帐篷标记，不要求用户临时配合来掩盖缺失能力；不能保证的任务如实说明。
 不能重复起飞；flight_state未知禁止起飞和平移动作。旋转一周是原地偏航360度。
 多步任务设有限循环和总时限，不让运动在程序结束后继续，不声称完成未执行步骤。'''
-RTC_INSTRUCTIONS = (
-    '你通过耳机用中文简短交流。普通画面问答直接根据当前RTC无人机视频回答，不额外调用describe；'
-    '只描述可见证据，看不到或不确定就明确说明，不推测实际距离、障碍或到达。'
-    '只有查询设备状态或执行动作才调用run_program，code是完整Python，不限一行，不是固定口令；'
-    '设备状态与动作结果只能根据工具实际返回回答。RTC画面问答不能授权随后导航；'
-    '需要结构化导航时用observe并遵守时效，describe仅在复杂程序确有需要时额外调用。'
-    '用户说停、别动、急停时'
-    '立即调用interrupt(land=false)，要求降落时interrupt(land=true)。听不明白请重说。'
-    '根据任务和工具实际返回自行决定工具调用次数，可以分步查询、执行并继续处理结果。'
-    '动作结果不明确时先核实设备状态，不盲目重复可能已执行的动作。'
-    'code的UTF-8编码最多60000字节；程序可包含条件、循环和函数。\n'
-    + PROGRAM_INSTRUCTIONS)
-RTC_TOOLS = [
+OMNI_TOOLS = [
     {'type': 'function', 'name': 'run_program',
      'description': '在隔离Docker执行完整Python，读取真实画面/状态并调用统一无人机接口',
      'parameters': {'type': 'object', 'properties': {'code': {'type': 'string',
@@ -77,13 +64,9 @@ OMNI_INSTRUCTIONS = (
     '直接画面问答不能授权随后导航，导航必须在程序内用observe并遵守时效。'
     '根据任务和工具实际返回自行决定工具调用次数，可以分步查询、执行并继续处理结果；'
     '每次run_program提交完整Python，支持条件、循环和函数。'
-    '动作结果不明确时先核实设备状态，不盲目重复可能已执行的动作；'
+    '工具action_error/details保留底层原因、阶段、wire_sent与outcome_unknown；已发送但响应超时表示完成情况未确认，不能说成驱动拒绝或动作未发生。核实状态，不盲目重复可能已执行的动作；'
     'code的UTF-8编码最多60000字节。'
     '用户说停、别动、急停时立即调用interrupt(land=false)，要求降落时interrupt(land=true)。'
     '没有清楚可理解的新要求、只有背景噪声或含糊回应时，不调用工具，也不替换当前任务；不确定则简短询问。'
     '新要求替换旧要求后，只执行最新明确要求，不重放已被取消或否定的旧动作。'
     '听不明白请重说，不执行推测的动作。\n' + PROGRAM_INSTRUCTIONS)
-OMNI_TOOLS = copy.deepcopy(RTC_TOOLS)
-OMNI_TOOLS[0]['parameters']['properties']['code'].update(
-    description='完整Python，允许变量、条件、循环和函数；仅drone接口；UTF-8编码不得超过60000字节',
-    maxLength=PROGRAM_MAX_BYTES)

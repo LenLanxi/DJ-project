@@ -46,3 +46,4 @@ class QueryProgram:
 
     def cancel(self): self.runtime.cancel()
     async def interrupt(self, land=False): return await self.runtime.interrupt(land)
+    async def close(self): return await self.runtime.close_sandbox()

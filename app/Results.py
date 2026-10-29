@@ -35,6 +35,8 @@ def tool_result(value, *, secrets=()):
     for key, limit in (('status',128), ('reason',1000)):
         if key in value:
             result[key] = str(value[key])[:limit]
+    if isinstance(value.get('action_error'), dict):
+        result['action_error'] = value['action_error']
     follow = value.get('follow_cleanup')
     if isinstance(follow, dict):
         result['follow_cleanup'] = {key: follow[key] for key in

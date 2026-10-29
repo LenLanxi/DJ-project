@@ -220,7 +220,9 @@ class ContainerNavigationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result['follow_cleanup']['status'],'follow_resumed')
             self.assertTrue(runner.test_outcome.cleanup['confirmed'])
             self.assertIsNone(visual._frames)
-        finally: visual.close()
+        finally:
+            visual.close()
+            await runner.close()
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

@@ -10,6 +10,7 @@ dependencies = [
   "websockets>=15,<17",
   "av>=12,<17",
   "pynput>=1.7,<2",
+  "volcengine-ark-runtime",
 ]
 
 [dependency-groups]

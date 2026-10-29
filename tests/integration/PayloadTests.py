@@ -12,10 +12,11 @@ class PayloadTests(unittest.IsolatedAsyncioTestCase):
         gateway=SimpleNamespace(cancel=lambda:None, close_admission=lambda:None, dispatch=AsyncMock(return_value=value),cancelled=threading.Event(),simulated=True,
             cleanup={'status':'no_control'})
         runner=SandboxRunner()
+        runner.container, runner.created = 'companion-fixture', True
         requests=[{'type':'rpc','id':i+1,'method':'get_frame','args':[],'kwargs':{}} for i in range(count)]
         requests.append({'type':'done','ok':True})
         proc=Process(requests)
-        with patch.object(runner,'check',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[proc,Process()]):
+        with patch.object(runner,'_reset',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[proc,Process()]):
             outcome = SandboxOutcome()
             await runner.run('frame=drone.get_frame()', gateway, outcome)
             return outcome.result,proc

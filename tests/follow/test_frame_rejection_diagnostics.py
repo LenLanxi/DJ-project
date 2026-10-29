@@ -23,7 +23,7 @@ class FrameRejectionTests(unittest.TestCase):
                             corners=((frame-80, 160), (frame+80, 160),
                                      (frame+80, 320), (frame-80, 320)))
 
-                service = FollowService(port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
+                service = FollowService(port, config=FollowConfig(slew_rc_per_second=80.0),
                               tracker=Detector(),
                               monotonic=mono,
                               wall_clock=wall,
@@ -51,7 +51,7 @@ class FrameRejectionTests(unittest.TestCase):
                     self.assertEqual(events[0]["reason"], kind)
                     self.assertEqual(events[0]["frame_id"], 3)
                     self.assertAlmostEqual(events[0]["frame_age_ms"], (wall()-stamp)*1000)
-                    self.assertFalse(service._start_tracking().ok)
+                    self.assertEqual(service._start_tracking().reason, "waiting_for_target")
                 finally:
                     service.close()
 

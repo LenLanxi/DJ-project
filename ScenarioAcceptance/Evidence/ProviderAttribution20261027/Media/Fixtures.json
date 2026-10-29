@@ -1,0 +1,58 @@
+{
+  "source": "Microsoft Huihui Desktop offline synthetic TTS and geometric images",
+  "no_physical_devices": true,
+  "audio": {
+    "Status": {
+      "text": "请查询模拟无人机的电量。不要操作飞机。",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits": 16,
+      "samples": 88000,
+      "speech_end_samples": 75431,
+      "speech_end_seconds": 4.7144375,
+      "seconds": 5.5,
+      "speech_end_threshold": 300,
+      "sha256": "551a6152ed5f9cf4239ab592dc8c17322e95b6a6c1db197cf069f8d995a80138"
+    },
+    "Vision": {
+      "text": "画面里的帐篷是什么颜色？只回答颜色。",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits": 16,
+      "samples": 71362,
+      "speech_end_samples": 58544,
+      "speech_end_seconds": 3.659,
+      "seconds": 4.460125,
+      "speech_end_threshold": 300,
+      "sha256": "6c712555d93615f1e344af2f1118da241911888851e62a8d05866dd35e6547ab"
+    },
+    "Speech": {
+      "text": "请只回答一句话：测试收到。",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits": 16,
+      "samples": 60400,
+      "speech_end_samples": 47771,
+      "speech_end_seconds": 2.9856875,
+      "seconds": 3.775,
+      "speech_end_threshold": 300,
+      "sha256": "bf847e75191548f81f18a60237c29868e0c69fd5de3eb45f738fc4472a2bcde8"
+    }
+  },
+  "images": {
+    "RedTent": {
+      "expected_color": "红",
+      "width": 640,
+      "height": 360,
+      "source": "synthetic_triangle_tent_not_a_real_camera",
+      "sha256": "19f3c528ff2db36fc390f5819cf72bca63d36e2e98c3aea8259297e1a18a2a1e"
+    },
+    "BlueTent": {
+      "expected_color": "蓝",
+      "width": 640,
+      "height": 360,
+      "source": "synthetic_triangle_tent_not_a_real_camera",
+      "sha256": "fbff70c0723ea7f2046da26bdb267642188e3a5fbee50abb4c1b6392e7f43360"
+    }
+  }
+}

@@ -49,11 +49,6 @@ class FollowService:
         vertical_follow = self.config.vertical_follow
         distance_mode = self.config.distance_mode
         horizontal_limit_rc, forward_limit_rc = self.config.horizontal_limit_rc, self.config.forward_limit_rc
-        pose_estimator = None
-        if distance_mode == "pose":
-            from .pose_depth import PoseDepth
-            pose_estimator = PoseDepth(self.config.camera_calibration, self.config.marker_side_m,
-                                       camera_id=self.config.camera_id)
         self.vertical_guard_reason = "disabled" if not vertical_follow else "awaiting_height"
         # Display labels may repeat; the session identifier must never repeat,
         # including separate services whose frame IDs and generations coincide.
@@ -68,8 +63,7 @@ class FollowService:
         # bypass the ramp and issue zero immediately; no old target prediction.
         self.controller = FollowController(config=self.config,
                                            auto_recover=auto_recover,
-                                           require_geometry=True,
-                                           pose_estimator=pose_estimator)
+                                           require_geometry=True)
         # RC clamp is derived from the SAME limits the law uses, so raising the
         # budget in one place cannot be silently re-clamped here. Vertical is opt-in. Hard ceiling is the SDK's RC range.
         self.rc_caps = (min(100, round(horizontal_limit_rc)),
@@ -125,11 +119,7 @@ class FollowService:
                 vertical_follow=self.config.vertical_follow,
                 vertical_limit_rc=20 if self.config.vertical_follow else 0,
                 distance_mode=self.config.distance_mode,
-                camera_calibration_sha256=(self.controller.pose_estimator.sha256
-                    if self.controller.pose_estimator else None),
                 height_guard_cm=[self.config.vertical_min_height_cm,self.config.vertical_max_height_cm],
-                physical_distance_m=self.config.physical_distance_m,
-                physical_distance_source="manual_note_not_estimated",
                 simulated=self.simulated,
                 mode="simulated_device" if self.simulated else "real_device",
                 hardware_verified=False, steering_mode=self.controller.steering_mode,
@@ -205,6 +195,22 @@ class FollowService:
             return self._cleanup()
 
     def _fault(self, reason, *, invalid_frame=False, state=None):
+        if invalid_frame and reason != 'image_size_changed_requires_new_session':
+            self.frame_ready = False
+            self.controller._invalid = True
+            if self.controller.state in (State.TRACKING, State.RECOVERING):
+                self.controller.state = State.RECOVERING
+                self.controller._clear_recovery()
+            self.controller._zero(reason)
+            if self.grant is not None:
+                stopped = self.device.update_velocity(self.grant, 0, 0, 0, 0)
+                if not stopped.ok:
+                    return self._fault('frame_wait_zero_failed')
+                self.last_channels = (0, 0, 0, 0)
+            self.last_reason = reason
+            self._record('frame_wait', reason=reason)
+            self._publish_status()
+            return CommandResult(False, 'failed', reason)
         # A recent old detection must not authorize restart after a bad/missing
         # frame. Only a newly accepted frame can clear this latch.
         if invalid_frame:
@@ -392,7 +398,6 @@ class FollowService:
                                  capture_age_at_read_ms=age*1000,
                                  result_age_ms=(completed_at-acquired_at)*1000,
                                  processing_budget=diagnostics.get("processing_budget"),
-                                 duplicate_check=diagnostics.get("duplicate_check"),
                                  identity_check=diagnostics.get("identity_check"),
                                  recognition_attempts=diagnostics.get("attempts", [])[:32],
                                  detected_markers=diagnostics.get("detected_markers", [])[:16],
@@ -566,8 +571,7 @@ class FollowService:
             self._operation_source = None
             previous = self.controller
             self.controller = FollowController(config=self.config,
-                auto_recover=previous.auto_recover, require_geometry=True,
-                pose_estimator=previous.pose_estimator)
+                auto_recover=previous.auto_recover, require_geometry=True)
             self.frame_ready = False
             self.last_frame_id, self.last_timestamp = -1, None
             self.last_observation_published_at = None

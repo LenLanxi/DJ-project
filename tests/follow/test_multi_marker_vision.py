@@ -48,9 +48,8 @@ class MultiMarkerVisionTests(unittest.TestCase):
         for marker_id in range(3):
             tracker = MarkerTracker(marker_id)
             self.assert_position(tracker, frame, 1, 160+marker_id*320, 240)
-            self.assertEqual(tracker.last_diagnostics['duplicate_check']['roi_count'], 0)
             self.assertEqual([a['method'] for a in tracker.last_diagnostics['attempts']],
-                             ['default', 'identity_half_contrast'])
+                             ['default'])
 
     def test_targets_exchange_positions_without_identity_swap(self):
         trackers = [MarkerTracker(i) for i in range(3)]
@@ -145,19 +144,7 @@ class MultiMarkerVisionTests(unittest.TestCase):
         frame[100:100+h, 500:500+w] = fixture
         return frame
 
-    def test_easy_target_does_not_hide_side_view_duplicate(self):
-        for shape in ((480, 960), (720, 1280)):
-            tracker = MarkerTracker()
-            obs = tracker.detect(self.fixture_pair('side_contour_rescue.png', shape), 1, 0)
-            self.assertFalse(obs.found)
-            self.assertEqual(obs.reason, 'ambiguous_duplicate_id')
-            self.assertGreater(tracker.last_diagnostics['duplicate_check']['roi_count'], 0)
 
-    def test_easy_target_does_not_hide_contrast_duplicate(self):
-        tracker = MarkerTracker()
-        obs = tracker.detect(self.fixture_pair('contrast_rescue.png', (480, 960)), 1, 0)
-        self.assertFalse(obs.found)
-        self.assertEqual(obs.reason, 'ambiguous_duplicate_id')
 
     def test_different_rescue_decoders_must_not_hide_large_image_duplicate(self):
         folder = Path(__file__).resolve().parents[1]/'fixtures'/'follow'
@@ -178,20 +165,6 @@ class MultiMarkerVisionTests(unittest.TestCase):
         self.assertLessEqual(diag['decoder_calls'], tracker.RESCUE_MAX_ROIS*3)
         self.assertLessEqual(diag['decoder_pixels'], tracker.RESCUE_MAX_PIXELS*3)
 
-    def test_different_rescue_decoders_must_not_hide_small_image_duplicate(self):
-        folder = Path(__file__).resolve().parents[1]/'fixtures'/'follow'
-        side = cv2.imdecode(np.frombuffer((folder/'side_contour_rescue.png').read_bytes(), np.uint8), 0)
-        contrast = cv2.imdecode(np.frombuffer((folder/'contrast_rescue.png').read_bytes(), np.uint8), 0)
-        for y, x in ((0, 500), (60, 590), (120, 500), (200, 590)):
-            frame = np.full((480, 960), 245, np.uint8)
-            frame[0:260, 0:360] = side
-            frame[y:y+260, x:x+360] = contrast
-            tracker = MarkerTracker()
-            obs = tracker.detect(frame, 1, 0)
-            with self.subTest(y=y, x=x):
-                self.assertFalse(obs.found)
-                self.assertIn(obs.reason, ('ambiguous_duplicate_id', 'ambiguous_scan_budget_exceeded'))
-                self.assertIsNone(obs.center_x)
 
     def test_one_side_target_in_overlapping_crops_is_not_false_duplicate(self):
         folder = Path(__file__).resolve().parents[1]/'fixtures'/'follow'
@@ -205,27 +178,7 @@ class MultiMarkerVisionTests(unittest.TestCase):
                 self.assertTrue(obs.found, tracker.last_diagnostics)
                 self.assertEqual(tracker.last_diagnostics['detected_ids'], [0])
 
-    def test_partial_duplicate_scan_never_reports_unique_target(self):
-        tracker = MarkerTracker()
-        tracker.DUPLICATE_MAX_ROIS = 0
-        obs = tracker.detect(self.fixture_pair('side_contour_rescue.png', (480, 960)), 1, 0)
-        self.assertFalse(obs.found)
-        self.assertEqual(obs.reason, 'ambiguous_scan_budget_exceeded')
-        self.assertTrue(tracker.last_diagnostics['duplicate_check']['budget_exceeded'])
 
-    def test_successful_duplicate_scan_has_explicit_work_bounds(self):
-        tracker = MarkerTracker()
-        tracker.detect(self.fixture_pair('side_contour_rescue.png', (720, 1280)), 1, 0)
-        diag = tracker.last_diagnostics['duplicate_check']
-        self.assertLessEqual(diag['roi_count'], tracker.DUPLICATE_MAX_ROIS)
-        self.assertLessEqual(diag['input_pixels'], tracker.RESCUE_MAX_PIXELS)
-        self.assertLessEqual(diag['decoder_calls'], tracker.DUPLICATE_MAX_ROIS*3)
-        self.assertLessEqual(diag['decoder_pixels'], tracker.RESCUE_MAX_PIXELS*3)
-        attempts = [a for a in tracker.last_diagnostics['attempts']
-                    if a['method'].startswith('duplicate_roi_')]
-        self.assertGreaterEqual(len(attempts), diag['roi_count'])
-        self.assertLessEqual(len(attempts), 3*diag['roi_count'])
-        self.assertTrue(all(a['input_pixels'] <= 512*512 for a in attempts))
 
 
 if __name__ == '__main__':

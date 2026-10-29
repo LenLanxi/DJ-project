@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "scope": "licensed_transformed_photo_Vision_TargetTracker_only",
+  "image_source": "transformed_photo_not_drone_footage",
+  "physical_devices_opened": false,
+  "voice_or_language_planner_tested": false,
+  "real_cloud": false,
+  "ok": true,
+  "photo_sha256": "84e22c73d2c9f268b824ab8524749c3c31d1d33696bad75319af8056339ec772",
+  "photo": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\FieldReadiness20261027\\TentPhoto.jpg",
+  "generated_3D_or_physical_arrival_verified": false,
+  "retries": 0,
+  "api_budget_rmb_authorized": 15,
+  "actual_bill_verified": false,
+  "result": {
+    "ok": true,
+    "status": "completed",
+    "reason": "",
+    "simulated": true,
+    "journal": [
+      {
+        "method": "observe",
+        "args": [
+          "红色帐篷"
+        ],
+        "kwargs": {},
+        "result": {
+          "frame_id": 33,
+          "timestamp": 1793092294.2185934,
+          "source": "sdk_camera",
+          "simulated": true,
+          "bbox": [
+            0.08333508968353272,
+            0.15925256234628182,
+            0.9145835638046265,
+            0.9148176122594762
+          ],
+          "visible": true,
+          "center_x": 0.4989593267440796,
+          "width_fraction": 0.8312484741210937,
+          "fresh": true,
+          "target_tracking": {
+            "track_id": "ffa4cec9b970450788fa7e2805e40cc2",
+            "seed_frame_id": 17,
+            "semantic_timestamp": 1793092293.2192993,
+            "quality": {
+              "features": 120,
+              "inlier_fraction": 1.0,
+              "coverage": 0.7314759072804949,
+              "occupied_cells": 14,
+              "appearance_ncc": 0.9998434743006039,
+              "appearance_good_fraction": 1.0,
+              "second_region_score": -1.0,
+              "forward_backward_max": 0.002266752067953348
+            },
+            "updates": 9,
+            "source_age_seconds": 0.17808866500854492,
+            "semantic_age_seconds": 1.1773827075958252,
+            "max_semantic_age_seconds": 6.0,
+            "method": "seed_appearance_LK_FB_RANSAC_affine",
+            "identity_verified": false,
+            "hardware_verified": false
+          },
+          "bbox_format": "xyxy",
+          "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result",
+          "ambiguous": false,
+          "candidate_count": 1
+        }
+      }
+    ],
+    "follow_cleanup": {
+      "status": "released"
+    },
+    "debug": "{'frame_id': 33, 'timestamp': 1793092294.2185934, 'source': 'sdk_camera', 'simulated': True, 'bbox': [0.08333508968353272, 0.15925256234628182, 0.9145835638046265, 0.9148176122594762], 'visible': True, 'center_x': 0.4989593267440796, 'width_fraction': 0.8312484741210937, 'fresh': True, 'target_tracking': {'track_id': 'ffa4cec9b970450788fa7e2805e40cc2', 'seed_frame_id': 17, 'semantic_timestamp': 1793092293.2192993, 'quality': {'features': 120, 'inlier_fraction': 1.0, 'coverage': 0.7314759072804949, 'occupied_cells': 14, 'appearance_ncc': 0.9998434743006039, 'appearance_good_fraction': 1.0, 'second_region_score': -1.0, 'forward_backward_max': 0.002266752067953348}, 'updates': 9, 'source_age_seconds': 0.17808866500854492, 'semantic_age_seconds': 1.1773827075958252, 'max_semantic_age_seconds': 6.0, 'method': 'seed_appearance_LK_FB_RANSAC_affine', 'identity_verified': False, 'hardware_verified': False}, 'bbox_format': 'xyxy', 'description': 'offline pixel segmentation of declared synthetic red fabric, not a cloud result', 'ambiguous': False, 'candidate_count': 1}\n"
+  },
+  "cloud_requests": 1,
+  "observation": {
+    "frame_id": 33,
+    "timestamp": 1793092294.2185934,
+    "source": "sdk_camera",
+    "simulated": true,
+    "bbox": [
+      0.08333508968353272,
+      0.15925256234628182,
+      0.9145835638046265,
+      0.9148176122594762
+    ],
+    "visible": true,
+    "center_x": 0.4989593267440796,
+    "width_fraction": 0.8312484741210937,
+    "fresh": true,
+    "target_tracking": {
+      "track_id": "ffa4cec9b970450788fa7e2805e40cc2",
+      "seed_frame_id": 17,
+      "semantic_timestamp": 1793092293.2192993,
+      "quality": {
+        "features": 120,
+        "inlier_fraction": 1.0,
+        "coverage": 0.7314759072804949,
+        "occupied_cells": 14,
+        "appearance_ncc": 0.9998434743006039,
+        "appearance_good_fraction": 1.0,
+        "second_region_score": -1.0,
+        "forward_backward_max": 0.002266752067953348
+      },
+      "updates": 9,
+      "source_age_seconds": 0.17808866500854492,
+      "semantic_age_seconds": 1.1773827075958252,
+      "max_semantic_age_seconds": 6.0,
+      "method": "seed_appearance_LK_FB_RANSAC_affine",
+      "identity_verified": false,
+      "hardware_verified": false
+    },
+    "bbox_format": "xyxy",
+    "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result",
+    "ambiguous": false,
+    "candidate_count": 1
+  },
+  "flight_actions": [],
+  "events": [
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793092292.9125135
+    },
+    {
+      "event": "offline_cloud_seed",
+      "delay_seconds": 1.0,
+      "image_sha256": "855359a7461cdef034ff482f2ab1b0bd19558806d92307a0cefa7aeb3b707f5c",
+      "result": {
+        "visible": true,
+        "ambiguous": false,
+        "candidate_count": 1,
+        "bbox": [
+          0.08333333333333333,
+          0.15925925925925927,
+          0.9145833333333333,
+          0.9148148148148149
+        ],
+        "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result"
+      },
+      "timestamp": 1793092294.2564826
+    }
+  ],
+  "cleanup": {
+    "synthetic_camera_finished": true
+  }
+}

@@ -23,7 +23,7 @@
 </head>
 <body>
   <h1>Companion 无人机语音控制</h1>
-  <p class="small">语音与无人机画面通过 RTC 连接模型；动作由本机统一执行器检查并执行。此页面不会打开电脑摄像头。</p>
+  <p class="small">当前语音路线：豆包。先选择麦克风和耳机，再连接；下方显示无人机画面，不会打开电脑摄像头。</p>
   <div class="status" id="status" role="status">尚未连接。请先选择蓝牙耳机的麦克风与输出端点。</div>
   <main>
     <div>
@@ -45,7 +45,7 @@
       <button id="resumeAudio" class="subtle" hidden>恢复所选设备音频</button>
       <p class="small">设备断开时暂停相应音频并保留控制连接，不会自动换成扬声器。恢复按钮只使用本次选择的设备。</p>
       <p class="small" id="sessionTime">单次连接有墙钟时限，到期将退出房间并停止云端任务。</p>
-      <details><summary>使用提示</summary><p class="small">可先询问状态，再分阶段要求起飞、开始跟随。看图回答与到达判断不同；模型和执行器不能证明不存在障碍。图传暂缺时保留语音，视觉任务需等待新帧；打断会撤销旧会话授权。</p></details>
+      <details><summary>使用提示</summary><p class="small">可先询问状态，再分阶段要求起飞、开始跟随。看图回答与到达判断不同；模型和执行器不能证明不存在障碍。图传暂缺时保留语音，视觉任务需等待新帧。普通插话保留连接；点击停止或降落后，请使用物理按键核对状态，并重新连接语音。</p></details>
     </section>
   </main>
 </body>

@@ -16,7 +16,8 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def run_with(self,messages):
         b=MockBackend(); r=runner_for(b, b, vision=FixtureVision())
         proc=Process(messages)
-        with patch.object(r,'check',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[proc,Process()]):
+        r.container, r.created = "companion-fixture", True
+        with patch.object(r,'check',new=AsyncMock()),patch.object(r,'_reset',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[proc,Process()]):
             result=await run_program(r, 'arbitrary Python is passed unchanged, not parsed on host')
         return result,b,proc
     async def test_multiple_rpc_calls_and_journal(self):

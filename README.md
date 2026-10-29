@@ -1,44 +1,43 @@
 # AI 随行小伙伴
 
-面向 Tello 的原型：跟随佩戴标记的用户，接收自然语言，再通过完整 Python 程序执行临时任务并恢复跟随。目标场景包含红色帐篷导航与旋转，但尚未完成整段真机验收；需求来源为 [Companion 原始页面](REQUIREMENTS.html/Companion(1).html)。
+面向 Tello 的原型：跟随佩戴标记的用户，通过耳机持续语音交互，结合无人机画面生成完整 Python 程序、执行任务并反馈真实结果。保留自然目标导航、临时任务后恢复原跟随参考；尚未完成整段真机联合验收。需求来源为 [Companion 原始页面](REQUIREMENTS.html/Companion(1).html)。
 
 ## 安装与启动
 
-需要 Windows、uv 管理的 Python 3.11、Node.js 22+、Docker Desktop Linux containers。电脑须同时连接 Tello Wi-Fi 与互联网；先按 [Setup](docs/Setup.md) 准备所选路线的服务端凭据。在仓库根目录执行：
+需要 Windows、uv 管理的 Python 3.11、Docker Desktop Linux containers；Node.js 22+ 用于本机 RTC 服务和网页测试。电脑须同时连接 Tello Wi-Fi 与互联网。豆包 RTC 是唯一模型路线，凭据配置见 [Setup](docs/Setup.md)。在仓库根目录执行：
 
 ```powershell
 uv sync --frozen
 npm --prefix web ci --ignore-scripts --no-audit --no-fund
-docker build -t companion-sandbox:0.4 execution/sandbox
+docker build -t companion-sandbox:0.5 execution/sandbox
 .\Check.ps1 -Docker
 .\start_flight.ps1 -DryRun
 ```
 
-`-DryRun` 仅预览命令，不校验配置。完成 [Flight](docs/Flight.md) 的地面检查后，使用唯一现场入口：
+`-DryRun` 只预览命令。完成 [Flight](docs/Flight.md) 的地面检查后运行：
 
 ```powershell
 .\start_flight.ps1 -AllowTakeoff
 ```
 
-默认阿里；启动前用 `-VoiceProvider doubao` 选择备选，不在失败后自动切换。手动打开 http://127.0.0.1:18848，选择麦克风与耳机；两路只使用 SDK 无人机画面，不打开电脑摄像头。Ctrl+Shift+Alt+A / F12 停止，Ctrl+Shift+Alt+L / F11 降落。
+手动打开 http://127.0.0.1:18848，选择麦克风与耳机。页面只接收真实 SDK 无人机画面，不打开电脑摄像头。Ctrl+Shift+Alt+A / F12 停止；Ctrl+Shift+Alt+L / F11 降落。
 
 ## 接手阅读
 
-先看 [Architecture](docs/Architecture.md) 的职责表、真实调用链及“改哪里”，再按工作查阅：
+- [Architecture](docs/Architecture.md)：职责、调用链、控制交接和容器复用。
+- [Setup](docs/Setup.md)：环境、豆包凭据和入口参数。
+- [API](docs/API.md)：完整 Python 与 drone 接口。
+- [Testing](docs/Testing.md)：针对性检查、真实容器和显式云／硬件诊断。
+- [Flight](docs/Flight.md)：现场操作、耳机恢复和退出。
 
-- [Setup](docs/Setup.md)：环境、账户凭据、入口参数。
-- [API](docs/API.md)：模型可用的完整 Python / `drone` 契约和内部接口。
-- [Testing](docs/Testing.md)：针对性验证、真实容器、显式云/硬件诊断及证据范围。
-- [Flight](docs/Flight.md)：现场操作、耳机恢复、停止与退出。
-
-应用有 `plan`（只生成程序）、`run`（执行文件或文字任务）、`voice`（持续语音）三个入口，使用 `uv run --frozen python -m app.Application <入口> --help` 查看各自参数。现场启动器默认选择 `voice`；`-Program` / `-Text` 选择 `run`，`-Text ... -PlanOnly` 选择 `plan`。
-
-`app` 组装会话并管理一次程序的收尾；`execution/Host.py` 提供受限能力；SDK 用 `ControlGrant` 授权动作。跟随只发布一份动态状态快照，四轴内部统一为 RC 单位。导航观察统一字段与 xyxy 坐标。豆包浏览器负责媒体与事件转发，Python 负责轮次、工具执行及直接向 Node 回传结果。
+应用有 plan、run、voice 三个入口；用 `uv run --frozen python -m app.Application <入口> --help` 查看参数。现场启动器默认 voice，`-Program` / `-Text` 选择 run，`-Text ... -PlanOnly` 选择 plan。
 
 ## 当前限制
 
-- 新执行链与媒体恢复尚未通过真实云、蓝牙耳机、真机图传和现场网络的联合验收。回归通过不能证明飞行通过。
-- 红帐篷不附标记；通用避障、精确测距、实际到达及旋转后主动找回用户均未验证。恢复跟随要求原标记重新可见。
-- 导航把有界云语义种子关联到当前帧后再检查运动时效；这不能证明相机曝光年龄或解决端到端图传延迟。慢请求、跟踪丢失或歧义仍会拒绝运动。
-- RC 不是物理速度，软件停止不是实机刹停保证；一次进程只控制一架飞机。
-- 云端语音、视觉、任务与 RTC 可能分别计费。本地运行预算不代替账单或服务端费用上限。
+- 软件回归不证明真实云、蓝牙耳机、图传和飞行联合通过。
+- 无通用避障、精确测距或实际到达保证；旋转后恢复跟随需要原标记重新可见。
+- RC 是请求单位，不是物理速度；标记大小不是距离传感器。一次进程控制一架飞机。
+- 图传解码时间不是相机曝光时间；自然目标导航仍依赖有效跟踪和新鲜观察。
+- 豆包实时语音由火山 RTC 混合编排接入：原生语音负责交流，方舟模型负责视觉和工具程序。
+- RTC 工具消息默认容量为 1 KB，需要在控制台启用 RTS 高级功能才能使用最多 64 KB 的消息。程序的 60000 字节应用上限不保证转义后的完整消息能容纳，详见 [Setup](docs/Setup.md)。
+- 云端调用可能计费，本地不设金额限制。

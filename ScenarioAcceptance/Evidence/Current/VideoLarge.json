@@ -1,0 +1,1244 @@
+{
+  "av_version": "16.1.0",
+  "library_versions": {
+    "libavutil": [
+      60,
+      8,
+      100
+    ],
+    "libavcodec": [
+      62,
+      11,
+      100
+    ],
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "libavdevice": [
+      62,
+      1,
+      100
+    ],
+    "libavfilter": [
+      11,
+      4,
+      100
+    ],
+    "libswscale": [
+      9,
+      1,
+      100
+    ],
+    "libswresample": [
+      6,
+      1,
+      100
+    ]
+  },
+  "samples": [
+    {
+      "case": "Current",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 0,
+      "url_options": {
+        "fifo": 28672,
+        "socket": null,
+        "options": null,
+        "format": null
+      },
+      "fifo_bytes": 5390336,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 1843.0,
+          "send_age_ms": 1687.0,
+          "behind_latest_sent": 50
+        },
+        {
+          "number": 1,
+          "received_ms": 1859.0,
+          "send_age_ms": 1672.0,
+          "behind_latest_sent": 50
+        },
+        {
+          "number": 2,
+          "received_ms": 1859.0,
+          "send_age_ms": 1625.0,
+          "behind_latest_sent": 49
+        },
+        {
+          "number": 3,
+          "received_ms": 1859.0,
+          "send_age_ms": 1594.0,
+          "behind_latest_sent": 48
+        },
+        {
+          "number": 4,
+          "received_ms": 1859.0,
+          "send_age_ms": 1562.0,
+          "behind_latest_sent": 47
+        },
+        {
+          "number": 5,
+          "received_ms": 1875.0,
+          "send_age_ms": 1547.0,
+          "behind_latest_sent": 46
+        },
+        {
+          "number": 6,
+          "received_ms": 1875.0,
+          "send_age_ms": 1500.0,
+          "behind_latest_sent": 45
+        },
+        {
+          "number": 7,
+          "received_ms": 1875.0,
+          "send_age_ms": 1485.0,
+          "behind_latest_sent": 44
+        },
+        {
+          "number": 8,
+          "received_ms": 1875.0,
+          "send_age_ms": 1438.0,
+          "behind_latest_sent": 43
+        },
+        {
+          "number": 9,
+          "received_ms": 1875.0,
+          "send_age_ms": 1407.0,
+          "behind_latest_sent": 42
+        },
+        {
+          "number": 10,
+          "received_ms": 1875.0,
+          "send_age_ms": 1375.0,
+          "behind_latest_sent": 41
+        },
+        {
+          "number": 11,
+          "received_ms": 1875.0,
+          "send_age_ms": 1344.0,
+          "behind_latest_sent": 40
+        },
+        {
+          "number": 12,
+          "received_ms": 1875.0,
+          "send_age_ms": 1313.0,
+          "behind_latest_sent": 39
+        },
+        {
+          "number": 13,
+          "received_ms": 1875.0,
+          "send_age_ms": 1282.0,
+          "behind_latest_sent": 38
+        },
+        {
+          "number": 14,
+          "received_ms": 1890.0,
+          "send_age_ms": 1265.0,
+          "behind_latest_sent": 37
+        },
+        {
+          "number": 15,
+          "received_ms": 1890.0,
+          "send_age_ms": 1218.0,
+          "behind_latest_sent": 36
+        },
+        {
+          "number": 16,
+          "received_ms": 1890.0,
+          "send_age_ms": 1187.0,
+          "behind_latest_sent": 35
+        },
+        {
+          "number": 17,
+          "received_ms": 1890.0,
+          "send_age_ms": 1156.0,
+          "behind_latest_sent": 34
+        },
+        {
+          "number": 18,
+          "received_ms": 1890.0,
+          "send_age_ms": 1125.0,
+          "behind_latest_sent": 33
+        },
+        {
+          "number": 19,
+          "received_ms": 1890.0,
+          "send_age_ms": 1093.0,
+          "behind_latest_sent": 32
+        },
+        {
+          "number": 20,
+          "received_ms": 1890.0,
+          "send_age_ms": 1062.0,
+          "behind_latest_sent": 31
+        },
+        {
+          "number": 21,
+          "received_ms": 1890.0,
+          "send_age_ms": 1031.0,
+          "behind_latest_sent": 30
+        },
+        {
+          "number": 22,
+          "received_ms": 1890.0,
+          "send_age_ms": 984.0,
+          "behind_latest_sent": 29
+        },
+        {
+          "number": 23,
+          "received_ms": 1890.0,
+          "send_age_ms": 953.0,
+          "behind_latest_sent": 28
+        },
+        {
+          "number": 24,
+          "received_ms": 1906.0,
+          "send_age_ms": 938.0,
+          "behind_latest_sent": 27
+        },
+        {
+          "number": 25,
+          "received_ms": 1906.0,
+          "send_age_ms": 906.0,
+          "behind_latest_sent": 27
+        },
+        {
+          "number": 26,
+          "received_ms": 1906.0,
+          "send_age_ms": 875.0,
+          "behind_latest_sent": 26
+        },
+        {
+          "number": 27,
+          "received_ms": 1906.0,
+          "send_age_ms": 844.0,
+          "behind_latest_sent": 25
+        },
+        {
+          "number": 28,
+          "received_ms": 1906.0,
+          "send_age_ms": 797.0,
+          "behind_latest_sent": 24
+        },
+        {
+          "number": 29,
+          "received_ms": 1906.0,
+          "send_age_ms": 781.0,
+          "behind_latest_sent": 23
+        },
+        {
+          "number": 30,
+          "received_ms": 1906.0,
+          "send_age_ms": 734.0,
+          "behind_latest_sent": 22
+        },
+        {
+          "number": 31,
+          "received_ms": 1906.0,
+          "send_age_ms": 703.0,
+          "behind_latest_sent": 21
+        },
+        {
+          "number": 32,
+          "received_ms": 1906.0,
+          "send_age_ms": 672.0,
+          "behind_latest_sent": 20
+        },
+        {
+          "number": 33,
+          "received_ms": 1906.0,
+          "send_age_ms": 641.0,
+          "behind_latest_sent": 19
+        },
+        {
+          "number": 34,
+          "received_ms": 1906.0,
+          "send_age_ms": 609.0,
+          "behind_latest_sent": 18
+        },
+        {
+          "number": 35,
+          "received_ms": 1922.0,
+          "send_age_ms": 594.0,
+          "behind_latest_sent": 17
+        },
+        {
+          "number": 36,
+          "received_ms": 1922.0,
+          "send_age_ms": 563.0,
+          "behind_latest_sent": 16
+        },
+        {
+          "number": 37,
+          "received_ms": 1922.0,
+          "send_age_ms": 516.0,
+          "behind_latest_sent": 15
+        },
+        {
+          "number": 38,
+          "received_ms": 1922.0,
+          "send_age_ms": 485.0,
+          "behind_latest_sent": 14
+        },
+        {
+          "number": 39,
+          "received_ms": 1922.0,
+          "send_age_ms": 454.0,
+          "behind_latest_sent": 13
+        },
+        {
+          "number": 40,
+          "received_ms": 1922.0,
+          "send_age_ms": 422.0,
+          "behind_latest_sent": 12
+        },
+        {
+          "number": 41,
+          "received_ms": 1922.0,
+          "send_age_ms": 391.0,
+          "behind_latest_sent": 11
+        },
+        {
+          "number": 42,
+          "received_ms": 1922.0,
+          "send_age_ms": 360.0,
+          "behind_latest_sent": 10
+        },
+        {
+          "number": 43,
+          "received_ms": 1922.0,
+          "send_age_ms": 329.0,
+          "behind_latest_sent": 9
+        },
+        {
+          "number": 44,
+          "received_ms": 1922.0,
+          "send_age_ms": 282.0,
+          "behind_latest_sent": 8
+        }
+      ],
+      "errors": [],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 1828.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 45,
+        "max_send_age_ms": 1687.0,
+        "median_send_age_ms": 984.0,
+        "first_frame_ms": 1843.0,
+        "post_stall_stale_count": null,
+        "error_after_frames": null
+      }
+    },
+    {
+      "case": "Current",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 1.1,
+      "url_options": {
+        "fifo": 28672,
+        "socket": null,
+        "options": null,
+        "format": null
+      },
+      "fifo_bytes": 5390336,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 1828.0,
+          "send_age_ms": 1672.0,
+          "behind_latest_sent": 50
+        },
+        {
+          "number": 1,
+          "received_ms": 1828.0,
+          "send_age_ms": 1625.0,
+          "behind_latest_sent": 49
+        },
+        {
+          "number": 2,
+          "received_ms": 2938.0,
+          "send_age_ms": 2703.0,
+          "behind_latest_sent": 80
+        },
+        {
+          "number": 3,
+          "received_ms": 2938.0,
+          "send_age_ms": 2672.0,
+          "behind_latest_sent": 80
+        },
+        {
+          "number": 4,
+          "received_ms": 2953.0,
+          "send_age_ms": 2656.0,
+          "behind_latest_sent": 79
+        },
+        {
+          "number": 5,
+          "received_ms": 2953.0,
+          "send_age_ms": 2625.0,
+          "behind_latest_sent": 78
+        },
+        {
+          "number": 6,
+          "received_ms": 2953.0,
+          "send_age_ms": 2593.0,
+          "behind_latest_sent": 77
+        },
+        {
+          "number": 7,
+          "received_ms": 2953.0,
+          "send_age_ms": 2562.0,
+          "behind_latest_sent": 76
+        },
+        {
+          "number": 8,
+          "received_ms": 2953.0,
+          "send_age_ms": 2500.0,
+          "behind_latest_sent": 75
+        },
+        {
+          "number": 9,
+          "received_ms": 2953.0,
+          "send_age_ms": 2484.0,
+          "behind_latest_sent": 74
+        },
+        {
+          "number": 10,
+          "received_ms": 2953.0,
+          "send_age_ms": 2453.0,
+          "behind_latest_sent": 73
+        },
+        {
+          "number": 11,
+          "received_ms": 2953.0,
+          "send_age_ms": 2422.0,
+          "behind_latest_sent": 72
+        },
+        {
+          "number": 12,
+          "received_ms": 2969.0,
+          "send_age_ms": 2406.0,
+          "behind_latest_sent": 71
+        },
+        {
+          "number": 13,
+          "received_ms": 2969.0,
+          "send_age_ms": 2359.0,
+          "behind_latest_sent": 70
+        },
+        {
+          "number": 14,
+          "received_ms": 2969.0,
+          "send_age_ms": 2344.0,
+          "behind_latest_sent": 69
+        },
+        {
+          "number": 15,
+          "received_ms": 2969.0,
+          "send_age_ms": 2297.0,
+          "behind_latest_sent": 68
+        },
+        {
+          "number": 16,
+          "received_ms": 2969.0,
+          "send_age_ms": 2266.0,
+          "behind_latest_sent": 67
+        },
+        {
+          "number": 17,
+          "received_ms": 2969.0,
+          "send_age_ms": 2234.0,
+          "behind_latest_sent": 67
+        },
+        {
+          "number": 18,
+          "received_ms": 2969.0,
+          "send_age_ms": 2203.0,
+          "behind_latest_sent": 66
+        },
+        {
+          "number": 19,
+          "received_ms": 2969.0,
+          "send_age_ms": 2172.0,
+          "behind_latest_sent": 65
+        },
+        {
+          "number": 20,
+          "received_ms": 2985.0,
+          "send_age_ms": 2157.0,
+          "behind_latest_sent": 64
+        },
+        {
+          "number": 21,
+          "received_ms": 2985.0,
+          "send_age_ms": 2125.0,
+          "behind_latest_sent": 63
+        },
+        {
+          "number": 22,
+          "received_ms": 2985.0,
+          "send_age_ms": 2079.0,
+          "behind_latest_sent": 62
+        },
+        {
+          "number": 23,
+          "received_ms": 2985.0,
+          "send_age_ms": 2047.0,
+          "behind_latest_sent": 61
+        },
+        {
+          "number": 24,
+          "received_ms": 2985.0,
+          "send_age_ms": 2016.0,
+          "behind_latest_sent": 60
+        },
+        {
+          "number": 25,
+          "received_ms": 2985.0,
+          "send_age_ms": 1985.0,
+          "behind_latest_sent": 59
+        },
+        {
+          "number": 26,
+          "received_ms": 2985.0,
+          "send_age_ms": 1954.0,
+          "behind_latest_sent": 58
+        },
+        {
+          "number": 27,
+          "received_ms": 2985.0,
+          "send_age_ms": 1922.0,
+          "behind_latest_sent": 57
+        },
+        {
+          "number": 28,
+          "received_ms": 2985.0,
+          "send_age_ms": 1907.0,
+          "behind_latest_sent": 56
+        },
+        {
+          "number": 29,
+          "received_ms": 2985.0,
+          "send_age_ms": 1875.0,
+          "behind_latest_sent": 55
+        },
+        {
+          "number": 30,
+          "received_ms": 2985.0,
+          "send_age_ms": 1797.0,
+          "behind_latest_sent": 54
+        },
+        {
+          "number": 31,
+          "received_ms": 3000.0,
+          "send_age_ms": 1781.0,
+          "behind_latest_sent": 53
+        },
+        {
+          "number": 32,
+          "received_ms": 3000.0,
+          "send_age_ms": 1781.0,
+          "behind_latest_sent": 52
+        },
+        {
+          "number": 33,
+          "received_ms": 3000.0,
+          "send_age_ms": 1734.0,
+          "behind_latest_sent": 51
+        },
+        {
+          "number": 34,
+          "received_ms": 3000.0,
+          "send_age_ms": 1703.0,
+          "behind_latest_sent": 50
+        },
+        {
+          "number": 35,
+          "received_ms": 3000.0,
+          "send_age_ms": 1672.0,
+          "behind_latest_sent": 49
+        },
+        {
+          "number": 36,
+          "received_ms": 3000.0,
+          "send_age_ms": 1640.0,
+          "behind_latest_sent": 48
+        },
+        {
+          "number": 37,
+          "received_ms": 3000.0,
+          "send_age_ms": 1609.0,
+          "behind_latest_sent": 48
+        },
+        {
+          "number": 38,
+          "received_ms": 3000.0,
+          "send_age_ms": 1562.0,
+          "behind_latest_sent": 47
+        },
+        {
+          "number": 39,
+          "received_ms": 3000.0,
+          "send_age_ms": 1531.0,
+          "behind_latest_sent": 46
+        },
+        {
+          "number": 40,
+          "received_ms": 3000.0,
+          "send_age_ms": 1500.0,
+          "behind_latest_sent": 45
+        },
+        {
+          "number": 41,
+          "received_ms": 3016.0,
+          "send_age_ms": 1485.0,
+          "behind_latest_sent": 44
+        },
+        {
+          "number": 42,
+          "received_ms": 3016.0,
+          "send_age_ms": 1453.0,
+          "behind_latest_sent": 43
+        },
+        {
+          "number": 43,
+          "received_ms": 3016.0,
+          "send_age_ms": 1422.0,
+          "behind_latest_sent": 42
+        },
+        {
+          "number": 44,
+          "received_ms": 3016.0,
+          "send_age_ms": 1391.0,
+          "behind_latest_sent": 41
+        }
+      ],
+      "errors": [],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 1813.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 45,
+        "max_send_age_ms": 2703.0,
+        "median_send_age_ms": 2016.0,
+        "first_frame_ms": 1828.0,
+        "post_stall_stale_count": 43,
+        "error_after_frames": null
+      }
+    },
+    {
+      "case": "SmallProbe",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 0,
+      "url_options": {
+        "fifo": 512,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 96256,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 234.0,
+          "send_age_ms": 62.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 1,
+          "received_ms": 234.0,
+          "send_age_ms": 15.0,
+          "behind_latest_sent": 0
+        }
+      ],
+      "errors": [
+        "OSError: [Errno 5] I/O error: 'udp://127.0.0.1:56265?overrun_nonfatal=0&fifo_size=512&buffer_size=65536'"
+      ],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 234.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 2,
+        "max_send_age_ms": 62.0,
+        "median_send_age_ms": 38.5,
+        "first_frame_ms": 234.0,
+        "post_stall_stale_count": null,
+        "error_after_frames": 2
+      }
+    },
+    {
+      "case": "SmallProbe",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 1.1,
+      "url_options": {
+        "fifo": 512,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 96256,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 234.0,
+          "send_age_ms": 78.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 1,
+          "received_ms": 234.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        }
+      ],
+      "errors": [
+        "OSError: [Errno 5] I/O error: 'udp://127.0.0.1:56267?overrun_nonfatal=0&fifo_size=512&buffer_size=65536'"
+      ],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 219.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 2,
+        "max_send_age_ms": 78.0,
+        "median_send_age_ms": 54.5,
+        "first_frame_ms": 234.0,
+        "post_stall_stale_count": 0,
+        "error_after_frames": 2
+      }
+    },
+    {
+      "case": "MediumProbe",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 0,
+      "url_options": {
+        "fifo": 1024,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 192512,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 203.0,
+          "send_age_ms": 63.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 1,
+          "received_ms": 218.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 2,
+          "received_ms": 250.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 3,
+          "received_ms": 281.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 4,
+          "received_ms": 312.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 5,
+          "received_ms": 343.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 6,
+          "received_ms": 375.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 7,
+          "received_ms": 421.0,
+          "send_age_ms": 46.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 8,
+          "received_ms": 453.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 9,
+          "received_ms": 484.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 10,
+          "received_ms": 515.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 11,
+          "received_ms": 546.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 12,
+          "received_ms": 578.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 13,
+          "received_ms": 609.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 14,
+          "received_ms": 656.0,
+          "send_age_ms": 63.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 15,
+          "received_ms": 687.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 16,
+          "received_ms": 718.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 17,
+          "received_ms": 765.0,
+          "send_age_ms": 62.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 18,
+          "received_ms": 796.0,
+          "send_age_ms": 46.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 19,
+          "received_ms": 828.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 20,
+          "received_ms": 843.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 21,
+          "received_ms": 890.0,
+          "send_age_ms": 62.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 22,
+          "received_ms": 921.0,
+          "send_age_ms": 46.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 23,
+          "received_ms": 968.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 24,
+          "received_ms": 1000.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 25,
+          "received_ms": 1031.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 26,
+          "received_ms": 1062.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 27,
+          "received_ms": 1093.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 28,
+          "received_ms": 1125.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 29,
+          "received_ms": 1156.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 30,
+          "received_ms": 1203.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 31,
+          "received_ms": 1218.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 32,
+          "received_ms": 1250.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 33,
+          "received_ms": 1281.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 34,
+          "received_ms": 1312.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 35,
+          "received_ms": 1343.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 36,
+          "received_ms": 1390.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 37,
+          "received_ms": 1421.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 38,
+          "received_ms": 1453.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 39,
+          "received_ms": 1484.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 40,
+          "received_ms": 1515.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 41,
+          "received_ms": 1546.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 42,
+          "received_ms": 1578.0,
+          "send_age_ms": 32.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 43,
+          "received_ms": 1609.0,
+          "send_age_ms": 31.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 44,
+          "received_ms": 1656.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        }
+      ],
+      "errors": [],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 187.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 45,
+        "max_send_age_ms": 63.0,
+        "median_send_age_ms": 32.0,
+        "first_frame_ms": 203.0,
+        "post_stall_stale_count": null,
+        "error_after_frames": null
+      }
+    },
+    {
+      "case": "MediumProbe",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 1.1,
+      "url_options": {
+        "fifo": 1024,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 192512,
+      "decoded": [
+        {
+          "number": 0,
+          "received_ms": 204.0,
+          "send_age_ms": 47.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 1,
+          "received_ms": 250.0,
+          "send_age_ms": 62.0,
+          "behind_latest_sent": 1
+        },
+        {
+          "number": 2,
+          "received_ms": 1344.0,
+          "send_age_ms": 1109.0,
+          "behind_latest_sent": 33
+        },
+        {
+          "number": 3,
+          "received_ms": 1360.0,
+          "send_age_ms": 1094.0,
+          "behind_latest_sent": 32
+        },
+        {
+          "number": 4,
+          "received_ms": 1360.0,
+          "send_age_ms": 1063.0,
+          "behind_latest_sent": 32
+        },
+        {
+          "number": 5,
+          "received_ms": 1360.0,
+          "send_age_ms": 1031.0,
+          "behind_latest_sent": 31
+        },
+        {
+          "number": 6,
+          "received_ms": 1360.0,
+          "send_age_ms": 1000.0,
+          "behind_latest_sent": 30
+        },
+        {
+          "number": 7,
+          "received_ms": 1360.0,
+          "send_age_ms": 969.0,
+          "behind_latest_sent": 29
+        },
+        {
+          "number": 8,
+          "received_ms": 1360.0,
+          "send_age_ms": 922.0,
+          "behind_latest_sent": 28
+        }
+      ],
+      "errors": [
+        "OSError: [Errno 5] I/O error: 'udp://127.0.0.1:56271?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536'"
+      ],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 204.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 9,
+        "max_send_age_ms": 1109.0,
+        "median_send_age_ms": 1000.0,
+        "first_frame_ms": 204.0,
+        "post_stall_stale_count": 7,
+        "error_after_frames": 9
+      }
+    },
+    {
+      "case": "SmallNobuffer",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 0,
+      "url_options": {
+        "fifo": 512,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0",
+          "fflags": "nobuffer"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 96256,
+      "decoded": [],
+      "errors": [
+        "OSError: [Errno 5] I/O error: 'udp://127.0.0.1:52127?overrun_nonfatal=0&fifo_size=512&buffer_size=65536'"
+      ],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 204.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 0,
+        "max_send_age_ms": null,
+        "median_send_age_ms": null,
+        "first_frame_ms": null,
+        "post_stall_stale_count": null,
+        "error_after_frames": 0
+      }
+    },
+    {
+      "case": "SmallNobuffer",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 1.1,
+      "url_options": {
+        "fifo": 512,
+        "socket": 65536,
+        "options": {
+          "probesize": "32768",
+          "analyzeduration": "0",
+          "fflags": "nobuffer"
+        },
+        "format": "h264"
+      },
+      "fifo_bytes": 96256,
+      "decoded": [],
+      "errors": [
+        "OSError: [Errno 5] I/O error: 'udp://127.0.0.1:52129?overrun_nonfatal=0&fifo_size=512&buffer_size=65536'"
+      ],
+      "packet_max_bytes": 241306,
+      "encoded_mean_mbps": 4.971,
+      "open_ms": 219.0,
+      "ffmpeg_log_tail": [],
+      "sender_errors": [],
+      "sender_finished": true,
+      "summary": {
+        "count": 0,
+        "max_send_age_ms": null,
+        "median_send_age_ms": null,
+        "first_frame_ms": null,
+        "post_stall_stale_count": 0,
+        "error_after_frames": 0
+      }
+    }
+  ],
+  "sources": [
+    "https://ffmpeg.org/ffmpeg-protocols.html#udp",
+    "https://ffmpeg.org/ffmpeg-formats.html#Format-Options"
+  ],
+  "scope": "generated pixels and local UDP send times; not camera or aircraft latency",
+  "encoder_vbv_note": "VBV is a requested encoder target, not a measured hard bitrate bound; measured encoded_mean_mbps is recorded separately where available."
+}

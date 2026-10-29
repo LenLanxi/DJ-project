@@ -224,10 +224,12 @@ def _move(grant, action, param=None):
         driver_epoch = _driver.capture_cancel_epoch()
         driver_guard = operation_event()
         _active_action = token
+    details = {'action': action, 'param': param, 'stage': 'driver', 'wire_sent': False}
     try:
         options = {} if driver_guard is None else {'guard': driver_guard}
-        ok = _driver.execute(action, param, epoch=driver_epoch, **options)
-    except Exception:
+        ok = _driver.execute(action, param, epoch=driver_epoch, details=details, **options)
+    except Exception as exc:
+        details.update(reason=str(exc), error_type=type(exc).__name__)
         ok = False
     with _velocity_lock:
         if _active_action != token or token[:2] != (_control_epoch, _command_epoch):
@@ -244,8 +246,9 @@ def _move(grant, action, param=None):
             _zero('action_failed')
             if action == 'takeoff' and _driver.action_unknown('takeoff'):
                 _flight_state = 'unknown'
-                return CommandResult(False, 'unknown', 'takeoff_result_unknown')
-            return CommandResult(False, 'failed', 'driver_failed')
+                return CommandResult(False, 'unknown', 'takeoff_result_unknown', details=details)
+            return CommandResult(False, 'unknown' if details.get('outcome_unknown') else 'failed',
+                                 details.get('reason') or 'driver_failed', details=details)
         if action == 'takeoff': _flight_state = 'flying'
         return CommandResult(True, 'completed')
 

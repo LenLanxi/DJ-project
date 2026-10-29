@@ -19,7 +19,7 @@ def obs(seq=1, at=10, x=320, size=.25, found=True):
 
 class ControllerTests(unittest.TestCase):
     def setUp(self):
-        self.c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None))
+        self.c = FollowController(config=FollowConfig(horizontal_limit_rc=30.0, slew_rc_per_second=None))
         self.c.observe(obs())
 
     def test_invalid_max_age_is_rejected_at_controller_boundary(self):
@@ -43,7 +43,7 @@ class ControllerTests(unittest.TestCase):
         self.arm()
         self.c.observe(obs(2, 10.1, x=100, size=.4))
         req = self.c.tick(10.1)
-        self.assertLess(req.right, 0)
+        self.assertLess(req.right + req.yaw, 0)
         self.assertLess(req.forward, 0)
 
     def test_pause_resume_stop(self):
@@ -52,7 +52,7 @@ class ControllerTests(unittest.TestCase):
         self.c.observe(obs(2, 10.1, x=600))
         self.zero(self.c.tick(10.1))
         self.assertTrue(self.c.resume(10.1)[0])
-        self.assertGreater(self.c.tick(10.1).right, 0)
+        self.assertGreater(self.c.tick(10.1).yaw, 0)
         self.zero(self.c.stop())
         self.c.observe(obs(3, 10.2, x=600))
         self.zero(self.c.tick(10.2))
@@ -101,7 +101,7 @@ class ControllerTests(unittest.TestCase):
                         replace(obs(), width=0), replace(obs(), size_ratio=-1),
                         replace(obs(), target_id=1), replace(obs(), source="other"),
                         replace(obs(), acquired_at=math.inf)]:
-            c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None))
+            c = FollowController(config=FollowConfig(horizontal_limit_rc=30.0, slew_rc_per_second=None))
             c.observe(obs())
             c.calibrate(10)
             c.start(10)

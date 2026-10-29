@@ -232,5 +232,63 @@ class SDKProtocolTests(SDKWireFixture):
         self.assertEqual(self.sent.count('command'), 2)
         self.assertTrue(health['connected'])
         self.assertFalse(health['command_channel_ambiguous'])
+
+
+    def test_rotation_timeout_preserves_sent_unknown_result_through_cloud_projection(self):
+        import asyncio
+        from unittest.mock import AsyncMock
+        from ContainerFixture import Process
+        from ExecutionFixture import runner_for, run_program
+        from Support import MockBackend
+        from app.Results import tool_result
+        import drone_sdk as sdk
+        self.auto_reply = False
+        runner = runner_for(sdk, MockBackend(), timeout=8)
+        runner.container, runner.created = 'companion-fixture', True
+        async def run():
+            process = Process([
+                {'type':'rpc','id':1,'method':'rotate','args':[360],'kwargs':{}},
+                {'type':'done','ok':False,'error':'RPC failed'}])
+            with patch.object(runner, '_remove_container', new=AsyncMock(return_value=[])), patch(
+                    'execution.sandbox_runner.asyncio.create_subprocess_exec', return_value=process):
+                return await run_program(runner, 'drone.rotate(360)')
+        result = tool_result(asyncio.run(run()))
+        detail = result['action_error']
+        self.assertEqual(detail['status'], 'unknown')
+        self.assertEqual(detail['reason'], 'response_timeout_after_send')
+        self.assertEqual(detail['details']['action'], 'rotate')
+        self.assertEqual(detail['details']['param'], 360)
+        self.assertTrue(detail['details']['wire_sent'])
+        self.assertTrue(detail['details']['outcome_unknown'])
+        self.assertEqual(detail['details']['stage'], 'response_wait')
+        self.assertGreaterEqual(detail['details']['elapsed_seconds'], 1)
+        self.assertEqual(detail['details']['response_timeout_seconds'], 1)
+        self.assertGreater(detail['details']['caller_deadline_seconds'], 1)
+        self.assertEqual(result['journal'][0]['result'], detail)
+        self.assertEqual(self.sent.count('cw 360'), 1)
+        self.assertTrue(any(e['event']=='command_exception' and 'traceback' in e for e in drv.snapshot()['events']))
+
+    def test_firmware_rejection_has_reply_and_is_definitive_failure(self):
+        self.reply = b'error motor stop'
+        result = ctl.rotate(self.grant, 45)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.status, 'failed')
+        self.assertIn('error motor stop', result.reason)
+        self.assertEqual(result.details['reply'], 'error motor stop')
+        self.assertTrue(result.details['wire_sent'])
+        self.assertFalse(result.details['outcome_unknown'])
+
+    def test_unsent_transport_error_is_distinct_from_reply_timeout(self):
+        def fail(data):
+            if data.startswith(b'cw '): raise OSError('local transport unavailable')
+        self.on_send = fail
+        result = ctl.rotate(self.grant, 45)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.status, 'failed')
+        self.assertEqual(result.details['error_type'], 'OSError')
+        self.assertFalse(result.details['wire_sent'])
+        self.assertFalse(result.details['outcome_unknown'])
+        self.assertIn('local transport unavailable', result.reason)
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

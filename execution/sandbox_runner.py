@@ -25,19 +25,23 @@ class SandboxOutcome:
 class SandboxRunner:
     CLEANUP_SECONDS = 10
     SPAWN_SETTLE_SECONDS = 2
-    def __init__(self, image='companion-sandbox:0.4', timeout=90, max_rpc=2000):
+    def __init__(self, image='companion-sandbox:0.5', timeout=90, max_rpc=2000):
         if not 0 < timeout <= 3600 or type(max_rpc) is not int or not 1 <= max_rpc <= 10000:
             raise ValueError('invalid sandbox budget')
         self.image = image
         self.timeout, self.max_rpc = timeout, max_rpc
+        self.container = None
+        self.created = False
 
     @staticmethod
     def command(image, name):
-        return ['docker', 'run', '--rm', '--init', '--pull=never', '--name', name, '-i',
+        return ['docker', 'run', '--rm', '--pull=never', '--name', name, '-d',
                 '--network=none', '--read-only', '--cap-drop=ALL',
                 '--security-opt=no-new-privileges', '--pids-limit=64', '--memory=128m',
                 '--memory-swap=128m', '--cpus=0.5', '--ulimit', 'nofile=128:128',
-                '--user=65534:65534', '--tmpfs', '/tmp:rw,noexec,nosuid,size=16m', image]
+                '--user=65534:65534', '--tmpfs', '/tmp:rw,noexec,nosuid,size=16m',
+                '--entrypoint=python', image, '-I', '-u', '-c',
+                "import signal;signal.signal(signal.SIGCHLD,signal.SIG_IGN);signal.pause()"]
 
     @staticmethod
     async def _removed(name):
@@ -132,12 +136,27 @@ class SandboxRunner:
             errors = await self._remove_container(name, outcome.cleanup['known_created'])
         except (OSError, TimeoutError, ProcessLookupError) as exc:
             errors = ['container_remove: ' + str(exc)]
+        if not errors and self.container == name:
+            self.container, self.created = None, False
         outcome.cleanup = {**outcome.cleanup,
             'pending_container': name if errors else None,
             'cleanup_errors': tuple(errors), 'confirmed': not errors}
         return {'ok': not errors, 'status': 'cleanup_pending' if errors else 'removed',
                 'container_name': name, 'pending_container': name if errors else None,
                 'cleanup_errors': errors}
+
+    async def _reset(self, name, worker_pid):
+        # Run trusted cleanup only AFTER the model interpreter has exited,
+        # including its threads and atexit handlers. No model state is reused.
+        process = await asyncio.create_subprocess_exec('docker', 'exec', name,
+            'python', '-I', '-u', '/app/worker.py', '--cleanup', str(worker_pid),
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+        try:
+            _, error = await asyncio.wait_for(process.communicate(), 4)
+            if process.returncode != 0:
+                raise RuntimeError('resident_reset_failed: ' + error.decode(errors='replace')[:300])
+        finally:
+            if process.returncode is None: await self._kill_wait(process)
 
     async def run(self, code, execution, outcome):
         if not isinstance(code, str) or not code.strip() or len(code.encode()) > 60000:
@@ -146,25 +165,41 @@ class SandboxRunner:
             return
         journal, debug = [], bytearray()
         response_bytes = 0
-        name = 'companion-' + uuid.uuid4().hex
+        name = self.container or 'companion-' + uuid.uuid4().hex
         process = None
         spawn_task = None
         stderr_task = None
+        worker_pid = None
         result = {'ok':False, 'status':'failed'}
         container_attempted = known_created = False
         cleanup_errors = []
+        startup = None
         debug_warnings = []
         debug_truncated = False
         try:
             async with asyncio.timeout(self.timeout):
-                await self.check()
                 if execution.cancelled.is_set(): raise ProgramCancelled()
-                container_attempted = True
-                spawn_task = asyncio.create_task(asyncio.create_subprocess_exec(*self.command(self.image, name),
+                if self.container is None:
+                    await self.check()
+                    self.container = name
+                    container_attempted = True
+                    async def start():
+                        proc = await asyncio.create_subprocess_exec(*self.command(self.image, name),
+                            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                        try:
+                            code = await proc.wait()
+                            if code != 0:
+                                raise SandboxUnavailable('resident sandbox could not start')
+                            self.created = True
+                        finally:
+                            if proc.returncode is None: await self._kill_wait(proc)
+                    startup = asyncio.create_task(start())
+                    await asyncio.shield(startup)
+                container_attempted = known_created = self.created
+                spawn_task = asyncio.create_task(asyncio.create_subprocess_exec(
+                    'docker', 'exec', '-i', name, 'python', '-I', '-u', '/app/worker.py',
                     stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE, limit=16001))
-                # Cancellation must not lose the Process when OS spawn and the
-                # cancel event complete in the same loop turn.
                 process = await asyncio.shield(spawn_task)
                 process.stdin.write(json.dumps({'code':code}).encode() + b'\n')
                 await process.stdin.drain()
@@ -185,6 +220,7 @@ class SandboxRunner:
                     message = json.loads(line)
                     if not isinstance(message, dict): raise ValueError('invalid RPC message')
                     if message.get('type') == 'done':
+                        worker_pid = message.get('worker_pid')
                         known_created = True
                         result = {'ok':message.get('ok') is True,
                                   'status':'completed' if message.get('ok') is True else 'failed',
@@ -209,6 +245,8 @@ class SandboxRunner:
                         raise
                     except Exception as exc:
                         entry['error'] = str(exc)[:1000]
+                        if hasattr(exc, 'result'):
+                            entry['result'] = self.evidence(exc.result)
                         reply = {'id':message['id'], 'error':entry['error']}
                     if execution.cancelled.is_set(): raise ProgramCancelled()
                     encoded_reply = json.dumps(reply, ensure_ascii=False, allow_nan=False).encode() + b'\n'
@@ -235,6 +273,13 @@ class SandboxRunner:
             outcome.executing = False
             cleanup_finished = False
             try:
+                if startup is not None and not startup.done():
+                    try: await asyncio.wait_for(asyncio.shield(startup), self.SPAWN_SETTLE_SECONDS)
+                    except Exception: pass
+                    finally:
+                        if not startup.done(): startup.cancel()
+                        await asyncio.gather(startup, return_exceptions=True)
+                known_created = self.created
                 if process is None and spawn_task is not None:
                     try:
                         process = await asyncio.wait_for(asyncio.shield(spawn_task), self.SPAWN_SETTLE_SECONDS)
@@ -244,14 +289,26 @@ class SandboxRunner:
                         if not spawn_task.done():
                             spawn_task.cancel()
                             await asyncio.gather(spawn_task, return_exceptions=True)
-                if container_attempted:
+                if process is not None and result.get('ok'):
+                    try:
+                        await self._reset(name, worker_pid)
+                        await asyncio.wait_for(process.wait(), 2)
+                        if process.returncode != 0:
+                            raise RuntimeError('sandbox_worker_exit_failed')
+                    except Exception as exc:
+                        result = {'ok': False, 'status': 'failed', 'reason': str(exc) or type(exc).__name__}
+                if container_attempted and not result.get('ok'):
                     try:
                         cleanup_errors.extend(await self._remove_container(name, known_created))
+                        if not cleanup_errors:
+                            self.container, self.created = None, False
                     except (OSError, TimeoutError, ProcessLookupError) as exc:
                         cleanup_errors.append('container_remove: ' + str(exc))
                 # The remove/create fence must precede killing run's CLI.
                 if process is not None:
-                    try: await self._kill_wait(process)
+                    try:
+                        if not result.get('ok'):
+                            await self._kill_wait(process)
                     except (OSError, TimeoutError, ProcessLookupError) as exc:
                         cleanup_errors.append('docker_cli_wait: ' + str(exc))
                 if stderr_task:
@@ -278,13 +335,27 @@ class SandboxRunner:
                 outcome.cleanup = {
                     'container_name': name if container_attempted else None,
                     'known_created': known_created,
+                    'resident_container': self.container if not cleanup_errors else None,
                     'pending_container': pending,
                     'cleanup_errors': tuple(cleanup_errors),
                     'confirmed': not cleanup_errors,
                 }
+                action_error = next((entry['result'] for entry in reversed(journal)
+                                     if 'error' in entry and 'result' in entry), None)
+                if action_error is not None: result['action_error'] = action_error
                 outcome.result = {**result, 'simulated': execution.simulated,
                     'journal': journal, 'debug': debug.decode(errors='replace'),
                     'debug_truncated': debug_truncated, 'debug_warnings': debug_warnings}
+
+    async def close(self):
+        if self.container is None:
+            return {'ok': True, 'status': 'no_resident_container'}
+        name = self.container
+        errors = await self._remove_container(name, self.created)
+        if not errors:
+            self.container, self.created = None, False
+        return {'ok': not errors, 'status': 'cleanup_pending' if errors else 'removed',
+                'container_name': name, 'cleanup_errors': errors}
 
     @staticmethod
     def evidence(value):

@@ -48,7 +48,7 @@ class RTCProcess:
         self.environment=None if env is None else dict(env)
         self.proc=None
         self.url=None
-        self.output=log.path.with_name(log.session_id+'Rtc.log')
+        self.output=Path(log.path).with_name(log.session_id+'Rtc.log')
         self.cleanup_pending=False
         self.deadline=None
 

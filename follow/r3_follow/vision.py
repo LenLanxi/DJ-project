@@ -23,7 +23,6 @@ class MarkerTracker:
     # because eight LARGE rescue crops were the original work allowance.
     # Keep every unresolved candidate, the existing pixel/deadline limits,
     # and the original eight-crop limit for locating an undetected target.
-    DUPLICATE_MAX_ROIS = RESCUE_MAX_CANDIDATES
     RESCUE_MAX_ROI_SIDE = 512
     RESCUE_MAX_PIXELS = 512 * 1024
 
@@ -78,8 +77,7 @@ class MarkerTracker:
         The budget is COOPERATIVE: an OpenCV call already in progress cannot
         be interrupted. After it returns no further rescue is started if the
         budget has expired. A decoded current-frame target remains usable;
-        runtime skips exhaustive duplicate rescue scans. None uses the constructor's budget;
-        constructing with None preserves exhaustive offline fixture checks.
+        None uses the constructor's processing budget.
         """
         self.last_diagnostics = {}
         if (not isinstance(frame, np.ndarray) or frame.dtype != np.uint8
@@ -109,7 +107,7 @@ class MarkerTracker:
 
         check_budget.target_found = False
         try:
-            result = self._detect(frame, frame_id, acquired_at, source, check_budget, exhaustive_identity=limit is None)
+            result = self._detect(frame, frame_id, acquired_at, source, check_budget)
             check_budget("observation_complete")
         except _ProcessingBudgetExceeded:
             # No target was decoded within this frame's processing budget.
@@ -125,7 +123,7 @@ class MarkerTracker:
         self.last_diagnostics["detect_ms"] = max(0., (self._clock()-started)*1000)
         return result
 
-    def _detect(self, frame, frame_id, acquired_at, source, check_budget, *, exhaustive_identity=True):
+    def _detect(self, frame, frame_id, acquired_at, source, check_budget):
         started = perf_counter()
         check_budget("grayscale:before")
         height, width = frame.shape[:2]
@@ -142,7 +140,6 @@ class MarkerTracker:
         candidate_geometry = []
         decoded_quads = []
         candidate_overflow = False
-        half_contrast_checked = False
         identity_check = {"performed": False, "reused_current_frame": False,
                           "method": None, "saved_decoder_calls": 0}
         self.last_diagnostics["identity_check"] = identity_check
@@ -248,7 +245,6 @@ class MarkerTracker:
             enhanced = self.contrast_enhancer.apply(reduced)
             corners, ids, rejected = detect_with(
                 self.motion_detector, enhanced, "downscaled_local_contrast", .5)
-            half_contrast_checked = True
             identity_check.update(performed=True, method="downscaled_local_contrast")
             method = "downscaled_local_contrast"
         if ids is None and max(height, width) <= 960:
@@ -346,135 +342,12 @@ class MarkerTracker:
             # not be searched within the bounded budget.
             if rescue["budget_exceeded"]:
                 corners, ids = [], None
-        if ids is not None and len(ids) == 1 and half_contrast_checked:
-            # The earlier pass already decoded these exact current-frame
-            # half-size CLAHE pixels with this same detector and settings.
-            # It also recorded all decoded IDs/geometry and collected its
-            # rejected candidates. A later side/upscale rescue does not make
-            # repeating that completed pass add identity evidence. This is
-            # per-call reuse only, never a result/position from an older frame.
-            identity_check.update(reused_current_frame=True,
-                saved_decoder_calls=int(method != "downscaled_local_contrast"))
-        if (exhaustive_identity and ids is not None and len(ids) == 1 and min(height, width) >= 240
-                and not half_contrast_checked):
-            # A low-contrast copy may produce no rejected quad at all in the
-            # successful pass. Check current-frame identity at the same half
-            # scale/CLAHE settings used by the fallback before declaring the
-            # decoded target unique. If that exact full-frame pass already
-            # succeeded, repeating its identical pixels cannot add identity.
-            # This supplements the ROI scan; unresolved candidates remain.
-            check_budget("identity_half_contrast:resize")
-            identity_reduced = cv2.resize(gray, None, fx=.5, fy=.5,
-                                          interpolation=cv2.INTER_AREA)
-            check_budget("identity_half_contrast:enhance")
-            identity_enhanced = self.contrast_enhancer.apply(identity_reduced)
-            extra, extra_ids, _ = detect_with(self.motion_detector,
-                identity_enhanced, "identity_half_contrast", .5, collect=False)
-            identity_check.update(performed=True, method="identity_half_contrast")
-            # detect_with records every decoded ID's geometry, so known
-            # non-target marker cells can also leave the pending ROI scan.
-            # Do not add enhanced-image rejection noise to that scan.
-            if extra_ids is not None:
-                for quad in extra:
-                    if not any(self._same_quad(quad[0], old[0]) for old in corners):
-                        corners.append(quad)
-            ids = np.full((len(corners), 1), self.target_id, dtype=np.int32)
-        ambiguity = {"roi_count": 0, "input_pixels": 0, "decoder_calls": 0,
-                     "decoder_pixels": 0, "budget_exceeded": False,
-                      "budget_reason": None, "planned_roi_count": 0,
-                      "planned_input_pixels": 0, "scan_complete": False,
-                      "candidate_overflow": candidate_overflow,
-                      "limits": {"candidates": self.RESCUE_MAX_CANDIDATES,
-                                 "rois": self.DUPLICATE_MAX_ROIS,
-                                 "pixels": self.RESCUE_MAX_PIXELS,
-                                 "input_pixels": self.RESCUE_MAX_INPUT_PIXELS},
-                     "scope": "current_frame_rejected_quads_only",
-                     "exhaustive": exhaustive_identity}
-        self.last_diagnostics["duplicate_check"] = ambiguity
-        if exhaustive_identity and ids is not None and len(ids) == 1 and method != "edge_quad_roi_exact":
-            # The full-frame identity supplement cannot resolve every harder
-            # copy. Continue checking unknown CURRENT-frame rejected quads;
-            # an incomplete bounded scan still cannot supply a position.
-            unknown = [q for q in candidate_quads if not any(
-                self._same_quad(q, known) or all(
-                    cv2.pointPolygonTest(known, tuple(map(float, pt)), True) >= -2
-                    for pt in q) for known in decoded_quads)]
-            check_budget("duplicate_check:unknown_candidates")
-            unknown.sort(key=lambda q: abs(cv2.contourArea(q)), reverse=True)
-            rois = []
-            roi_keys = set()
-            ambiguity["candidate_count"] = len(unknown)
-            if candidate_overflow or (unknown and gray.size > self.RESCUE_MAX_INPUT_PIXELS):
-                ambiguity["budget_exceeded"] = True
-                ambiguity["budget_reason"] = ("candidate_count" if candidate_overflow else "input_pixels")
-            else:
-                for points in unknown:
-                    check_budget("duplicate_check:plan_roi")
-                    span = points.max(0)-points.min(0)
-                    margin = max(16, int(np.ceil(span.max()*.4)))
-                    x1, y1 = np.maximum(np.floor(points.min(0)).astype(int)-margin, 0)
-                    x2, y2 = np.minimum(np.ceil(points.max(0)).astype(int)+margin+1,
-                                        (width, height))
-                    scale = min(1., self.RESCUE_MAX_ROI_SIDE/max(x2-x1, y2-y1))
-                    pixels = round((x2-x1)*scale)*round((y2-y1)*scale)
-                    # Only identical crops at identical scale are equivalent.
-                    # Contained/overlapping crops can decode differently.
-                    roi_key = (int(x1), int(y1), int(x2), int(y2), scale)
-                    if roi_key in roi_keys:
-                        continue
-                    if (len(rois) >= self.DUPLICATE_MAX_ROIS or
-                            sum(r[5] for r in rois)+pixels > self.RESCUE_MAX_PIXELS):
-                        ambiguity["budget_exceeded"] = True
-                        ambiguity["budget_reason"] = ("roi_count" if len(rois) >= self.DUPLICATE_MAX_ROIS
-                                                      else "roi_pixels")
-                        break
-                    rois.append((x1, y1, x2, y2, scale, pixels))
-                    roi_keys.add(roi_key)
-            ambiguity["planned_roi_count"] = len(rois)
-            ambiguity["planned_input_pixels"] = sum(r[5] for r in rois)
-            if not ambiguity["budget_exceeded"]:
-                for x1, y1, x2, y2, scale, pixels in rois:
-                    check_budget("duplicate_check:prepare_roi")
-                    crop = gray[y1:y2, x1:x2]
-                    if scale != 1:
-                        crop = cv2.resize(crop, None, fx=scale, fy=scale,
-                                          interpolation=cv2.INTER_AREA)
-                    sharp = cv2.addWeighted(crop, 1.8,
-                        cv2.GaussianBlur(crop, (0, 0), 1), -.8, 0)
-                    check_budget("duplicate_check:enhance_roi")
-                    enhanced = self.contrast_enhancer.apply(crop)
-                    # At most three decoder calls per ROI. A repeat decode of
-                    # the known marker must not hide another copy, but two
-                    # distinct copies already prove ambiguity: stop early.
-                    for decoder, pixels_image, suffix in (
-                            (self.motion_detector, crop, "cell"),
-                            (self.motion_detector, enhanced, "contrast"),
-                            (self.side_detector, sharp, "edge_exact")):
-                        extra, extra_ids, _ = detect_with(decoder, pixels_image,
-                            "duplicate_roi_"+suffix, scale, (int(x1), int(y1)), False)
-                        ambiguity["decoder_calls"] += 1
-                        ambiguity["decoder_pixels"] += int(pixels_image.size)
-                        if extra_ids is not None:
-                            for quad in extra:
-                                if not any(self._same_quad(quad[0], old[0]) for old in corners):
-                                    corners.append(quad)
-                        if len(corners) > 1:
-                            break
-                    ambiguity["roi_count"] += 1
-                    ambiguity["input_pixels"] += int(crop.size)
-                    if len(corners) > 1:
-                        break
-                ambiguity["scan_complete"] = ambiguity["roi_count"] == len(rois)
-                ids = np.full((len(corners), 1), self.target_id, dtype=np.int32)
-            else:
-                corners, ids = [], None
         check_budget("image_diagnostics:before")
         self.last_diagnostics = {"detector_method": method,
             "recognition_profile": "v020_identity_current_frame_reuse",
             "target_id": self.target_id,
             "identity_check": identity_check,
             "large_image_rescue": rescue,
-            "duplicate_check": ambiguity,
             "detected_ids": [] if ids is None else [int(v) for v in ids.flatten()],
             "rejected_candidates": len(rejected),
             "attempts": attempts,
@@ -499,7 +372,6 @@ class MarkerTracker:
         if len(matches) != 1:
             return Observation(**base, found=False,
                                reason=("ambiguous_duplicate_id" if matches else
-                                       "ambiguous_scan_budget_exceeded" if ambiguity["budget_exceeded"] else
                                        "rescue_budget_exceeded" if rescue["budget_exceeded"]
                                        else "not_found"))
         points = corners[matches[0]][0]

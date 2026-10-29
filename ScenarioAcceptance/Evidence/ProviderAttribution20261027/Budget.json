@@ -1,0 +1,363 @@
+{
+  "authorized_rmb": 15,
+  "max_requests": 20,
+  "requests_submitted": 20,
+  "estimated_rmb": 0.0270691,
+  "actual_bill_verified": false,
+  "usage": [
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 690,
+        "input_tokens": 676,
+        "output_tokens": 14,
+        "input_tokens_details": {
+          "text_tokens": 449,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 14
+        }
+      },
+      "estimated_rmb": 0.0011085
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 789,
+        "input_tokens": 745,
+        "output_tokens": 44,
+        "input_tokens_details": {
+          "text_tokens": 518,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 44
+        }
+      },
+      "estimated_rmb": 0.001347
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 29,
+        "prompt_tokens": 1944,
+        "total_tokens": 1973,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016335
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 706,
+        "input_tokens": 676,
+        "output_tokens": 30,
+        "input_tokens_details": {
+          "text_tokens": 449,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 30
+        }
+      },
+      "estimated_rmb": 0.0011805
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 31,
+        "prompt_tokens": 1944,
+        "total_tokens": 1975,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016389
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 719,
+        "input_tokens": 676,
+        "output_tokens": 43,
+        "input_tokens_details": {
+          "text_tokens": 449,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 43
+        }
+      },
+      "estimated_rmb": 0.001239
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 35,
+        "prompt_tokens": 1946,
+        "total_tokens": 1981,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016513
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 712,
+        "input_tokens": 681,
+        "output_tokens": 31,
+        "input_tokens_details": {
+          "text_tokens": 454,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 31
+        }
+      },
+      "estimated_rmb": 0.0011925
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 46,
+        "prompt_tokens": 1951,
+        "total_tokens": 1997,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.001685
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 710,
+        "input_tokens": 676,
+        "output_tokens": 34,
+        "input_tokens_details": {
+          "text_tokens": 449,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 34
+        }
+      },
+      "estimated_rmb": 0.0011985
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 28,
+        "prompt_tokens": 1944,
+        "total_tokens": 1972,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016308
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 726,
+        "input_tokens": 683,
+        "output_tokens": 43,
+        "input_tokens_details": {
+          "text_tokens": 456,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 43
+        }
+      },
+      "estimated_rmb": 0.0012495
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 51,
+        "prompt_tokens": 1952,
+        "total_tokens": 2003,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016993
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 704,
+        "input_tokens": 676,
+        "output_tokens": 28,
+        "input_tokens_details": {
+          "text_tokens": 449,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 28
+        }
+      },
+      "estimated_rmb": 0.0011715
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 30,
+        "prompt_tokens": 1945,
+        "total_tokens": 1975,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.001637
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 693,
+        "input_tokens": 679,
+        "output_tokens": 14,
+        "input_tokens_details": {
+          "text_tokens": 452,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 14
+        }
+      },
+      "estimated_rmb": 0.001113
+    },
+    {
+      "provider": "QwenRealtime",
+      "usage": {
+        "total_tokens": 789,
+        "input_tokens": 748,
+        "output_tokens": 41,
+        "input_tokens_details": {
+          "text_tokens": 521,
+          "audio_tokens": 7,
+          "video_tokens": 220
+        },
+        "output_tokens_details": {
+          "text_tokens": 41
+        }
+      },
+      "estimated_rmb": 0.001338
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 1948,
+        "total_tokens": 1967,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0016097
+    },
+    {
+      "provider": "ArkSeed",
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 2020,
+        "total_tokens": 2068,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "estimated_rmb": 0.0017456
+    }
+  ],
+  "sources": {
+    "Qwen": "https://help.aliyun.com/en/model-studio/qwen3-8-omni-flash-realtime",
+    "Ark": "https://docs.volcengine.com/docs/ark/model-pricing?lang=en"
+  },
+  "rates_per_million": {
+    "Qwen_input_text_image_video": 1.5,
+    "Qwen_input_audio": 6,
+    "Qwen_output_text": 4.5,
+    "Qwen_output_audio": 12,
+    "Ark_input_non_audio": 0.8,
+    "Ark_output": 2.7
+  },
+  "conservative_reservation_per_request_rmb": 0.31,
+  "reservation_assumptions": "local text/schema/tool JSON <8192 UTF8 bytes; image <=1280 tokens; 0.2s silent PCM; reserve 50000 input tokens at 6/million and 350 output at 12/million; engineering ceiling not provider billing hard cap",
+  "reserved_rmb": 6.2,
+  "reported_usage_generations": 19,
+  "unknown_usage_sessions": [
+    {
+      "provider": "QwenRealtime",
+      "reason": "first_probe_no_response_create_but_connection_admitted"
+    },
+    {
+      "provider": "QwenRealtime",
+      "reason": "automatic_media_VAD_no_response_before_deadline"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "reason": "RTC_media_does_not_return_independent_Speech_Ark_metering"
+    }
+  ],
+  "rtc_and_speech_separate": {
+    "rtc_sessions": 1,
+    "duration_scope": "single_short_native_media_session_Stop_confirmed",
+    "rtc_prices_rmb_per_minute": {
+      "audio": 0.007,
+      "video_360p": 0.014
+    },
+    "rtc_price_source": "https://docs.volcengine.com/docs/real-time-communication/audio-video-call-billing?lang=zh",
+    "AI_processing_cost_rmb": null,
+    "Speech_cost_rmb": null,
+    "Ark_via_RTC_cost_rmb": null,
+    "bill_verified": false,
+    "counts_not_folded_into_direct_model_usage_estimate": true,
+    "sources": [
+      "https://docs.volcengine.com/docs/real-time-communication/conversation-ai-billing?lang=zh",
+      "https://docs.volcengine.com/docs/DoubaoVoice/Billinginstructions-21?lang=zh"
+    ]
+  },
+  "stopped_at_network_attempt_limit": true
+}

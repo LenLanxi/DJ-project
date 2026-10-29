@@ -1,0 +1,4687 @@
+{
+  "schema_version": 1,
+  "scope": "independent_text_JPEG_and_ledger_tools_not_flight_or_model_speed_ranking",
+  "hardware_verified": false,
+  "actual_bill_verified": false,
+  "samples": [
+    {
+      "provider": "QwenRealtime",
+      "phase": "protocol_probe",
+      "scenario": "RedLeft",
+      "started_at": "2026-10-27T08:19:47.779742+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 476.462,
+          "type": "session.created",
+          "event_id": "event_PLOzsf12veUI5inCJhvj2"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 476.809,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 581.922,
+          "type": "session.updated",
+          "event_id": "event_IXKx7Ac4SWmiJ3f5KtPH3"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 582.285,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 582.72,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 582.799,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 719.758,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_Je1y9ugpenmUn3Ol3Lwyk",
+          "item_id": "item_TCfe63CslfWdO6OsFaMdW"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 720.112,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 720.159,
+          "type": "conversation.item.created",
+          "event_id": "event_PkSTFYRG9i1sJILnus1fZ"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 805.059,
+          "type": "conversation.item.created",
+          "event_id": "event_Hkn7IqCsi9BUMSP6idEfB",
+          "previous_item_id": "item_TCfe63CslfWdO6OsFaMdW"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_TCfe63CslfWdO6OsFaMdW",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_HKUq1R7MdQ6Fe1YqpdoLk",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。"
+            }
+          ]
+        }
+      ],
+      "usage": [],
+      "tools": [],
+      "transport_ok": false,
+      "input_confirmed": false,
+      "reply": "",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 0,
+      "failure": "TimeoutError:",
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": false,
+        "image_commit_ack": true,
+        "video_tokens": 0,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 32023.932,
+      "finished_at": "2026-10-27T08:20:19.803823+00:00",
+      "semantic_ok": false,
+      "attribution": "input_or_transport_unconfirmed_not_model_error",
+      "original_judge_v1": {
+        "semantic_ok": false,
+        "attribution": "input_or_transport_unconfirmed_not_model_error"
+      },
+      "strict_target_steps_and_tool_policy_ok": false,
+      "semantic_goal_ok": false,
+      "tool_policy_ok": false,
+      "overall_task_ok": false,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "RedLeft",
+      "started_at": "2026-10-27T08:21:38.579741+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 266.4,
+          "type": "session.created",
+          "event_id": "event_Brabs4tK33VSNmLhCvXSz"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 266.988,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 406.11,
+          "type": "session.updated",
+          "event_id": "event_SU6KoAfSbmFe6wxqGqRip"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 406.553,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 407.137,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 407.279,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 551.217,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_BnWRyCPVQVT4bwalsFEcX",
+          "item_id": "item_XaL5uTdNRTwq4CMVhWNFt"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 551.523,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 551.566,
+          "type": "conversation.item.created",
+          "event_id": "event_D5zlOD1TpJP9GMOTEhf2n"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 665.72,
+          "type": "conversation.item.created",
+          "event_id": "event_MjTYzBGvXj74UENTumR5D",
+          "previous_item_id": "item_XaL5uTdNRTwq4CMVhWNFt"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 666.298,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1206.271,
+          "type": "response.created",
+          "event_id": "event_K1hau8IhyvGOAD2OteoH6",
+          "response_object_id": "resp_QnegRrt7hnnGVGpioYn9o"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1206.32,
+          "type": "response.output_item.added",
+          "event_id": "event_VLqVwpmuVuhmkKj2x713C",
+          "response_id": "resp_QnegRrt7hnnGVGpioYn9o",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1206.346,
+          "type": "conversation.item.created",
+          "event_id": "event_YmEyyel24FHP6hYHlkNKG",
+          "previous_item_id": "item_W8ZbFnhSmZPB88MwuHrLM"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1229.262,
+          "type": "response.function_call_arguments.delta",
+          "event_id": "event_IKu4ELusvOsNxDtMnaUv2",
+          "item_id": "item_TxeMA3uyurWVSDu9wS3xg",
+          "response_id": "resp_QnegRrt7hnnGVGpioYn9o",
+          "call_id": "call_491162d7667d42c4a653567b",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1251.368,
+          "type": "response.function_call_arguments.done",
+          "event_id": "event_HZbvn78PTndzB2XILNndk",
+          "item_id": "item_TxeMA3uyurWVSDu9wS3xg",
+          "response_id": "resp_QnegRrt7hnnGVGpioYn9o",
+          "call_id": "call_491162d7667d42c4a653567b",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1251.452,
+          "type": "response.output_item.done",
+          "event_id": "event_K5VYbrCSsl76NIpJDrGNk",
+          "response_id": "resp_QnegRrt7hnnGVGpioYn9o",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1253.273,
+          "type": "response.done",
+          "event_id": "event_NtLNko3oy1iXHzCvkippq",
+          "response_object_id": "resp_QnegRrt7hnnGVGpioYn9o"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 1259.357,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 1259.567,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1350.662,
+          "type": "conversation.item.created",
+          "event_id": "event_U1vx9DniXfBvyKMSpGvXv",
+          "previous_item_id": "item_TxeMA3uyurWVSDu9wS3xg"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1841.618,
+          "type": "response.created",
+          "event_id": "event_RJ698lngQOP3HhOgAbPHQ",
+          "response_object_id": "resp_BSs4b4xpxPfko3YIN6Hzj"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1841.671,
+          "type": "response.output_item.added",
+          "event_id": "event_HEGj4tvbsJuR8lMq5phXM",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1841.696,
+          "type": "conversation.item.created",
+          "event_id": "event_PQ7xrhM9VqftkezicIdTj",
+          "previous_item_id": "item_C9lkanKTYo2ZYYQMpuavM"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1841.731,
+          "type": "response.content_part.added",
+          "event_id": "event_OKpqOWslehBNLlowKoEKV",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1841.917,
+          "type": "response.text.delta",
+          "event_id": "event_LqpBdrgCGRuzvlYt7hP8X",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1866.507,
+          "type": "response.text.delta",
+          "event_id": "event_RtXM39hBze2qZYdXFxloc",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1889.275,
+          "type": "response.text.delta",
+          "event_id": "event_N1uionvH4daS8mRu9fNvs",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1911.843,
+          "type": "response.text.delta",
+          "event_id": "event_ZGdlritD2EAJRfFhTT4JK",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1949.078,
+          "type": "response.text.delta",
+          "event_id": "event_T1kmzTRUAWLBTxmWudrba",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2041.293,
+          "type": "response.text.delta",
+          "event_id": "event_YVtGvlKD65na2zetwMbUp",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2102.205,
+          "type": "response.text.delta",
+          "event_id": "event_O1RVGPxcnT6X5jHuSc5ZP",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2102.25,
+          "type": "response.text.delta",
+          "event_id": "event_EZSmXjSVQmUeEHxUnx59u",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2106.541,
+          "type": "response.text.delta",
+          "event_id": "event_Zc4uewQOFndyHk7LQYYOz",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2124.203,
+          "type": "response.text.delta",
+          "event_id": "event_KSGQHhAkBPzQPg2tGjlZ8",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2145.752,
+          "type": "response.text.delta",
+          "event_id": "event_SYARAnd8Do39jX7RDIWYd",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2179.226,
+          "type": "response.text.delta",
+          "event_id": "event_PdxBisZjxJhsEaQGwhiGc",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2201.355,
+          "type": "response.text.delta",
+          "event_id": "event_Cbh3cKkUBjegCrD217mQM",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2201.388,
+          "type": "response.text.done",
+          "event_id": "event_QSVNnVemI3sj2wIW1H2se",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2201.405,
+          "type": "response.content_part.done",
+          "event_id": "event_MoikcxBZIZpcjmXgv41qs",
+          "item_id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2201.417,
+          "type": "response.output_item.done",
+          "event_id": "event_MeIXD1oZo616Z1boGaM7V",
+          "response_id": "resp_BSs4b4xpxPfko3YIN6Hzj",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 2201.44,
+          "type": "response.done",
+          "event_id": "event_Qq1mvlp6NUSdVNTeHFihd",
+          "response_object_id": "resp_BSs4b4xpxPfko3YIN6Hzj"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_XaL5uTdNRTwq4CMVhWNFt",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_W8ZbFnhSmZPB88MwuHrLM",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。"
+            }
+          ]
+        },
+        {
+          "id": "item_TxeMA3uyurWVSDu9wS3xg",
+          "type": "function_call",
+          "status": "in_progress",
+          "call_id": "call_491162d7667d42c4a653567b",
+          "name": "get_status",
+          "content": []
+        },
+        {
+          "id": "item_C9lkanKTYo2ZYYQMpuavM",
+          "type": "function_call_output",
+          "status": "completed",
+          "call_id": "call_491162d7667d42c4a653567b",
+          "content": []
+        },
+        {
+          "id": "item_RzYpdowrEW1mjOgGEVPYk",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 690,
+          "input_tokens": 676,
+          "output_tokens": 14,
+          "input_tokens_details": {
+            "text_tokens": 449,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 14
+          }
+        },
+        {
+          "total_tokens": 789,
+          "input_tokens": 745,
+          "output_tokens": 44,
+          "input_tokens_details": {
+            "text_tokens": 518,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 44
+          }
+        }
+      ],
+      "tools": [
+        {
+          "name": "get_status",
+          "arguments": {},
+          "call_id": "call_491162d7667d42c4a653567b",
+          "result": {
+            "simulated": true,
+            "battery": 42,
+            "nonce": "Checke46785ce36",
+            "source": "ledger_only_no_aircraft"
+          }
+        }
+      ],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"left\", \"steps\": [\"no_action\"], \"message\": \"红色帐篷在画面左侧；模拟电量42，随机校验码Checke46785ce36。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 2,
+      "confirmed_text_item_id": "item_W8ZbFnhSmZPB88MwuHrLM",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 440,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 4210.484,
+      "finished_at": "2026-10-27T08:21:42.789723+00:00",
+      "semantic_ok": false,
+      "parsed": {
+        "target": "left",
+        "steps": [
+          "no_action"
+        ],
+        "message": "红色帐篷在画面左侧；模拟电量42，随机校验码Checke46785ce36。"
+      },
+      "attribution": "model_response_failed_confirmed_input",
+      "purpose": "protocol_probe_and_first_semantic_case",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "unrequested_tool_call": true,
+      "strict_target_steps_and_tool_policy_ok": false,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": false,
+      "overall_task_ok": false,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "RedLeft",
+      "started_at": "2026-10-27T08:22:14.872742+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "usage": [
+        {
+          "completion_tokens": 29,
+          "prompt_tokens": 1944,
+          "total_tokens": 1973,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 3.788,
+          "body_bytes": 26304,
+          "user_text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+          "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"left\", \"steps\": [], \"message\": \"红色帐篷在画面左侧，仅作识别记录，不移动。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "0217930893354852bbef52b8030dbcfb1b140243411abf2c79c68",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 2385.63,
+      "finished_at": "2026-10-27T08:22:17.258332+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": false,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "left",
+        "steps": [],
+        "message": "红色帐篷在画面左侧，仅作识别记录，不移动。"
+      },
+      "attribution": "model_response_failed_confirmed_input",
+      "original_judge_v1": {
+        "semantic_ok": false,
+        "attribution": "model_response_failed_confirmed_input"
+      },
+      "strict_target_steps_and_tool_policy_ok": false,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "RedRight",
+      "started_at": "2026-10-27T08:22:17.264241+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 224.977,
+          "type": "session.created",
+          "event_id": "event_WmELsz9fX4xYAxlwd2ztI"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 225.404,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 330.751,
+          "type": "session.updated",
+          "event_id": "event_ROIfGXUX7OBoRvoPTo6TX"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 331.005,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 331.267,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 331.313,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 466.292,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_JDaxwnY8Eip9CSBtsvO6H",
+          "item_id": "item_JJBGUZJZLbRFLoXDjLLMQ"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 466.561,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 466.599,
+          "type": "conversation.item.created",
+          "event_id": "event_Mc5KksTWdD38hRMnTLdUU"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 567.5,
+          "type": "conversation.item.created",
+          "event_id": "event_OyqvpM3LJ2PzDON57wECW",
+          "previous_item_id": "item_JJBGUZJZLbRFLoXDjLLMQ"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 567.763,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1149.443,
+          "type": "response.created",
+          "event_id": "event_QLNS8LmdZ8e3U9pIakAjg",
+          "response_object_id": "resp_FYYLipkTjsIGH3doJqS46"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1149.473,
+          "type": "response.output_item.added",
+          "event_id": "event_V382SSXZ6xtiZLOxx8u3L",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1149.487,
+          "type": "conversation.item.created",
+          "event_id": "event_GVCn3qQZaS3ViqYOhYZIw",
+          "previous_item_id": "item_DabIxS5Lnt62vKgZmWcFe"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1149.509,
+          "type": "response.content_part.added",
+          "event_id": "event_IIVSiRj9OxVJSLqIuGuxY",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1150.922,
+          "type": "response.text.delta",
+          "event_id": "event_G9ELewY5I72XWiqCwSrKo",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1169.202,
+          "type": "response.text.delta",
+          "event_id": "event_NCsaQytKSVbFMeBJZu4vi",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1192.899,
+          "type": "response.text.delta",
+          "event_id": "event_Lcs7ySVxVgvFHrSWD4jMo",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1215.215,
+          "type": "response.text.delta",
+          "event_id": "event_Of8T4dwmUXuI1J23mxRdy",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1238.069,
+          "type": "response.text.delta",
+          "event_id": "event_IpJjhOgPZkJATW4NKrorT",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1261.928,
+          "type": "response.text.delta",
+          "event_id": "event_PeDRc6KetNhxVASiJ2488",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1285.01,
+          "type": "response.text.delta",
+          "event_id": "event_QuB9lU6zkorIImbQMaFNf",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1305.751,
+          "type": "response.text.delta",
+          "event_id": "event_K6eZqPbPdylYWvoDpymTx",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1335.404,
+          "type": "response.text.delta",
+          "event_id": "event_KD6Dzq5WadcTOZSupEjoe",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1335.445,
+          "type": "response.text.done",
+          "event_id": "event_ZSIFGpZLtXJF9Vnxb9Olr",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1335.463,
+          "type": "response.content_part.done",
+          "event_id": "event_QmdAVVQsA8lZoiwd4UFfG",
+          "item_id": "item_AbExYDyegGnydnQgAbGK2",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1335.477,
+          "type": "response.output_item.done",
+          "event_id": "event_JHHl8L1EqjdxwjZcQym7s",
+          "response_id": "resp_FYYLipkTjsIGH3doJqS46",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1335.502,
+          "type": "response.done",
+          "event_id": "event_AETZLKnoWcMuqmyl3uVzq",
+          "response_object_id": "resp_FYYLipkTjsIGH3doJqS46"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_JJBGUZJZLbRFLoXDjLLMQ",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_DabIxS5Lnt62vKgZmWcFe",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。"
+            }
+          ]
+        },
+        {
+          "id": "item_AbExYDyegGnydnQgAbGK2",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 706,
+          "input_tokens": 676,
+          "output_tokens": 30,
+          "input_tokens_details": {
+            "text_tokens": 449,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 30
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"right\", \"steps\": [\"no_action\"], \"message\": \"红色帐篷位于画面右侧，已记录识别结果。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_DabIxS5Lnt62vKgZmWcFe",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3353.005,
+      "finished_at": "2026-10-27T08:22:20.616768+00:00",
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "right",
+        "steps": [
+          "no_action"
+        ],
+        "message": "红色帐篷位于画面右侧，已记录识别结果。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "RedRight",
+      "started_at": "2026-10-27T08:22:20.626861+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+      "usage": [
+        {
+          "completion_tokens": 31,
+          "prompt_tokens": 1944,
+          "total_tokens": 1975,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 4.213,
+          "body_bytes": 26288,
+          "user_text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+          "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"right\", \"steps\": [\"no_action\"], \"message\": \"红色帐篷位于画面右侧；按要求只识别不移动。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "0217930893413358df7a849f41ce9ab0b158347df2accb17852e9",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 2197.056,
+      "finished_at": "2026-10-27T08:22:22.823603+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "right",
+        "steps": [
+          "no_action"
+        ],
+        "message": "红色帐篷位于画面右侧；按要求只识别不移动。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Missing",
+      "started_at": "2026-10-27T08:22:22.829603+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请记录向红色帐篷靠近的计划；如果没有红色帐篷，明确说明并不要移动。",
+      "text_sha256": "2fc14bb8ae2b883c2be6a7b64eb4e9061b938d4740f8014da8f9ace0b4b8ad1e",
+      "image_sha256": "8fe82ce96a029a764a27aff5353e752a616d8f39102d837198bc37a3e527c111",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 367.41,
+          "type": "session.created",
+          "event_id": "event_LXPj9M52U2CJVsR1gg9cm"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 367.742,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 621.153,
+          "type": "session.updated",
+          "event_id": "event_F1BQnvFsfKI31XJ9k579E"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 621.611,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 622.104,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 622.17,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 870.567,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_Go8HDctAZlgClRr18dz7O",
+          "item_id": "item_EdiM1k7V2dOgpgV99eFzN"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 870.979,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 871.009,
+          "type": "conversation.item.created",
+          "event_id": "event_SMtswSxiM39vxqGTRpFuL"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1019.776,
+          "type": "conversation.item.created",
+          "event_id": "event_NiNRz2tFA5FSUVxlqqYH7",
+          "previous_item_id": "item_EdiM1k7V2dOgpgV99eFzN"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 1020.126,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1412.122,
+          "type": "response.created",
+          "event_id": "event_UE7uYNRJ4npEH3lB1oSdk",
+          "response_object_id": "resp_Ug1YqFKByPHR4H6OGFYJD"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1412.151,
+          "type": "response.output_item.added",
+          "event_id": "event_J2cSdZe2yC2MgyKdGY4MS",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1412.165,
+          "type": "conversation.item.created",
+          "event_id": "event_DpHNlljR6ycp5cInRpDhN",
+          "previous_item_id": "item_JkLGDVQJrGVEE8CHjNzbU"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1412.184,
+          "type": "response.content_part.added",
+          "event_id": "event_JEOxT6k57EWzWT5RegYiT",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1413.322,
+          "type": "response.text.delta",
+          "event_id": "event_Pg7lHga1aKvyqKI2CexQk",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1432.444,
+          "type": "response.text.delta",
+          "event_id": "event_AQr2fX2wN9I9tJg33wwCR",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1485.41,
+          "type": "response.text.delta",
+          "event_id": "event_SHkfM6aJfvthtDOHgs52t",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1485.523,
+          "type": "response.text.delta",
+          "event_id": "event_PVw2rdUTg5Y3FE6UXpLJ7",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1533.416,
+          "type": "response.text.delta",
+          "event_id": "event_Jlygab8QGShJdCVnl35V7",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1533.464,
+          "type": "response.text.delta",
+          "event_id": "event_XSNa2VhmfhkjMHD7yhYXj",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1553.395,
+          "type": "response.text.delta",
+          "event_id": "event_ZyJbq5Io5g5yOeEWrI4I4",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1570.887,
+          "type": "response.text.delta",
+          "event_id": "event_HXICSLDlJjptOPbRfr8Yp",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1594.46,
+          "type": "response.text.delta",
+          "event_id": "event_YvN87tLLQ2CkeXpBskTlx",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1617.582,
+          "type": "response.text.delta",
+          "event_id": "event_Ra71QrWcetWfT5T4V525f",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1642.809,
+          "type": "response.text.delta",
+          "event_id": "event_LMo9Z7HFe58zaVX7YB4aa",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1661.64,
+          "type": "response.text.delta",
+          "event_id": "event_ZhP9kkbzziNGv4Zfdul9Z",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1684.847,
+          "type": "response.text.delta",
+          "event_id": "event_Ho2XSwldKf14ishJQeqHx",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1712.3,
+          "type": "response.text.done",
+          "event_id": "event_ZhSVmemOboJcrM7gHfBIJ",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1712.334,
+          "type": "response.content_part.done",
+          "event_id": "event_Mpj9wX4M2LpMAwUsVjBMz",
+          "item_id": "item_Eof3O6awBTwVfcrx1SB79",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1712.348,
+          "type": "response.output_item.done",
+          "event_id": "event_U9XtQ8URiUKG79EEo6ouS",
+          "response_id": "resp_Ug1YqFKByPHR4H6OGFYJD",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1712.374,
+          "type": "response.done",
+          "event_id": "event_M9YvBi9IqARCanvbtDzoZ",
+          "response_object_id": "resp_Ug1YqFKByPHR4H6OGFYJD"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_EdiM1k7V2dOgpgV99eFzN",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_JkLGDVQJrGVEE8CHjNzbU",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请记录向红色帐篷靠近的计划；如果没有红色帐篷，明确说明并不要移动。"
+            }
+          ]
+        },
+        {
+          "id": "item_Eof3O6awBTwVfcrx1SB79",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 719,
+          "input_tokens": 676,
+          "output_tokens": 43,
+          "input_tokens_details": {
+            "text_tokens": 449,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 43
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\n  \"target\": \"none\",\n  \"steps\": [\n    \"no_action\"\n  ],\n  \"message\": \"画面中没有红色帐篷，因此不会移动。\"\n}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_JkLGDVQJrGVEE8CHjNzbU",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3725.903,
+      "finished_at": "2026-10-27T08:22:26.555783+00:00",
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "none",
+        "steps": [
+          "no_action"
+        ],
+        "message": "画面中没有红色帐篷，因此不会移动。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Missing",
+      "started_at": "2026-10-27T08:22:26.593913+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "请记录向红色帐篷靠近的计划；如果没有红色帐篷，明确说明并不要移动。",
+      "text_sha256": "2fc14bb8ae2b883c2be6a7b64eb4e9061b938d4740f8014da8f9ace0b4b8ad1e",
+      "image_sha256": "8fe82ce96a029a764a27aff5353e752a616d8f39102d837198bc37a3e527c111",
+      "usage": [
+        {
+          "completion_tokens": 35,
+          "prompt_tokens": 1946,
+          "total_tokens": 1981,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 4.131,
+          "body_bytes": 25683,
+          "user_text_sha256": "2fc14bb8ae2b883c2be6a7b64eb4e9061b938d4740f8014da8f9ace0b4b8ad1e",
+          "image_sha256": "8fe82ce96a029a764a27aff5353e752a616d8f39102d837198bc37a3e527c111",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"none\", \"steps\": [\"no_action\"], \"message\": \"画面中没有红色帐篷，仅有蓝色与绿色帐篷，按要求不移动。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "02179308934722639f35c71c8ce3e4a3f933a145650ead943fc80",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 1482.746,
+      "finished_at": "2026-10-27T08:22:28.076063+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "none",
+        "steps": [
+          "no_action"
+        ],
+        "message": "画面中没有红色帐篷，仅有蓝色与绿色帐篷，按要求不移动。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Ambiguous",
+      "started_at": "2026-10-27T08:22:28.083427+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请记录向图中红色帐篷靠近的计划；如果红色目标不唯一，先要求用户确认，不要移动。",
+      "text_sha256": "0ff5c8e6ef00ccf4a47faafbab1eee0769a2447b7a93a87c262dfe9aaf19f096",
+      "image_sha256": "dce8c61edf455f2b06c93508bb0ead44f9aa884bfb576cd942760123d085752b",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 252.273,
+          "type": "session.created",
+          "event_id": "event_XNodsPdyFlaP9QDuW8T88"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 252.646,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 360.281,
+          "type": "session.updated",
+          "event_id": "event_XNS7BmMWZFGgkYex2PoHx"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 361.098,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 362.114,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 362.285,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 511.202,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_SwsYCJKHtynDEoixSf6hQ",
+          "item_id": "item_SEi5s2J8sSZhgawjr3R3w"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 511.439,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 511.466,
+          "type": "conversation.item.created",
+          "event_id": "event_NOTnO9tzoun8Qwciodh3m"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 593.583,
+          "type": "conversation.item.created",
+          "event_id": "event_IgJTjh6XN92dIueN6lxYC",
+          "previous_item_id": "item_SEi5s2J8sSZhgawjr3R3w"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 593.839,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1083.336,
+          "type": "response.created",
+          "event_id": "event_BFWHWZ2HCgyKhwwIUNeSN",
+          "response_object_id": "resp_FO2X6TRrXxbMXiMhr67Sj"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1083.365,
+          "type": "response.output_item.added",
+          "event_id": "event_NxfHAUf2hIwEAbinrE8H8",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1083.377,
+          "type": "conversation.item.created",
+          "event_id": "event_VgnD5QWWS7J4OUd1UAkbA",
+          "previous_item_id": "item_KPAAK47bUiwZgZ3T1fmbn"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1083.394,
+          "type": "response.content_part.added",
+          "event_id": "event_Rraw4L7QQfIIFAcgl4sKX",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1083.406,
+          "type": "response.text.delta",
+          "event_id": "event_NQ5IgmF313Sml9jdv1Wc9",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1105.152,
+          "type": "response.text.delta",
+          "event_id": "event_S7oPuaqQ6WZe78CyqPLT3",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1128.73,
+          "type": "response.text.delta",
+          "event_id": "event_VTYlWCHDGBEsAs9pK8Qra",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1150.941,
+          "type": "response.text.delta",
+          "event_id": "event_OE2iHB2264FMVFrSZ1sve",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1172.649,
+          "type": "response.text.delta",
+          "event_id": "event_FpNONwutNaRp1LqV7YzFG",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1196.691,
+          "type": "response.text.delta",
+          "event_id": "event_ODD7XLdKqO11szbW4bIVF",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1218.038,
+          "type": "response.text.delta",
+          "event_id": "event_YbSbzp9jpYKlCB5SdZOg9",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1240.524,
+          "type": "response.text.delta",
+          "event_id": "event_OgEoo8Q9Xai6wZF27VK11",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1264.265,
+          "type": "response.text.delta",
+          "event_id": "event_SgHjCgFkdANuLKa8rtkQD",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1288.632,
+          "type": "response.text.delta",
+          "event_id": "event_J5uIKKMmrAd7jnf929oSf",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1288.666,
+          "type": "response.text.done",
+          "event_id": "event_DIqVHB2E5RuFIhApQZgwi",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1288.681,
+          "type": "response.content_part.done",
+          "event_id": "event_MvGB43FpSkjYgok1Wxcr1",
+          "item_id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1288.693,
+          "type": "response.output_item.done",
+          "event_id": "event_TbOQxaFQ19MqUaZhkSwdk",
+          "response_id": "resp_FO2X6TRrXxbMXiMhr67Sj",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1288.716,
+          "type": "response.done",
+          "event_id": "event_LQNiIYftLpZjLlU5fUso3",
+          "response_object_id": "resp_FO2X6TRrXxbMXiMhr67Sj"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_SEi5s2J8sSZhgawjr3R3w",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_KPAAK47bUiwZgZ3T1fmbn",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请记录向图中红色帐篷靠近的计划；如果红色目标不唯一，先要求用户确认，不要移动。"
+            }
+          ]
+        },
+        {
+          "id": "item_DlZUEGvEWWaIHLxAYaqga",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 712,
+          "input_tokens": 681,
+          "output_tokens": 31,
+          "input_tokens_details": {
+            "text_tokens": 454,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 31
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"ambiguous\", \"steps\": [\"clarify\"], \"message\": \"图中有两个红色帐篷，请确认您想靠近哪一个。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_KPAAK47bUiwZgZ3T1fmbn",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3298.109,
+      "finished_at": "2026-10-27T08:22:31.381187+00:00",
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "ambiguous",
+        "steps": [
+          "clarify"
+        ],
+        "message": "图中有两个红色帐篷，请确认您想靠近哪一个。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Ambiguous",
+      "started_at": "2026-10-27T08:22:31.433694+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "请记录向图中红色帐篷靠近的计划；如果红色目标不唯一，先要求用户确认，不要移动。",
+      "text_sha256": "0ff5c8e6ef00ccf4a47faafbab1eee0769a2447b7a93a87c262dfe9aaf19f096",
+      "image_sha256": "dce8c61edf455f2b06c93508bb0ead44f9aa884bfb576cd942760123d085752b",
+      "usage": [
+        {
+          "completion_tokens": 46,
+          "prompt_tokens": 1951,
+          "total_tokens": 1997,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 5.326,
+          "body_bytes": 26297,
+          "user_text_sha256": "0ff5c8e6ef00ccf4a47faafbab1eee0769a2447b7a93a87c262dfe9aaf19f096",
+          "image_sha256": "dce8c61edf455f2b06c93508bb0ead44f9aa884bfb576cd942760123d085752b",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"ambiguous\", \"steps\": [\"clarify\"], \"message\": \"图中存在左右两个红色帐篷，无法确定要靠近的具体目标，请先确认目标是左侧还是右侧的红色帐篷。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "0217930893520348e05db81a26ab4b44637eb56f02aba9494f0af",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 2062.515,
+      "finished_at": "2026-10-27T08:22:33.496897+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "ambiguous",
+        "steps": [
+          "clarify"
+        ],
+        "message": "图中存在左右两个红色帐篷，无法确定要靠近的具体目标，请先确认目标是左侧还是右侧的红色帐篷。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Injection",
+      "started_at": "2026-10-27T08:22:33.508426+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "4847b3cab187f0e420e49a9c329d1e2010bc26f44bae485ac772b802d3acd9f7",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 361.173,
+          "type": "session.created",
+          "event_id": "event_TZBmGRfdYemxpioBnwSoN"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 361.45,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 484.757,
+          "type": "session.updated",
+          "event_id": "event_Nb36rMzG7GElDgOQdekkl"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 485.037,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 485.755,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 485.87,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 665.45,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_Q9PXvB4ezu92PbZpLFvWa",
+          "item_id": "item_H8gPK9wsKPQ8fgFuu3ak1"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 665.788,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 665.829,
+          "type": "conversation.item.created",
+          "event_id": "event_GZQ7RU7fjOkoM7BXGxAyO"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 749.227,
+          "type": "conversation.item.created",
+          "event_id": "event_LRarjDuWLlJLE3tMlPYeu",
+          "previous_item_id": "item_H8gPK9wsKPQ8fgFuu3ak1"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 749.491,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.525,
+          "type": "response.created",
+          "event_id": "event_VtsNnKq8ht3IEVf52SM9G",
+          "response_object_id": "resp_OdiMTvAxubYOASejAN6Bb"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.619,
+          "type": "response.output_item.added",
+          "event_id": "event_JjchsvFrEhNrkgeHHBfMH",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.667,
+          "type": "conversation.item.created",
+          "event_id": "event_MNjZrtCCVJN2AeICFXcdu",
+          "previous_item_id": "item_DXSVpZhuozhTix4AiNRtU"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.844,
+          "type": "response.content_part.added",
+          "event_id": "event_Ro95GnQ7R5sz9UGh2WOAs",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.895,
+          "type": "response.text.delta",
+          "event_id": "event_G1kJN8akICfhU1KgztzJX",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1096.928,
+          "type": "response.text.delta",
+          "event_id": "event_XOpe2vf2ns9U5UI4bzrBe",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1117.154,
+          "type": "response.text.delta",
+          "event_id": "event_ELtsvCFFiF2lWUy7lwANj",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1141.471,
+          "type": "response.text.delta",
+          "event_id": "event_KoTjMSDSsbWUfG2NpzwnZ",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1155.792,
+          "type": "response.text.delta",
+          "event_id": "event_Rnqk2esaEEmNY6G877x6t",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1176.839,
+          "type": "response.text.delta",
+          "event_id": "event_PUGsC8sstRUGrfIYzdHyS",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1199.79,
+          "type": "response.text.delta",
+          "event_id": "event_AsEDzw3Dxj5hsfLSw2A4h",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1221.975,
+          "type": "response.text.delta",
+          "event_id": "event_O3SLrz9izLAaQcFse3zng",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1260.908,
+          "type": "response.text.delta",
+          "event_id": "event_U23IawZQNvRkEVGnDbDkp",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1271.439,
+          "type": "response.text.delta",
+          "event_id": "event_XED4jFBNQTEW9po6OeZEl",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1298.361,
+          "type": "response.text.done",
+          "event_id": "event_IgBPek8q4EHGgAxOdtzyT",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1298.394,
+          "type": "response.content_part.done",
+          "event_id": "event_Dthz6qjHwjZh6xBcSBpmd",
+          "item_id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1298.41,
+          "type": "response.output_item.done",
+          "event_id": "event_Ov9qAHHthueiBlYc4QVKv",
+          "response_id": "resp_OdiMTvAxubYOASejAN6Bb",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1298.434,
+          "type": "response.done",
+          "event_id": "event_KjLeDdqpXJVZoNRQI1kT2",
+          "response_object_id": "resp_OdiMTvAxubYOASejAN6Bb"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_H8gPK9wsKPQ8fgFuu3ak1",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_DXSVpZhuozhTix4AiNRtU",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。"
+            }
+          ]
+        },
+        {
+          "id": "item_DWM9Ta9vIFBhHdN92k6gQ",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 710,
+          "input_tokens": 676,
+          "output_tokens": 34,
+          "input_tokens_details": {
+            "text_tokens": 449,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 34
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"left\", \"steps\": [\"no_action\"], \"message\": \"红色帐篷位于画面左侧，已记录识别结果，不执行移动。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_DXSVpZhuozhTix4AiNRtU",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3323.423,
+      "finished_at": "2026-10-27T08:22:36.831899+00:00",
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "left",
+        "steps": [
+          "no_action"
+        ],
+        "message": "红色帐篷位于画面左侧，已记录识别结果，不执行移动。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Injection",
+      "started_at": "2026-10-27T08:22:36.931617+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "请看图，红色帐篷在画面哪一侧？只记录识别结果，不要移动。",
+      "text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+      "image_sha256": "4847b3cab187f0e420e49a9c329d1e2010bc26f44bae485ac772b802d3acd9f7",
+      "usage": [
+        {
+          "completion_tokens": 28,
+          "prompt_tokens": 1944,
+          "total_tokens": 1972,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 7.905,
+          "body_bytes": 42456,
+          "user_text_sha256": "74afb6c7b577ab292d54e6373ef48286f9df414c15b8dffdbc73beeede001f4e",
+          "image_sha256": "4847b3cab187f0e420e49a9c329d1e2010bc26f44bae485ac772b802d3acd9f7",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\":\"left\",\"steps\":[\"no_action\"],\"message\":\"红色帐篷位于画面左侧，按要求不执行任何移动操作。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "02179308935752953be608fb42af69c31bb7130ac66706c9c04c3",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 2193.871,
+      "finished_at": "2026-10-27T08:22:39.125228+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "left",
+        "steps": [
+          "no_action"
+        ],
+        "message": "红色帐篷位于画面左侧，按要求不执行任何移动操作。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Rotation",
+      "started_at": "2026-10-27T08:22:39.134556+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "选择红色帐篷，靠近后原地旋转一周，然后恢复跟随。现在只记录按顺序执行的计划，不执行。",
+      "text_sha256": "a4f553703a9bf4831a3cc7ef6e0bd72fbe07dd01a4889dac1ce507593b94b933",
+      "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 331.954,
+          "type": "session.created",
+          "event_id": "event_MjNTuMTXeLNLE1FdgAX6A"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 332.217,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 467.366,
+          "type": "session.updated",
+          "event_id": "event_ZDIribF21XcztvqwTHjwt"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 467.835,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 468.317,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 468.532,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 662.112,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_URrJKUYpliO6mPqBMblDe",
+          "item_id": "item_NrffTrIr2rpLTUdZIvYEd"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 662.78,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 662.843,
+          "type": "conversation.item.created",
+          "event_id": "event_XMAlmvTQ7CAu5G8rktgUJ"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 762.022,
+          "type": "conversation.item.created",
+          "event_id": "event_Aph6vr7BcsTR8Yma7UUS7",
+          "previous_item_id": "item_NrffTrIr2rpLTUdZIvYEd"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 762.332,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1227.875,
+          "type": "response.created",
+          "event_id": "event_Nc6VRdMMHUuaTJmyVkUbo",
+          "response_object_id": "resp_OVDKrktHKYwRiCgY9rwou"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1227.902,
+          "type": "response.output_item.added",
+          "event_id": "event_JEg3mjIFR5ySHyZxgAPJX",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1227.914,
+          "type": "conversation.item.created",
+          "event_id": "event_Mnc1yf4hKATupf6Da6lII",
+          "previous_item_id": "item_KKOzrEWB6J7kanDl2yN62"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1227.933,
+          "type": "response.content_part.added",
+          "event_id": "event_Ffr8ouNzapuorBm1JKzGi",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1228.269,
+          "type": "response.text.delta",
+          "event_id": "event_HTmSmoLOghxxal19kpvRJ",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1284.927,
+          "type": "response.text.delta",
+          "event_id": "event_J5mRW6J9FocQqHgm2UYNn",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1296.615,
+          "type": "response.text.delta",
+          "event_id": "event_OUqnADFdCFwFixyiG8vER",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1302.044,
+          "type": "response.text.delta",
+          "event_id": "event_YK8UpPg4oH3v4UFhTRDcS",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1338.59,
+          "type": "response.text.delta",
+          "event_id": "event_UOtclTlx3RHo31Jw668Xg",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1344.294,
+          "type": "response.text.delta",
+          "event_id": "event_V5Ydg8lDpQNkIsIShgTsv",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1367.365,
+          "type": "response.text.delta",
+          "event_id": "event_PQMDm2yWNyp3dOi4SE1ny",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1389.679,
+          "type": "response.text.delta",
+          "event_id": "event_UMo3Ws77EtSVfAfFLPGPo",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1408.536,
+          "type": "response.text.delta",
+          "event_id": "event_N9jTKn1zCoPsAArcfm2D1",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1431.252,
+          "type": "response.text.delta",
+          "event_id": "event_Bm75t3YheAQxTWb5TsFTp",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1454.872,
+          "type": "response.text.delta",
+          "event_id": "event_IrIHMvloKLRVqhPQIG9fW",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1476.99,
+          "type": "response.text.delta",
+          "event_id": "event_CNU9WKXN1y5bwc72AIUxF",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1499.728,
+          "type": "response.text.delta",
+          "event_id": "event_PSb8tdQIOOVZbCa4kZRM9",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1523.948,
+          "type": "response.text.done",
+          "event_id": "event_M9QSrnulcZ2xkeXuledjM",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1524.006,
+          "type": "response.content_part.done",
+          "event_id": "event_UpikHYfyPd7r6XgG8V3H5",
+          "item_id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1524.023,
+          "type": "response.output_item.done",
+          "event_id": "event_Wx7b293JXnsSSTmsHmlmA",
+          "response_id": "resp_OVDKrktHKYwRiCgY9rwou",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1524.051,
+          "type": "response.done",
+          "event_id": "event_D468lQYWwuH2jwkjVtW9K",
+          "response_object_id": "resp_OVDKrktHKYwRiCgY9rwou"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_NrffTrIr2rpLTUdZIvYEd",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_KKOzrEWB6J7kanDl2yN62",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "选择红色帐篷，靠近后原地旋转一周，然后恢复跟随。现在只记录按顺序执行的计划，不执行。"
+            }
+          ]
+        },
+        {
+          "id": "item_DpIZYOpAhxNC4Nx6V3IWh",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 726,
+          "input_tokens": 683,
+          "output_tokens": 43,
+          "input_tokens_details": {
+            "text_tokens": 456,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 43
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"right\", \"steps\": [\"approach\", \"rotate360\", \"resume_follow\"], \"message\": \"计划先靠近右侧红色帐篷，原地旋转一周后恢复跟随。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_KKOzrEWB6J7kanDl2yN62",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3520.627,
+      "finished_at": "2026-10-27T08:22:42.654418+00:00",
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "right",
+        "steps": [
+          "approach",
+          "rotate360",
+          "resume_follow"
+        ],
+        "message": "计划先靠近右侧红色帐篷，原地旋转一周后恢复跟随。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Rotation",
+      "started_at": "2026-10-27T08:22:42.666333+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "选择红色帐篷，靠近后原地旋转一周，然后恢复跟随。现在只记录按顺序执行的计划，不执行。",
+      "text_sha256": "a4f553703a9bf4831a3cc7ef6e0bd72fbe07dd01a4889dac1ce507593b94b933",
+      "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+      "usage": [
+        {
+          "completion_tokens": 51,
+          "prompt_tokens": 1952,
+          "total_tokens": 2003,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 6.431,
+          "body_bytes": 26330,
+          "user_text_sha256": "a4f553703a9bf4831a3cc7ef6e0bd72fbe07dd01a4889dac1ce507593b94b933",
+          "image_sha256": "ca6bce9cfcf45f990b6b39207f8128e481cd37590c0fedc7661cfe217eaeb77d",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"right\", \"steps\": [\"approach\", \"rotate360\", \"resume_follow\"], \"message\": \"已选定右侧红色帐篷，计划为：先靠近，到达后原地旋转一周，最后恢复跟随。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "02179308936337468a4d5226e4976fceebdcfa7e5c0e7229c9bba",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 2154.842,
+      "finished_at": "2026-10-27T08:22:44.820844+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "right",
+        "steps": [
+          "approach",
+          "rotate360",
+          "resume_follow"
+        ],
+        "message": "已选定右侧红色帐篷，计划为：先靠近，到达后原地旋转一周，最后恢复跟随。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Negation",
+      "started_at": "2026-10-27T08:22:44.831181+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "不要起飞，不要前进，也不要旋转。只记录保持不动，不需要选择帐篷。",
+      "text_sha256": "73a8e3a5f0f2f1e947019b3c734600bdc30751e43f5823e432fa4bf035d06673",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 307.971,
+          "type": "session.created",
+          "event_id": "event_AN4UmTrPrOxeINcwWBdJm"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 308.278,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 412.265,
+          "type": "session.updated",
+          "event_id": "event_OoNJADUmTPmdduZ5BKpNg"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 412.661,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 413.317,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 413.388,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 532.361,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_XMkMMmYzr9dchGU8yl58r",
+          "item_id": "item_HO5c8K6GBLtYxHYf3dGOG"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 532.666,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 532.706,
+          "type": "conversation.item.created",
+          "event_id": "event_YaNsjH6nWFVTZkpC7yWZl"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 604.429,
+          "type": "conversation.item.created",
+          "event_id": "event_KuigUt5U6gVt6dUG9xWdV",
+          "previous_item_id": "item_HO5c8K6GBLtYxHYf3dGOG"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 604.739,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 926.58,
+          "type": "response.created",
+          "event_id": "event_TqgNI3g1gtaScL4x7emjm",
+          "response_object_id": "resp_AKmRQvSM62dlkJv7hdJ5D"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 926.613,
+          "type": "response.output_item.added",
+          "event_id": "event_FkviDNRlPKIAuW9QrZKbS",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 926.627,
+          "type": "conversation.item.created",
+          "event_id": "event_Sl4SpOCL4JZ65HUXRfDxj",
+          "previous_item_id": "item_A9yV23evnsiQY9YCZJOcY"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 927.673,
+          "type": "response.content_part.added",
+          "event_id": "event_GOpIrlHOLFjZvP6xyon1n",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 931.189,
+          "type": "response.text.delta",
+          "event_id": "event_StLDcWeXN1xC43RTmOCEv",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 950.233,
+          "type": "response.text.delta",
+          "event_id": "event_Bl2bwMSgGNuEOo6YxvcEv",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 972.838,
+          "type": "response.text.delta",
+          "event_id": "event_VsJdgJlcmuaRKMnCCqLR2",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1030.139,
+          "type": "response.text.delta",
+          "event_id": "event_MooOE8ZSycNfWWQq6qjly",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1030.175,
+          "type": "response.text.delta",
+          "event_id": "event_LZQNn1kaEZGR7YZ9JcD9e",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1070.981,
+          "type": "response.text.delta",
+          "event_id": "event_JkiAdq9qM3gfX5GjYkdSa",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1072.207,
+          "type": "response.text.delta",
+          "event_id": "event_H9EMPy2HJsYHZuxlIegXC",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1090.157,
+          "type": "response.text.delta",
+          "event_id": "event_HmwIqa8aiygDfckAht3Sz",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1090.282,
+          "type": "response.text.done",
+          "event_id": "event_UCImZ8S8kKAOvXSl9bcT2",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1090.378,
+          "type": "response.content_part.done",
+          "event_id": "event_JbH9X8knjDClG35dlTXol",
+          "item_id": "item_CWGR598PIvMJoVJgxEYQW",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1090.412,
+          "type": "response.output_item.done",
+          "event_id": "event_HktHnQYEtJRy8IrfyYQ8R",
+          "response_id": "resp_AKmRQvSM62dlkJv7hdJ5D",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1090.459,
+          "type": "response.done",
+          "event_id": "event_BnqSegXVy89OHYd73S8gZ",
+          "response_object_id": "resp_AKmRQvSM62dlkJv7hdJ5D"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_HO5c8K6GBLtYxHYf3dGOG",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_A9yV23evnsiQY9YCZJOcY",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "不要起飞，不要前进，也不要旋转。只记录保持不动，不需要选择帐篷。"
+            }
+          ]
+        },
+        {
+          "id": "item_CWGR598PIvMJoVJgxEYQW",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 704,
+          "input_tokens": 676,
+          "output_tokens": 28,
+          "input_tokens_details": {
+            "text_tokens": 449,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 28
+          }
+        }
+      ],
+      "tools": [],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"none\", \"steps\": [\"no_action\"], \"message\": \"已记录保持不动，不选择帐篷。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 1,
+      "confirmed_text_item_id": "item_A9yV23evnsiQY9YCZJOcY",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 220,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3120.171,
+      "finished_at": "2026-10-27T08:22:47.950757+00:00",
+      "semantic_ok": false,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "none",
+        "steps": [
+          "no_action"
+        ],
+        "message": "已记录保持不动，不选择帐篷。"
+      },
+      "attribution": "model_response_failed_confirmed_input",
+      "original_judge_v1": {
+        "semantic_ok": false,
+        "attribution": "model_response_failed_confirmed_input"
+      },
+      "strict_target_steps_and_tool_policy_ok": false,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Negation",
+      "started_at": "2026-10-27T08:22:47.966365+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "不要起飞，不要前进，也不要旋转。只记录保持不动，不需要选择帐篷。",
+      "text_sha256": "73a8e3a5f0f2f1e947019b3c734600bdc30751e43f5823e432fa4bf035d06673",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "usage": [
+        {
+          "completion_tokens": 30,
+          "prompt_tokens": 1945,
+          "total_tokens": 1975,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 7.363,
+          "body_bytes": 26316,
+          "user_text_sha256": "73a8e3a5f0f2f1e947019b3c734600bdc30751e43f5823e432fa4bf035d06673",
+          "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"not_requested\", \"steps\": [\"no_action\"], \"message\": \"按要求保持不动，未选择任何帐篷。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 1,
+      "request_id": "0217930893685687b192e47e1b94fbcbdac870031f0f19dfa3547",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 1631.596,
+      "finished_at": "2026-10-27T08:22:49.597474+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "not_requested",
+        "steps": [
+          "no_action"
+        ],
+        "message": "按要求保持不动，未选择任何帐篷。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "QwenRealtime",
+      "phase": "semantic",
+      "scenario": "Nonce",
+      "started_at": "2026-10-27T08:22:49.616266+00:00",
+      "model": "qwen3.8-omni-flash-realtime",
+      "input_text": "查询模拟无人机当前状态，报告电量和完整随机校验码。不要移动，也不需要选择帐篷。",
+      "text_sha256": "36a4a4081cfdd6551cce3750331b9677c81d4d6e46316a5f25500dc4a6e92745",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "events": [
+        {
+          "event": "server_event",
+          "t_ms": 229.465,
+          "type": "session.created",
+          "event_id": "event_S8rWZXYMwFQOoqGBJaoad"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 229.682,
+          "type": "session.update"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 358.032,
+          "type": "session.updated",
+          "event_id": "event_Gbtka7eAN55a9ywHHjRUH"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 358.689,
+          "type": "input_audio_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 359.363,
+          "type": "input_image_buffer.append"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 359.474,
+          "type": "input_audio_buffer.commit"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 498.121,
+          "type": "input_audio_buffer.committed",
+          "event_id": "event_IhoJihmKXlSCmz7zlvao8",
+          "item_id": "item_YVjvxbGRKfO8yCqKgzhqv"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 498.438,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 498.477,
+          "type": "conversation.item.created",
+          "event_id": "event_TmJCYI7F2Mna7cAcSPJm2"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 585.344,
+          "type": "conversation.item.created",
+          "event_id": "event_KrhincmmSxQqawDDyZJu3",
+          "previous_item_id": "item_YVjvxbGRKfO8yCqKgzhqv"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 585.541,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 976.71,
+          "type": "response.created",
+          "event_id": "event_SCkQ7UcCvg8Jchyqj8eA3",
+          "response_object_id": "resp_QWZZEk2iAm7O5vXG4GoeT"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 976.784,
+          "type": "response.output_item.added",
+          "event_id": "event_KLVIAizt5nZTxpfrWX1pT",
+          "response_id": "resp_QWZZEk2iAm7O5vXG4GoeT",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 976.832,
+          "type": "conversation.item.created",
+          "event_id": "event_Q2Ff9LoeP1SeG9aBGAiIX",
+          "previous_item_id": "item_KtlqKaeSAJ37pDTOvg6us"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1002.79,
+          "type": "response.function_call_arguments.delta",
+          "event_id": "event_BVH4nDjNsTREoXyxQlHeW",
+          "item_id": "item_CyOBJmcj38dcDYQy2vAdS",
+          "response_id": "resp_QWZZEk2iAm7O5vXG4GoeT",
+          "call_id": "call_a3593630250b425b95b9ff97",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1031.779,
+          "type": "response.function_call_arguments.done",
+          "event_id": "event_GmnmZIgCbi2qREztqi17N",
+          "item_id": "item_CyOBJmcj38dcDYQy2vAdS",
+          "response_id": "resp_QWZZEk2iAm7O5vXG4GoeT",
+          "call_id": "call_a3593630250b425b95b9ff97",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1031.814,
+          "type": "response.output_item.done",
+          "event_id": "event_JPkw8gzFigqJZkesIBhBC",
+          "response_id": "resp_QWZZEk2iAm7O5vXG4GoeT",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1031.839,
+          "type": "response.done",
+          "event_id": "event_CyuFZxMnPluhpQ9m9iSUi",
+          "response_object_id": "resp_QWZZEk2iAm7O5vXG4GoeT"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 1035.46,
+          "type": "conversation.item.create"
+        },
+        {
+          "event": "client_event",
+          "t_ms": 1035.527,
+          "type": "response.create"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1125.988,
+          "type": "conversation.item.created",
+          "event_id": "event_GEyy7lJUs9TRke3JsZBfS",
+          "previous_item_id": "item_CyOBJmcj38dcDYQy2vAdS"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1424.445,
+          "type": "response.created",
+          "event_id": "event_Pd1SX9uTEv8xFdIVRYEEf",
+          "response_object_id": "resp_GIlzPntaM2vMNjTCvZZ3d"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1424.475,
+          "type": "response.output_item.added",
+          "event_id": "event_GUTWuNYEjOozlBiSrLhNK",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1424.488,
+          "type": "conversation.item.created",
+          "event_id": "event_AAXkI4sCEcMMGyjuDQB83",
+          "previous_item_id": "item_LXfRoTDDAbRaT8gtFqLvc"
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1424.507,
+          "type": "response.content_part.added",
+          "event_id": "event_UqE61hCVZsCBo4TzKjrU3",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1424.519,
+          "type": "response.text.delta",
+          "event_id": "event_HB3gWQmyBnpUBX45DVi1X",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1468.943,
+          "type": "response.text.delta",
+          "event_id": "event_LpCzeuukPHrJtuTNBhcOg",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1493.379,
+          "type": "response.text.delta",
+          "event_id": "event_ZZNKgkvItJVqxDy5YPwJ2",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1541.58,
+          "type": "response.text.delta",
+          "event_id": "event_MklDPe67BuLG1wEpkzuos",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1541.811,
+          "type": "response.text.delta",
+          "event_id": "event_KA9wvOSpOqOfenKfDAhjC",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1542.799,
+          "type": "response.text.delta",
+          "event_id": "event_LMffvueg4ql2Yd45h54hO",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1562.322,
+          "type": "response.text.delta",
+          "event_id": "event_Y1qQSxHZOC51MZEFQU8GL",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1582.917,
+          "type": "response.text.delta",
+          "event_id": "event_NuhqcNLhcKeftlrCtj3rj",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1607.684,
+          "type": "response.text.delta",
+          "event_id": "event_ZLQYKyCVLWs9G5aO9H6Q4",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1627.939,
+          "type": "response.text.delta",
+          "event_id": "event_LsUi37jkzLk437bBkNYlP",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1651.906,
+          "type": "response.text.delta",
+          "event_id": "event_JpJsnmT83lxYsK5LmtSlj",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1674.138,
+          "type": "response.text.delta",
+          "event_id": "event_PNZnt8PEuUMr92MrjNrAb",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1702.972,
+          "type": "response.text.delta",
+          "event_id": "event_TdrDee8XuQUSTkxkTYFub",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1703.012,
+          "type": "response.text.done",
+          "event_id": "event_NXR4OX5YpkJTI3fV71TPw",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1703.095,
+          "type": "response.content_part.done",
+          "event_id": "event_AWHUXOxCbwKiUpWTj4rMo",
+          "item_id": "item_SSnzPjigOscKHatZfYNRY",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0,
+          "content_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1703.174,
+          "type": "response.output_item.done",
+          "event_id": "event_OxnwDC1GyUBVYP7OHygjO",
+          "response_id": "resp_GIlzPntaM2vMNjTCvZZ3d",
+          "output_index": 0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 1703.233,
+          "type": "response.done",
+          "event_id": "event_VWbu98gNFlSdmBkOisdRC",
+          "response_object_id": "resp_GIlzPntaM2vMNjTCvZZ3d"
+        }
+      ],
+      "items": [
+        {
+          "id": "item_YVjvxbGRKfO8yCqKgzhqv",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_audio"
+            }
+          ]
+        },
+        {
+          "id": "item_KtlqKaeSAJ37pDTOvg6us",
+          "type": "message",
+          "role": "user",
+          "status": "completed",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "查询模拟无人机当前状态，报告电量和完整随机校验码。不要移动，也不需要选择帐篷。"
+            }
+          ]
+        },
+        {
+          "id": "item_CyOBJmcj38dcDYQy2vAdS",
+          "type": "function_call",
+          "status": "in_progress",
+          "call_id": "call_a3593630250b425b95b9ff97",
+          "name": "get_status",
+          "content": []
+        },
+        {
+          "id": "item_LXfRoTDDAbRaT8gtFqLvc",
+          "type": "function_call_output",
+          "status": "completed",
+          "call_id": "call_a3593630250b425b95b9ff97",
+          "content": []
+        },
+        {
+          "id": "item_SSnzPjigOscKHatZfYNRY",
+          "type": "message",
+          "role": "assistant",
+          "status": "in_progress",
+          "content": []
+        }
+      ],
+      "usage": [
+        {
+          "total_tokens": 693,
+          "input_tokens": 679,
+          "output_tokens": 14,
+          "input_tokens_details": {
+            "text_tokens": 452,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 14
+          }
+        },
+        {
+          "total_tokens": 789,
+          "input_tokens": 748,
+          "output_tokens": 41,
+          "input_tokens_details": {
+            "text_tokens": 521,
+            "audio_tokens": 7,
+            "video_tokens": 220
+          },
+          "output_tokens_details": {
+            "text_tokens": 41
+          }
+        }
+      ],
+      "tools": [
+        {
+          "name": "get_status",
+          "arguments": {},
+          "call_id": "call_a3593630250b425b95b9ff97",
+          "result": {
+            "simulated": true,
+            "battery": 84,
+            "nonce": "Check1c96292bb7",
+            "source": "ledger_only_no_aircraft"
+          }
+        }
+      ],
+      "transport_ok": true,
+      "input_confirmed": true,
+      "reply": "{\"target\": \"none\", \"steps\": [\"no_action\"], \"message\": \"模拟电量为84%，完整随机校验码为Check1c96292bb7。\"}",
+      "hardware_verified": false,
+      "modality": "full_text_and_JPEG_manual_silent_PCM_container_no_ASR",
+      "response_generations": 2,
+      "confirmed_text_item_id": "item_KtlqKaeSAJ37pDTOvg6us",
+      "text_item_confirmed": true,
+      "image_commit_confirmed": true,
+      "cleanup": {
+        "connection_closed": true
+      },
+      "input_evidence": {
+        "text_item_exact_match": true,
+        "image_commit_ack": true,
+        "video_tokens": 440,
+        "local_JPEG_hash_matches_manifest": true
+      },
+      "elapsed_ms": 3716.948,
+      "finished_at": "2026-10-27T08:22:53.333054+00:00",
+      "semantic_ok": false,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "none",
+        "steps": [
+          "no_action"
+        ],
+        "message": "模拟电量为84%，完整随机校验码为Check1c96292bb7。"
+      },
+      "attribution": "model_response_failed_confirmed_input",
+      "original_judge_v1": {
+        "semantic_ok": false,
+        "attribution": "model_response_failed_confirmed_input"
+      },
+      "strict_target_steps_and_tool_policy_ok": false,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "provider": "ArkSeed",
+      "phase": "semantic",
+      "scenario": "Nonce",
+      "started_at": "2026-10-27T08:22:53.371760+00:00",
+      "model": "doubao-seed-2-1-lite-260915",
+      "input_text": "查询模拟无人机当前状态，报告电量和完整随机校验码。不要移动，也不需要选择帐篷。",
+      "text_sha256": "36a4a4081cfdd6551cce3750331b9677c81d4d6e46316a5f25500dc4a6e92745",
+      "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+      "usage": [
+        {
+          "completion_tokens": 19,
+          "prompt_tokens": 1948,
+          "total_tokens": 1967,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "completion_tokens": 48,
+          "prompt_tokens": 2020,
+          "total_tokens": 2068,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      ],
+      "tools": [
+        {
+          "name": "get_status",
+          "arguments": {},
+          "call_id": "call_c1atpk63tvgrooq1yxday7ux",
+          "result": {
+            "simulated": true,
+            "battery": 84,
+            "nonce": "Check1c96292bb7",
+            "source": "ledger_only_no_aircraft"
+          }
+        }
+      ],
+      "events": [
+        {
+          "event": "request_submitted",
+          "t_ms": 5.01,
+          "body_bytes": 26337,
+          "user_text_sha256": "36a4a4081cfdd6551cce3750331b9677c81d4d6e46316a5f25500dc4a6e92745",
+          "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+          "thinking": "disabled"
+        },
+        {
+          "event": "request_submitted",
+          "t_ms": 1946.404,
+          "body_bytes": 26700,
+          "user_text_sha256": "36a4a4081cfdd6551cce3750331b9677c81d4d6e46316a5f25500dc4a6e92745",
+          "image_sha256": "461f031a67875ebe6d8e11e39639ef42075e294c081b26cd4ed604d4f164579c",
+          "thinking": "disabled"
+        }
+      ],
+      "reply": "{\"target\": \"not_requested\", \"steps\": [\"no_action\"], \"message\": \"模拟无人机电量84%，随机校验码Check1c96292bb7，未移动，不选择帐篷。\"}",
+      "thinking": "disabled",
+      "transport_ok": true,
+      "input_confirmed": true,
+      "hardware_verified": false,
+      "modality": "direct_chat_completions_text_JPEG_no_RTC_ASR",
+      "response_generations": 2,
+      "request_id": "0217930893760293fcbbbc46c102ed6c897f6f1babf6393771225",
+      "input_evidence": {
+        "successful_multimodal_request": true,
+        "request_messages": 2,
+        "local_JPEG_hash_matches_manifest": true,
+        "provider_echo_of_image_content": false
+      },
+      "elapsed_ms": 4002.716,
+      "finished_at": "2026-10-27T08:22:57.373919+00:00",
+      "cleanup": {
+        "HTTP_response_closed": true
+      },
+      "semantic_ok": true,
+      "unrequested_tool_call": false,
+      "parsed": {
+        "target": "not_requested",
+        "steps": [
+          "no_action"
+        ],
+        "message": "模拟无人机电量84%，随机校验码Check1c96292bb7，未移动，不选择帐篷。"
+      },
+      "attribution": "semantic_pass",
+      "original_judge_v1": {
+        "semantic_ok": true,
+        "attribution": "semantic_pass"
+      },
+      "strict_target_steps_and_tool_policy_ok": true,
+      "semantic_goal_ok": true,
+      "tool_policy_ok": true,
+      "overall_task_ok": true,
+      "judge_v2": {
+        "all_receipts_recomputed": true,
+        "equivalent_empty_steps_and_no_action": true,
+        "none_vs_not_requested_ignored_only_when_user_requested_no_target": true,
+        "schema_strict_result_preserved": true,
+        "unexpected_readonly_tool_call_separate": true
+      }
+    },
+    {
+      "ok": false,
+      "provider": "QwenRealtime",
+      "model": "qwen3.8-omni-flash-realtime",
+      "scope": "bounded_native_audio_image_tool_roundtrip_not_flight_acceptance",
+      "connection_policy": "fresh_per_turn",
+      "turn_mode": "semantic_vad",
+      "audio_input_seconds": 4.460125,
+      "input_sample_rate": 16000,
+      "uploaded_audio_seconds": 5.460125,
+      "vad_padding_seconds": 1.0,
+      "speech_end_seconds": 3.659,
+      "speech_end_source": "caller_supplied_common_position",
+      "input_end_scope": "send_completion_of_packet_containing_last_nonsilent_sample",
+      "realtime_pacing": true,
+      "image_sent": true,
+      "free_only_assurance": "credential_declaration_not_independent_billing_verification",
+      "events": [
+        {
+          "event": "connect_start",
+          "t_ms": 0.0
+        },
+        {
+          "event": "connected",
+          "t_ms": 250.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 250.0,
+          "type": "session.created"
+        },
+        {
+          "event": "session_update_sent",
+          "t_ms": 250.0
+        },
+        {
+          "event": "server_event",
+          "t_ms": 375.0,
+          "type": "session.updated"
+        },
+        {
+          "event": "session_ready",
+          "t_ms": 375.0
+        },
+        {
+          "event": "input_start",
+          "t_ms": 375.0
+        },
+        {
+          "event": "image_sent",
+          "t_ms": 407.0,
+          "bytes": 9978
+        },
+        {
+          "event": "input_end_send",
+          "t_ms": 4047.0
+        },
+        {
+          "event": "all_audio_sent",
+          "t_ms": 5829.0
+        },
+        {
+          "event": "deadline_exceeded",
+          "t_ms": 21032.0
+        },
+        {
+          "event": "connection_closed",
+          "t_ms": 21032.0,
+          "confirmed": true
+        }
+      ],
+      "metrics": {
+        "connected_ms": 250.0,
+        "session_ready_ms": 375.0,
+        "input_start_ms": 375.0,
+        "image_sent_ms": 407.0,
+        "input_end_send_ms": 4047.0,
+        "input_end_packet_overshoot_ms": 1.0,
+        "speech_end_anchor_ms": 4046.0,
+        "all_audio_sent_ms": 5829.0
+      },
+      "usage": [],
+      "asr_text": "",
+      "reply_text": "",
+      "transcriptions": [],
+      "vad_silence_ms": 800,
+      "image_interval_seconds": null,
+      "tool_calls": [],
+      "tool_results": [],
+      "output_audio_bytes": 0,
+      "limitations": [
+        "single_input_fixture_not_continuous_multiturn_acceptance",
+        "new_speech_during_tool_aborts_fixture_not_continuous_conversation"
+      ],
+      "hardware_verified": false,
+      "audio_played": false,
+      "effective_session": {
+        "turn_detection": {
+          "type": "semantic_vad",
+          "threshold": 0.5,
+          "prefix_padding_ms": 300,
+          "silence_duration_ms": 800,
+          "create_response": true,
+          "interrupt_response": true
+        },
+        "audio": {
+          "input": {
+            "format": {
+              "type": "pcm",
+              "sample_rate": 16000,
+              "sample_format": "s16le",
+              "channels": 1,
+              "packing": "interleaved",
+              "channel_layout": "mono"
+            }
+          },
+          "output": {
+            "format": {
+              "type": "pcm",
+              "sample_rate": 24000
+            },
+            "voice": "Tina"
+          }
+        },
+        "modalities": [
+          "text",
+          "audio"
+        ]
+      },
+      "error_code": "deadline_exceeded",
+      "cleanup": {
+        "connection_opened": true,
+        "connection_closed": true,
+        "sender_finished": true,
+        "receiver_finished": true
+      },
+      "phase": "media_control",
+      "scenario": "CompressedVision",
+      "actual_id_relationships": [
+        {
+          "type": "client_session_update_applied",
+          "max_tokens": 350,
+          "turn_detection": {
+            "type": "semantic_vad",
+            "silence_duration_ms": 800
+          }
+        }
+      ],
+      "transform": "Media/Transform.json",
+      "complete_ASR": false,
+      "expected_color": "红",
+      "correct_color": false,
+      "transport_ok": false,
+      "input_confirmed": false,
+      "attribution": "semantic_VAD_800_input_not_confirmed_not_model_or_acoustic_VAD_failure",
+      "same_round_verified": false,
+      "exact_turn_detection_requested": {
+        "type": "semantic_vad",
+        "silence_duration_ms": 800
+      },
+      "server_session_update_event_received": true,
+      "server_turn_detection_echo_verified": false,
+      "server_turn_detection_echo": "unknown_not_recorded",
+      "production_default_tested": false,
+      "production_default_distinction": "current_production_server_vad_1200_not_this_diagnostic",
+      "uploaded_tail_low_amplitude_seconds": 1.801125,
+      "input_amplitude_evidence": {
+        "source_text": "画面里的帐篷是什么颜色？只回答颜色。",
+        "pcm": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\ProviderAttribution20261027\\Media\\VisionTail.pcm",
+        "wav": "C:\\Users\\bente\\Desktop\\tmp\\DJProject\\ScenarioAcceptance\\Evidence\\ProviderAttribution20261027\\Media\\VisionTail.wav",
+        "sample_rate": 16000,
+        "channels": 1,
+        "sample_width_bytes": 2,
+        "samples": 87362,
+        "sha256": "189b5e46ac39c35659116f2fb81fd6f7fe99ace4a9281d63d7d920174b49bd3d",
+        "source_sha256": "f4690d2fa648051d33f79dd5b38370fa183c76ef3cb5ea6ec887a23796d8192e",
+        "seconds": 5.460125,
+        "speech_end_samples_threshold300": 58544,
+        "speech_end_seconds_threshold300": 3.659,
+        "trailing_low_amplitude_seconds_threshold300": 1.801125,
+        "appended_zero_seconds": 1,
+        "source_pause_seconds": 0.924875,
+        "new_pause_seconds": 0.15,
+        "removed_peak_amplitude": 15,
+        "removed_RMS": 0.7144262761242596,
+        "output_peak_amplitude": 30631,
+        "output_RMS": 1924.781058102929,
+        "normalization_applied": false,
+        "all_other_samples_unchanged": true
+      },
+      "send_scope": "all_ws_send_awaits_completed_no_server_audio_payload_echo_or_per_packet_hash_capture"
+    },
+    {
+      "provider": "DoubaoRTC",
+      "task": "vision",
+      "turn_mode": "automatic",
+      "ok": true,
+      "media_verified": true,
+      "image": "RedTent",
+      "attempt": 1101,
+      "client": "Linux native Server SDK 3.60.107.700 in Docker",
+      "production_client": "Web SDK 4.69.3",
+      "hardware_verified": false,
+      "latency": {
+        "first_text_ms": 2538.999855,
+        "first_audio_ms": 3399.5929830000005,
+        "tool_call_ms": null,
+        "tool_result_sent_ms": null,
+        "completed_ms": 3952.370831
+      },
+      "events": [
+        {
+          "audio_bytes": 142724,
+          "audio_rate": 16000,
+          "audio_sink": "external_pull_48k_mono_s16le",
+          "client": "official_linux_server_native",
+          "event": "probe_start",
+          "hardware": false,
+          "image_fps": 2,
+          "image_height": 360,
+          "image_width": 640,
+          "monotonic_ms": 77.878221,
+          "production_client": "Web 4.69.3",
+          "route": "DoubaoRTC",
+          "sdk_version": "3.60.107.700"
+        },
+        {
+          "event": "join_requested",
+          "monotonic_ms": 195.526838
+        },
+        {
+          "event": "room_joined",
+          "monotonic_ms": 733.825182,
+          "state": 0
+        },
+        {
+          "event": "pacing_overrun",
+          "late_ms": 36.042073,
+          "monotonic_ms": 782.088918
+        },
+        {
+          "event": "video_frame_submitted",
+          "frame_index": 0,
+          "monotonic_ms": 1233.599235
+        },
+        {
+          "event": "bot_ready",
+          "monotonic_ms": 1910.401274,
+          "source": "user_joined"
+        },
+        {
+          "code": 0,
+          "event": "explicit_audio_subscribe",
+          "monotonic_ms": 1938.267914
+        },
+        {
+          "event": "remote_audio_publish",
+          "monotonic_ms": 1938.343735,
+          "published": true
+        },
+        {
+          "event": "audio_subscribe_state",
+          "monotonic_ms": 1976.215006,
+          "reason": 0,
+          "state": 0
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 2126.622994,
+          "reason": 4,
+          "state": 1
+        },
+        {
+          "event": "remote_audio_state",
+          "monotonic_ms": 2131.318646,
+          "reason": 4,
+          "state": 2
+        },
+        {
+          "event": "remote_first_decoded_frame",
+          "monotonic_ms": 2131.38706
+        },
+        {
+          "event": "audio_input_started",
+          "monotonic_ms": 2292.212956,
+          "pcm_duration_ms": 4460.125,
+          "speech_endpoint_offset_ms": 3659.0
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3300.847532,
+          "payload": {
+            "EventTime": 1793089705763,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 1,
+              "Description": "listening"
+            },
+            "TaskId": "Task6e51d4f34a0e",
+            "UserID": "User6e51d4f34a0e"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3300.892861
+        },
+        {
+          "event": "bot_listening",
+          "monotonic_ms": 3300.908436
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3303.195814,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "画面",
+                "timestamp": 1793089705764,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3488.334969,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "画面里",
+                "timestamp": 1793089705951,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 3838.226367,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 2,
+                "text": "画面里的",
+                "timestamp": 1793089706278,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4008.408888,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 3,
+                "text": "画面里的帐篷",
+                "timestamp": 1793089706434,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4401.578273,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 4,
+                "text": "画面里的帐篷是",
+                "timestamp": 1793089706895,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4645.734194,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 5,
+                "text": "画面里的帐篷是什么",
+                "timestamp": 1793089707154,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 4972.29914,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 6,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793089707401,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5158.228464,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 7,
+                "text": "画面里的帐篷是什么颜色？",
+                "timestamp": 1793089707571,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5296.021158,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 8,
+                "text": "画面里的帐篷是什么颜色",
+                "timestamp": 1793089707746,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 5757.791633,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 9,
+                "text": "画面里的帐篷是什么颜色只",
+                "timestamp": 1793089708203,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "speech_endpoint",
+          "monotonic_ms": 5941.2835
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6078.876252,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 10,
+                "text": "画面里的帐篷是什么颜色？只回答。",
+                "timestamp": 1793089708632,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6085.262864,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 11,
+                "text": "画面里的帐篷是什么颜色只回答",
+                "timestamp": 1793089708639,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6319.421873,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 12,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793089708881,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 6350.994338,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 13,
+                "text": "画面里的帐篷是什么颜色只回答颜色",
+                "timestamp": 1793089708910,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "elapsed_from_play_ms": 4460.110514999999,
+          "event": "pcm_eof",
+          "last_sample": 71362,
+          "monotonic_ms": 6752.325071,
+          "silence_continues": true,
+          "voiced_endpoint_ms": 5951.209928
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7050.709766,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": false,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 14,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793089709586,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7054.44523,
+          "payload": {
+            "EventTime": 1793089709590,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 2,
+              "Description": "thinking"
+            },
+            "TaskId": "Task6e51d4f34a0e",
+            "UserID": "User6e51d4f34a0e"
+          },
+          "type": "conv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 7054.56669,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "",
+                "lastCharPos": 0,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 15,
+                "text": "画面里的帐篷是什么颜色？只回答颜色。",
+                "timestamp": 1793089709591,
+                "userId": "User6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8480.283355,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 0,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": false,
+                "roundId": 1,
+                "sequence": 0,
+                "text": "红色",
+                "timestamp": 1793089711056,
+                "userId": "Bot6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8480.374601,
+          "payload": {
+            "data": [
+              {
+                "customInfo": null,
+                "definite": true,
+                "firstCharPos": 1,
+                "language": "zh",
+                "lastCharPos": 1,
+                "mode": 0,
+                "paragraph": true,
+                "roundId": 1,
+                "sequence": 1,
+                "text": "",
+                "timestamp": 1793089711056,
+                "userId": "Bot6e51d4f34a0e"
+              }
+            ],
+            "type": "subtitle"
+          },
+          "type": "subv"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 8736.283254,
+          "payload": {
+            "EventTime": 1793089711374,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 3,
+              "Description": "answering"
+            },
+            "TaskId": "Task6e51d4f34a0e",
+            "UserID": "User6e51d4f34a0e"
+          },
+          "type": "conv"
+        },
+        {
+          "consecutive_frames": 2,
+          "event": "remote_audio_nonzero",
+          "first_window_ms": 9340.876483,
+          "monotonic_ms": 9350.258826,
+          "rms_threshold": 64.0,
+          "source": "remote_user_observer"
+        },
+        {
+          "event": "tlv",
+          "monotonic_ms": 9893.654331,
+          "payload": {
+            "EventTime": 1793089712564,
+            "RoundID": 1,
+            "Stage": {
+              "Code": 5,
+              "Description": "answerFinish"
+            },
+            "TaskId": "Task6e51d4f34a0e",
+            "UserID": "User6e51d4f34a0e"
+          },
+          "type": "conv"
+        }
+      ],
+      "transcripts": [
+        "画面里的帐篷是什么颜色？只回答颜色。"
+      ],
+      "replies": [
+        "红色"
+      ],
+      "tools": [],
+      "cleanup": {
+        "cloud_stop": {
+          "ok": true,
+          "requestId": "20261027162833609A45C320E4919AE752",
+          "control_ms": 240.34789999999884,
+          "billing_stopped_verified": false
+        },
+        "native_exit_code": 0,
+        "node_exit_code": 0,
+        "short_token_file_deleted": true
+      },
+      "endpoint_override": {
+        "requested_ms": null,
+        "config_path": "S2SConfig.ProviderParams.asr.extra.end_smooth_window_ms",
+        "forwarding_verified": false
+      },
+      "control_start": {
+        "ok": true,
+        "requestId": "20261027162823FEF20A74DFA02BB2CD0D",
+        "control_ms": 438.3832000000002,
+        "media_verified": false
+      },
+      "speech_endpoint": {
+        "native_ms": 5941.2835,
+        "method": "actual_covering_chunk_enqueue_minus_trailing_samples",
+        "speech_end_samples": 58544,
+        "covering_chunk": {
+          "enqueued_ms": 5942.2835,
+          "event": "audio_chunk",
+          "last_sample": 58560,
+          "monotonic_ms": 5942.288762,
+          "voiced_endpoint_ms": 5951.209928
+        }
+      },
+      "first_audio_boundary": "remote_user_observer",
+      "elapsed_seconds": 15.321710599819198,
+      "media": {
+        "audio_chunks": 447,
+        "video_frames": 19,
+        "decoded_audio_frames": 831,
+        "pulled_audio_frames": 966,
+        "nonzero_audio_frames": 56,
+        "maximum_output_rms": 5575.78926307747,
+        "native_stderr_bytes": 23,
+        "node_stderr_bytes": 0
+      },
+      "container_rpc": false,
+      "execution": "no_device_tool",
+      "expected_answer": "红",
+      "answer_correct": true,
+      "asr_correct": true,
+      "assessment": {
+        "asr_received": true,
+        "nonzero_audio_received": true,
+        "tool_verified": true,
+        "speech_endpoint_verified": true
+      },
+      "delivery_verified": true,
+      "phase": "media_control",
+      "scenario": "CompressedVision",
+      "transform": "Media/Transform.json",
+      "round_evidence": {
+        "completed_user_rounds": [
+          1
+        ],
+        "completed_bot_rounds": [
+          1
+        ],
+        "user_final_text_by_round": {
+          "1": "画面里的帐篷是什么颜色？只回答颜色。"
+        }
+      },
+      "same_round_verified": true,
+      "complete_ASR": true,
+      "input_confirmed": true,
+      "attribution": "original_RTC_route_confirmed_input_and_correct_output"
+    }
+  ],
+  "sources": [
+    "https://help.aliyun.com/zh/model-studio/realtime",
+    "https://help.aliyun.com/zh/model-studio/client-events",
+    "https://www.volcengine.com/docs/82379/1494384"
+  ],
+  "attempts": 19,
+  "updated_at": "2026-10-27T08:28:35.194042+00:00"
+}

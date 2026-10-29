@@ -17,8 +17,7 @@ from app.SessionLog import SessionLog
 from app.Cleanup import cleanup_step, cleanup_record
 from app.Hud import EMERGENCY_HELP, operator_controls
 from app.DeviceSession import DeviceSession
-from app.Tools import (PROGRAM_INSTRUCTIONS, RTC_INSTRUCTIONS, RTC_TOOLS,
-                       OMNI_INSTRUCTIONS, OMNI_TOOLS, PROGRAM_MAX_BYTES)
+from app.Tools import PROGRAM_INSTRUCTIONS, OMNI_INSTRUCTIONS, OMNI_TOOLS, PROGRAM_MAX_BYTES
 
 
 def plan_program(client, text, image=None):
@@ -59,11 +58,23 @@ class Session:
     def __init__(self, args, log):
         self.args, self.log = args, log
         self.device = self.runtime = self.controls = None
-        self.bridge = self.service = self.voice_route = None
+        self.service = self.bridge = None
+
+    async def wait_voice(self):
+        tasks = [asyncio.create_task(self.service.wait()), asyncio.create_task(self.bridge.wait())]
+        try:
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                await task
+        finally:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def run(self):
         args, log = self.args, self.log
-        from providers.model_client import ModelClient
+        from providers.DoubaoConfig import load_config
+        from providers.DoubaoVision import DoubaoVisionClient
         if not args.real_drone:
             raise ValueError('执行或语音必须显式--real-drone；无模拟模式。只生成程序使用plan --text')
         code = None
@@ -71,38 +82,24 @@ class Session:
             code = Path(args.program).read_text(encoding='utf-8-sig')
             if not code.strip() or len(code.encode()) > PROGRAM_MAX_BYTES:
                 raise ValueError('程序必须非空且不超过60KB')
-        text_client = ModelClient(on_usage=log) if args.text else None
         voice = args.command == 'voice'
-        voice_route = voice_client = omni_service_class = rtc_node = None
-        if voice:
-            from providers.VoiceRoutes import load_voice_route
-            voice_route = load_voice_route(args.voice_provider, alibaba_credentials=args.alibaba_credentials,
-                doubao_credentials=args.doubao_credentials, log=log)
-            voice_client = voice_route.vision_client(log)
-            if voice_route.provider == 'doubao':
-                from providers.RTCRuntime import validate_environment
-                rtc_node = validate_environment(args.max_session_seconds, voice_route.rtc_environment)
-            else:
-                from providers.OmniRuntime import OmniService
-                omni_service_class = OmniService
-            log({'event': 'voice_provider_selected', 'provider': voice_route.provider,
-                 'code_limit_bytes': voice_route.code_limit,
-                 'automatic_provider_switch': False, 'billing_verified': False})
+        config = load_config(args.doubao_credentials, log) if voice or args.text or args.vision else None
+        client = DoubaoVisionClient(config, on_usage=log,
+            max_output_tokens=None) if config else None
         from execution.sandbox_runner import SandboxRunner
-        probe = SandboxRunner(image=args.sandbox_image, timeout=args.program_timeout)
-        await probe.check()  # Docker/RTC credentials validated before connecting hardware
-        self.voice_route = voice_route
+        runner = SandboxRunner(image=args.sandbox_image, timeout=args.program_timeout)
+        await runner.check()  # Credentials and Docker checked before hardware.
+        if voice:
+            from providers.RTCRuntime import RTCProcess, validate_environment
+            node = validate_environment(args.max_session_seconds, config.environment)
         status = 0
         try:
             self.device = DeviceSession(args, log)
             device = await self.device.open()
             from navigation.vision import Vision
-            client = voice_client if voice else text_client
-            if client is None and args.vision:
-                client = ModelClient(on_usage=log)
             log({'event': 'vision_capability', 'configured': client is not None})
             self.runtime = UnifiedRuntime(device, self.device.follow, Vision(client, device), log,
-                runner=SandboxRunner(image=args.sandbox_image, timeout=args.program_timeout))
+                runner=runner)
             self.controls = asyncio.create_task(operator_controls(self.runtime, args, log, self.device))
             print(EMERGENCY_HELP, flush=True)
             if args.program:
@@ -117,25 +114,18 @@ class Session:
                 else:
                     result = await supervise(self.runtime.run(plan['code'], expected_generation=generation), self.controls)
             else:
-                if self.voice_route.provider == 'alibaba':
-                    self.service = omni_service_class(self.runtime, device, log, self.voice_route.config,
-                        OMNI_INSTRUCTIONS, OMNI_TOOLS, seconds=args.max_session_seconds,
-                        http_port=args.web_port)
-                    url = await self.service.start()
-                else:
-                    from providers.RTCBridge import RTCBridge
-                    from providers.RTCRuntime import RTCProcess
-                    self.bridge = RTCBridge(self.runtime, device, log, max_session_seconds=args.max_session_seconds)
-                    await self.bridge.start()
-                    log.secrets += (self.bridge.token,)
-                    self.service = RTCProcess(log, env=self.voice_route.rtc_environment, node=rtc_node, web_port=args.web_port)
-                    url = await self.service.start(self.bridge, args.max_session_seconds, RTC_INSTRUCTIONS, RTC_TOOLS)
-                print('[语音/%s] 请手动打开 %s，授权麦克风并明确选择蓝牙耳机输入和输出。' %
-                      (self.voice_route.provider, url), flush=True)
+                from providers.RTCBridge import RTCBridge
+                self.bridge = RTCBridge(self.runtime, device, log,
+                    max_session_seconds=args.max_session_seconds)
+                await self.bridge.start()
+                self.service = RTCProcess(log, config.environment, node=node, web_port=args.web_port)
+                url = await self.service.start(self.bridge, args.max_session_seconds,
+                                               OMNI_INSTRUCTIONS, OMNI_TOOLS)
+                print('[语音/豆包] 请手动打开 %s，授权麦克风并选择耳机输入和输出。' % url, flush=True)
                 print('[语音] 不自动打开浏览器或电脑摄像头；每次连接最多%s秒。Ctrl+C结束并执行退出策略。' % args.max_session_seconds, flush=True)
                 try:
                     remaining = max(0., self.service.deadline - time.time())
-                    await asyncio.wait_for(supervise(self.service.wait(), self.controls), remaining)
+                    await asyncio.wait_for(supervise(self.wait_voice(), self.controls), remaining)
                 except asyncio.TimeoutError:
                     log({'event': 'runtime_duration_limit', 'seconds': args.max_session_seconds})
                     print('[语音] 达到全局时限，先停止/降落，再关闭云端会话。', flush=True)
@@ -156,25 +146,26 @@ class Session:
     async def close(self):
         args, log = self.args, self.log
         outcome = {'ok': True, 'steps': []}
-        omni = self.service and self.voice_route and self.voice_route.provider == 'alibaba'
-        if omni:
+        if self.bridge:
             async def revoke():
                 # Stop media pumps before revoking self.runtime generation.
-                return self.service.revoke(args.exit_action == 'land')
-            await cleanup_step(outcome, log, 'voice_revoke', revoke, 1)
+                return await self.bridge.revoke('application_exit', args.exit_action == 'land')
+            await cleanup_step(outcome, log, 'voice_revoke', revoke, 5)
         if self.runtime:
             async def cancel():
                 self.runtime.close()
             await cleanup_step(outcome, log, 'runtime_cancel', cancel, 1)
         async def close_voice():
             return await self.service.close()
-        if omni:
+        if self.service:
             await cleanup_step(outcome, log, 'voice_service', close_voice, 30)
         if self.bridge:
-            await cleanup_step(outcome, log, 'rtc_bridge', self.bridge.close, 3)
+            await cleanup_step(outcome, log, 'voice_bridge', self.bridge.close, 10)
         if self.device:
             await cleanup_step(outcome, log, 'real_resources',
                                lambda: self.device.close(self.runtime), args.landing_timeout + 100)
+        if self.runtime:
+            await cleanup_step(outcome, log, 'sandbox_session', self.runtime.close_sandbox, 15)
         if self.controls:
             async def close_controls():
                 self.controls.cancel()
@@ -183,8 +174,6 @@ class Session:
                 except asyncio.CancelledError:
                     pass  # Expected only for this explicitly cancelled task.
             await cleanup_step(outcome, log, 'operator_controls', close_controls, 5)
-        if self.service and not omni:
-            await cleanup_step(outcome, log, 'voice_service', close_voice, 30)
         try:
             log({'event': 'runtime_cleanup', 'result': outcome})
         except Exception as exc:
@@ -199,7 +188,9 @@ def make_parser():
     plan.add_argument('--text', required=True)
     plan.add_argument('--image', help='静态图片，仅用于计划')
     plan.add_argument('--log-file')
+    plan.add_argument('--doubao-credentials')
     device = argparse.ArgumentParser(add_help=False)
+    device.add_argument('--doubao-credentials')
     device.add_argument('--real-drone', action='store_true', help='显式连接真实Tello；没有模拟模式')
     device.add_argument('--allow-real-takeoff', action='store_true', help='预检后允许模型请求起飞，默认禁止')
     device.add_argument('--address', default=None)
@@ -214,7 +205,7 @@ def make_parser():
                         help='结束/失败默认请求降落；hover只归零，需人工继续控制')
     device.add_argument('--show-video', action='store_true', help='显示实时HUD；q只关显示，不结束任务')
     device.add_argument('--program-timeout', type=float, default=90)
-    device.add_argument('--sandbox-image', default='companion-sandbox:0.4')
+    device.add_argument('--sandbox-image', default='companion-sandbox:0.5')
     device.add_argument('--log-file', help='JSONL日志路径；不记录密钥、图片或音频')
 
     device.set_defaults(program=None, text=None)
@@ -225,16 +216,10 @@ def make_parser():
     source.add_argument('--text', help='由真实模型生成程序并执行')
     voice = commands.add_parser('voice', parents=[device], help='持续语音会话')
     voice.set_defaults(vision=False)
-    voice.add_argument('--voice-provider', choices=('alibaba', 'doubao'), default='alibaba',
-                        help='默认阿里云；豆包为启动前显式选择的备选，不在飞行中自动切换或重放')
-    voice.add_argument('--alibaba-credentials', default=os.getenv('ALIBABA_CREDENTIALS_FILE'),
-                        help='服务端阿里云凭据JSON路径；也可设置ALIBABA_CREDENTIALS_FILE')
-    voice.add_argument('--doubao-credentials', default=os.getenv('DOUBAO_CREDENTIALS_FILE'),
-                        help='仅豆包备选路线使用；阿里路线不读取此文件')
     voice.add_argument('--max-session-seconds', type=float, default=30000,
                         help='会话默认30000秒，到期停止云端并退出')
     voice.add_argument('--web-port', type=int, default=18848,
-                        help='两条语音路线的固定本机网页端口，默认18848；占用时失败，不自动换端口')
+                        help='固定本机网页端口，默认18848；占用时失败，不自动换端口')
     return parser
 
 
@@ -263,8 +248,10 @@ def main(argv=None):
     try:
         log({'event': 'runtime_start', 'mode': args.command})
         if args.command == 'plan':
-            from providers.model_client import ModelClient
-            result = plan_program(ModelClient(on_usage=log), args.text, args.image)
+            from providers.DoubaoConfig import load_config
+            from providers.DoubaoVision import DoubaoVisionClient
+            client = DoubaoVisionClient(load_config(args.doubao_credentials, log), on_usage=log)
+            result = plan_program(client, args.text, args.image)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         return asyncio.run(Session(args, log).run())

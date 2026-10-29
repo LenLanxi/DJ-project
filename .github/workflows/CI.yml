@@ -36,5 +36,5 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       - run: uv sync --frozen
-      - run: docker build -t companion-sandbox:0.4 execution/sandbox
+      - run: docker build -t companion-sandbox:0.5 execution/sandbox
       - run: uv run --frozen pytest tests/integration/SandboxSafetyTests.py tests/integration/GatewayTests.py tests/integration/R3IntegrationTests.py tests/integration/NavigationTests.py -m docker -q -o faulthandler_timeout=90 --durations=10

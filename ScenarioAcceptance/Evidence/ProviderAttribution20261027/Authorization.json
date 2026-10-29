@@ -1,0 +1,12 @@
+{
+  "paid_test_budget_rmb": 15,
+  "max_additional_requests": 20,
+  "output_tokens_per_generation": 350,
+  "production_free_only_guard_bypassed": false,
+  "independent_raw_protocol_test": true,
+  "credential_free_only_flag": false,
+  "credential_paid_policy_fields_present": true,
+  "credential_values_logged": false,
+  "actual_bill_verified": false,
+  "preflight_production_config_rejected_before_network": true
+}

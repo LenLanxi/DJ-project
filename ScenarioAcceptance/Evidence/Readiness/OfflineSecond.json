@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "scope": "natural_language_planning_real_Docker_Gateway_Vision_TargetTracker_synthetic_device",
+  "real_cloud": false,
+  "voice_input_verified": false,
+  "physical_devices_opened": false,
+  "physical_arrival_or_flight_verified": false,
+  "started_at": "2026-10-27T09:06:18.994986+00:00",
+  "plans": [
+    {
+      "input_text": "请先检查当前模拟设备的连接、飞行状态与电量；如果已连接、电量至少30且尚未起飞，就起飞，然后开始跟随向前行走的用户。只依据实际返回，不重复起飞。",
+      "input_confirmed": false,
+      "offline_fake_planner": true,
+      "code": "state=drone.get_status()\nprint(\"prepare_status\",state)\nif not state.get(\"connected\") or state.get(\"battery\",0)<30:\n    raise RuntimeError(\"preflight_failed\")\nif state.get(\"flight_state\")==\"landed\":\n    print(\"takeoff\",drone.takeoff())\nelif state.get(\"flight_state\")!=\"flying\":\n    raise RuntimeError(\"unknown_flight_state\")\nprint(\"follow\",drone.start_follow())\n"
+    },
+    {
+      "input_text": "当前模拟设备已经起飞且正在跟随。请飞向前面的红色帐篷，在本次保守演示停止点原地旋转一周，然后恢复原跟随。这不是实际到达证明。每次先observe确认唯一可见且居中的红帐篷，最多前进累计200厘米，每步20厘米；当width_fraction至少0.29时停止靠近。在最多10次观察内未达到条件就抛错停止。不作横移、上下移动或其他探索，不调整原跟随参考；程序成功后由现有票据恢复原跟随，不另行start_follow。每步检查工具结果，失败即抛错；打印关键观察、动作与未完成分支。",
+      "input_confirmed": false,
+      "offline_fake_planner": true,
+      "code": "total=0\nready=False\nfor step in range(10):\n    observed=drone.observe(\"前面的红色帐篷\")\n    print(\"observation\",observed)\n    if not observed.get(\"visible\") or abs(observed.get(\"center_x\",0)-0.5)>0.12:\n        raise RuntimeError(\"target_not_usable\")\n    if observed[\"width_fraction\"]>=0.29:\n        ready=True\n        break\n    if total+20>200:\n        raise RuntimeError(\"distance_budget\")\n    result=drone.move_forward(20)\n    print(\"move_result\",result)\n    if not result.get(\"ok\"):raise RuntimeError(\"move_failed\")\n    total+=20\nif not ready:raise RuntimeError(\"demonstration_stop_not_reached\")\nprint(\"rotation\",drone.rotate(360))\nprint(\"stage_status\",\"program_finished_wait_for_follow_cleanup\",total)\n"
+    }
+  ],
+  "stages": [
+    {
+      "index": 1,
+      "result": {
+        "ok": true,
+        "status": "completed",
+        "reason": "",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "get_status",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "battery": 80,
+              "height_cm": 0,
+              "connected": true,
+              "flight_state": "landed",
+              "control_owner": "none",
+              "timestamp": 1793091980.1817522,
+              "control_epoch": 0,
+              "command_epoch": 0,
+              "simulated": true
+            }
+          },
+          {
+            "method": "takeoff",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "status": "completed",
+              "is_blocking": true,
+              "simulated": true
+            }
+          },
+          {
+            "method": "start_follow",
+            "args": [],
+            "kwargs": {},
+            "result": {
+              "ok": true,
+              "current_owner": "follow",
+              "control_epoch": 3,
+              "command_epoch": 3
+            }
+          }
+        ],
+        "follow_cleanup": {
+          "status": "no_control"
+        },
+        "debug": "prepare_status {'battery': 80, 'height_cm': 0, 'connected': True, 'flight_state': 'landed', 'control_owner': 'none', 'timestamp': 1793091980.1817522, 'control_epoch': 0, 'command_epoch': 0, 'simulated': True}\ntakeoff {'ok': True, 'status': 'completed', 'is_blocking': True, 'simulated': True}\nfollow {'ok': True, 'current_owner': 'follow', 'control_epoch': 3, 'command_epoch': 3}\n"
+      },
+      "following_after": true,
+      "status_after": {
+        "battery": 80,
+        "height_cm": 80,
+        "connected": true,
+        "flight_state": "flying",
+        "control_owner": "follow",
+        "timestamp": 1793091980.4383838,
+        "control_epoch": 3,
+        "command_epoch": 3,
+        "simulated": true
+      }
+    },
+    {
+      "index": 2,
+      "result": {
+        "ok": false,
+        "status": "failed",
+        "reason": "RuntimeError: target_frame_gap",
+        "simulated": true,
+        "journal": [
+          {
+            "method": "observe",
+            "args": [
+              "前面的红色帐篷"
+            ],
+            "kwargs": {},
+            "error": "target_frame_gap"
+          }
+        ],
+        "follow_cleanup": {
+          "status": "released"
+        },
+        "debug": ""
+      },
+      "following_after": false,
+      "status_after": {
+        "battery": 80,
+        "height_cm": 80,
+        "connected": true,
+        "flight_state": "flying",
+        "control_owner": "none",
+        "timestamp": 1793091983.8366792,
+        "control_epoch": 6,
+        "command_epoch": 8,
+        "simulated": true
+      }
+    }
+  ],
+  "ok": false,
+  "api_budget_rmb_authorized": 15,
+  "budget_is_not_provider_bill_hard_cap": true,
+  "retries": 0,
+  "failure": {
+    "type": "RuntimeError",
+    "reason": "readiness_stage_2_failed"
+  },
+  "events": [
+    {
+      "event": "mock_action_completed",
+      "name": "takeoff",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793091980.205371
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793091981.4832718
+    },
+    {
+      "event": "offline_cloud_seed",
+      "delay_seconds": 1.0,
+      "image_sha256": "2fbded42033121719dcb04f494a8929b15f05d876db141d43abcfad3d960765e",
+      "result": {
+        "visible": true,
+        "ambiguous": false,
+        "candidate_count": 1,
+        "bbox": [
+          0.4083333333333333,
+          0.44814814814814813,
+          0.59375,
+          0.7185185185185186
+        ],
+        "description": "offline pixel segmentation of declared synthetic red fabric, not a cloud result"
+      },
+      "timestamp": 1793091983.021589
+    },
+    {
+      "event": "mock_action_completed",
+      "name": "stop_motion",
+      "args": [],
+      "simulated": true,
+      "forward_cm": 0.0,
+      "timestamp": 1793091983.8356688
+    }
+  ],
+  "finished_at": "2026-10-27T09:06:23.836679+00:00",
+  "cleanup": {
+    "synthetic_camera_thread_finished": true,
+    "no_cloud_stream_left_open": true,
+    "gateway_result_cleanup_recorded": true
+  }
+}

@@ -5,8 +5,8 @@
 (function (global) {
   'use strict';
   const decoder = new TextDecoder('utf-8', { fatal: true });
-  const MAX_MESSAGE = 65536;
-  const FRAME_AGE_MS = 500;
+  const MAX_MESSAGE = 256 * 1024;
+  const FRAME_AGE_MS = 1000;
 
   function decodeTLV(buffer) {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
@@ -23,39 +23,6 @@
   function explicitDevice(device) {
     return device && device.deviceId && !['default', 'communications'].includes(device.deviceId)
       && !/^(default|communications|默认|通信设备)(\s|\s*-|$)/i.test(device.label || '');
-  }
-
-  function safeResult(result) {
-    const compact = {
-      ok: result.ok === true, status: String(result.status || 'failed'),
-      reason: String(result.reason || '').slice(0, 120)
-    };
-    if (typeof result.simulated === 'boolean') compact.simulated = result.simulated;
-    if (result.follow_cleanup?.status === 'follow_resumed') {
-      compact.follow_resumed = true;
-      if (typeof result.follow_cleanup.reference_adjusted === 'string')
-        compact.follow_reference_adjusted = result.follow_cleanup.reference_adjusted;
-    }
-    if (typeof result.debug === 'string' && result.debug.trim()) {
-      compact.program_output = result.debug.trim().slice(0, 180);
-      if (result.debug.trim().length > 180) compact.truncated = true;
-    }
-    const journal = Array.isArray(result.journal) ? result.journal : [];
-    const last = journal[journal.length - 1];
-    if (last) {
-      compact.last_method = last.method;
-      const value = last.result || {};
-      for (const field of ['battery', 'height_cm', 'flight_state', 'connected', 'visible', 'center_x', 'width_fraction', 'age_seconds']) {
-        if (['string', 'number', 'boolean'].includes(typeof value[field]) || value[field] === null) compact[field] = value[field];
-      }
-      if (typeof value.answer === 'string') compact.answer = value.answer.slice(0, 100);
-      if (typeof value.description === 'string') compact.description = value.description.slice(0, 80);
-      if (typeof value.status === 'string') compact.last_status = value.status;
-      if (typeof value.ok === 'boolean') compact.last_ok = value.ok;
-      if (last.error) compact.last_error = String(last.error).slice(0, 100);
-    }
-    if (journal.length) compact.interface_calls = journal.length;
-    return compact;
   }
 
   class Client {
@@ -310,7 +277,7 @@
         this.bound = true;
         this.notify();
       } else if (message.type === 'tool_result') {
-        this.onMessage('执行：' + JSON.stringify(safeResult(message.result || {})));
+        this.onMessage('执行：' + JSON.stringify(message.result || {}));
       } else if (message.type === 'frame') {
         await this.renderFrame(message);
       } else if (message.type === 'invalid_frame') {
@@ -455,7 +422,7 @@
     }
   }
 
-  const exported = { Client, decodeTLV, safeResult, explicitDevice };
+  const exported = { Client, decodeTLV, explicitDevice };
   global.CompanionRTC = exported;
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (typeof document === 'undefined') return;

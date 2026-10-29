@@ -1,0 +1,1223 @@
+{
+  "av_version": "16.1.0",
+  "library_versions": {
+    "libavutil": [
+      60,
+      8,
+      100
+    ],
+    "libavcodec": [
+      62,
+      11,
+      100
+    ],
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "libavdevice": [
+      62,
+      1,
+      100
+    ],
+    "libavfilter": [
+      11,
+      4,
+      100
+    ],
+    "libswscale": [
+      9,
+      1,
+      100
+    ],
+    "libswresample": [
+      6,
+      1,
+      100
+    ]
+  },
+  "samples": [
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 256,
+        "height": 128,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": null
+      },
+      "stall_seconds": 0,
+      "driver_lf_sha256": "0971a619fedde55cdf6022fc811dac938a7635d8266f49cf2c631f756c883c08",
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.0,
+      "decoded": [
+        {
+          "number": 0,
+          "send_age_ms": 94.0
+        },
+        {
+          "number": 1,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 2,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 3,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 4,
+          "send_age_ms": 63.0
+        },
+        {
+          "number": 5,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 6,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 7,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 8,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 9,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 10,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 11,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 12,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 13,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 14,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 15,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 16,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 17,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 18,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 19,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 20,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 21,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 22,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 23,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 24,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 25,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 26,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 27,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 28,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 29,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 30,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 31,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 32,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 33,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 34,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 35,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 36,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 37,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 38,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 39,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 40,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 41,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 42,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 43,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 44,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 45,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 46,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 47,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 48,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 49,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 50,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 51,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 52,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 53,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 54,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 55,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 56,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 57,
+          "send_age_ms": 46.0
+        },
+        {
+          "number": 58,
+          "send_age_ms": 16.0
+        },
+        {
+          "number": 59,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 60,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 61,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 62,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 63,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 64,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 65,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 66,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 67,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 68,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 69,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 70,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 71,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 72,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 73,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 74,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 75,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 76,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 77,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 78,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 79,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 80,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 81,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 82,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 83,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 84,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 85,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 86,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 87,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 88,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 89,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 90,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 91,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 92,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 93,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 94,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 95,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 96,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 97,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 98,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 99,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 100,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 101,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 102,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 103,
+          "send_age_ms": 31.0
+        }
+      ],
+      "stats": {
+        "backend": "av",
+        "count": 104,
+        "reconnects": 0,
+        "opened": 1,
+        "errors": [],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 104,
+        "max_send_age_ms": 94.0,
+        "unknown_source_count": 0,
+        "published_stale_count": 0,
+        "reconnects": 0,
+        "conversion_max_ms": 0.0,
+        "processing_rejected": false,
+        "gap_rejected": false
+      }
+    },
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 256,
+        "height": 128,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": null
+      },
+      "stall_seconds": 1.1,
+      "driver_lf_sha256": "0971a619fedde55cdf6022fc811dac938a7635d8266f49cf2c631f756c883c08",
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.0,
+      "decoded": [
+        {
+          "number": 0,
+          "send_age_ms": 78.0
+        },
+        {
+          "number": 1,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 45,
+          "send_age_ms": 94.0
+        },
+        {
+          "number": 46,
+          "send_age_ms": 62.0
+        },
+        {
+          "number": 47,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 48,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 49,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 50,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 51,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 52,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 53,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 54,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 55,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 56,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 57,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 58,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 59,
+          "send_age_ms": 46.0
+        },
+        {
+          "number": 60,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 61,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 62,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 63,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 64,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 65,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 66,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 67,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 68,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 69,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 70,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 71,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 72,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 73,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 74,
+          "send_age_ms": 46.0
+        },
+        {
+          "number": 75,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 76,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 77,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 78,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 79,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 80,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 81,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 82,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 83,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 84,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 85,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 86,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 87,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 88,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 89,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 90,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 91,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 92,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 93,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 94,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 95,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 96,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 97,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 98,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 99,
+          "send_age_ms": 62.0
+        },
+        {
+          "number": 100,
+          "send_age_ms": 16.0
+        },
+        {
+          "number": 101,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 102,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 103,
+          "send_age_ms": 62.0
+        }
+      ],
+      "stats": {
+        "backend": "av",
+        "count": 61,
+        "reconnects": 1,
+        "opened": 2,
+        "errors": [
+          "decode: decode_gap_exceeded: 1.094s; discard queued frames"
+        ],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 61,
+        "max_send_age_ms": 94.0,
+        "unknown_source_count": 0,
+        "published_stale_count": 0,
+        "reconnects": 1,
+        "conversion_max_ms": 0.0,
+        "processing_rejected": false,
+        "gap_rejected": true
+      }
+    },
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 0,
+      "driver_lf_sha256": "0971a619fedde55cdf6022fc811dac938a7635d8266f49cf2c631f756c883c08",
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.0,
+      "decoded": [
+        {
+          "number": 0,
+          "send_age_ms": 78.0
+        },
+        {
+          "number": 1,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 2,
+          "send_age_ms": 16.0
+        },
+        {
+          "number": 75,
+          "send_age_ms": 125.0
+        },
+        {
+          "number": 76,
+          "send_age_ms": 93.0
+        },
+        {
+          "number": 77,
+          "send_age_ms": 78.0
+        },
+        {
+          "number": 78,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 79,
+          "send_age_ms": 16.0
+        },
+        {
+          "number": 80,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 81,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 82,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 83,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 84,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 85,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 86,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 87,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 88,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 89,
+          "send_age_ms": 46.0
+        },
+        {
+          "number": 90,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 91,
+          "send_age_ms": 15.0
+        },
+        {
+          "number": 92,
+          "send_age_ms": 63.0
+        },
+        {
+          "number": 93,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 94,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 95,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 96,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 97,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 98,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 99,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 100,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 101,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 102,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 103,
+          "send_age_ms": 47.0
+        }
+      ],
+      "stats": {
+        "backend": "av",
+        "count": 32,
+        "reconnects": 6,
+        "opened": 7,
+        "errors": [
+          "decode: [Errno 5] I/O error: 'udp://127.0.0.1:49672?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'"
+        ],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 32,
+        "max_send_age_ms": 125.0,
+        "unknown_source_count": 0,
+        "published_stale_count": 0,
+        "reconnects": 6,
+        "conversion_max_ms": 0.0,
+        "processing_rejected": false,
+        "gap_rejected": false
+      }
+    },
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 960,
+        "height": 720,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": 4
+      },
+      "stall_seconds": 1.1,
+      "driver_lf_sha256": "0971a619fedde55cdf6022fc811dac938a7635d8266f49cf2c631f756c883c08",
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.0,
+      "decoded": [
+        {
+          "number": 0,
+          "send_age_ms": 109.0
+        },
+        {
+          "number": 1,
+          "send_age_ms": 78.0
+        },
+        {
+          "number": 60,
+          "send_age_ms": 46.0
+        },
+        {
+          "number": 61,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 62,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 63,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 64,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 65,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 66,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 67,
+          "send_age_ms": 63.0
+        },
+        {
+          "number": 68,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 69,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 70,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 71,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 72,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 73,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 74,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 75,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 76,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 77,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 78,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 79,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 80,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 81,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 82,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 83,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 84,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 85,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 86,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 87,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 88,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 89,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 90,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 91,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 92,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 93,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 94,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 95,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 96,
+          "send_age_ms": 47.0
+        },
+        {
+          "number": 97,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 98,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 99,
+          "send_age_ms": 32.0
+        },
+        {
+          "number": 100,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 101,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 102,
+          "send_age_ms": 31.0
+        },
+        {
+          "number": 103,
+          "send_age_ms": 32.0
+        }
+      ],
+      "stats": {
+        "backend": "av",
+        "count": 46,
+        "reconnects": 2,
+        "opened": 3,
+        "errors": [
+          "decode: decode_gap_exceeded: 1.094s; discard queued frames",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'"
+        ],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 46,
+        "max_send_age_ms": 109.0,
+        "unknown_source_count": 0,
+        "published_stale_count": 0,
+        "reconnects": 2,
+        "conversion_max_ms": 16.0,
+        "processing_rejected": false,
+        "gap_rejected": true
+      }
+    }
+  ],
+  "sources": [
+    "https://ffmpeg.org/ffmpeg-protocols.html#udp",
+    "https://ffmpeg.org/ffmpeg-formats.html#Format-Options"
+  ],
+  "scope": "generated pixels and local UDP send times; not camera or aircraft latency"
+}

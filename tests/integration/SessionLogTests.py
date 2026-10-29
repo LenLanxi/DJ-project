@@ -12,6 +12,19 @@ MODULE = importlib.import_module('app.SessionLog')
 
 
 class RuntimeSessionLogTests(unittest.TestCase):
+    def test_tool_evidence_is_complete_and_still_redacts_secrets(self):
+        with tempfile.TemporaryDirectory() as folder:
+            log = SessionLog(Path(folder) / 'Trace.jsonl')
+            log.secrets = ('privateTestSecret',)
+            raw = '{"code": "' + 'a' * 17000 + 'privateTestSecret' + '\\nprint(\\"done\\")"}'
+            self.assertTrue(log({'event': 'omni_tool_arguments', 'arguments_raw': raw,
+                                 'arguments_delta': '"', 'audio': 'private audio'}))
+            log.close()
+            saved = json.loads(log.path.read_text(encoding='utf-8'))
+            self.assertEqual(saved['arguments_raw'], raw.replace('privateTestSecret', '[redacted]'))
+            self.assertEqual(saved['arguments_delta'], '"')
+            self.assertEqual(saved['audio'], '[payload omitted]')
+
     def test_default_budget_is_shared_and_recycles_oldest_closed_segments(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(MODULE, 'ROOT', Path(folder)):
             first = SessionLog(max_bytes=650, segment_bytes=200)

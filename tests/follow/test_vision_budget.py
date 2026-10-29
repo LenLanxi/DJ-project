@@ -168,14 +168,13 @@ class VisionBudgetTests(unittest.TestCase):
         self.assertIn('downscaled_local_contrast', attempts)
         self.assertNotIn('upscaled_wide_threshold', attempts)
 
-    def test_exact_side_rescue_precedes_upscale_without_skipping_identity_check(self):
+    def test_exact_side_rescue_precedes_upscale(self):
         fixture = Path(__file__).resolve().parents[1]/'fixtures'/'follow'/'side_contour_rescue.png'
         image = cv2.imdecode(np.frombuffer(fixture.read_bytes(), np.uint8), 0)
         tracker = MarkerTracker()
         observation = tracker.detect(image, 1, 0)
         self.assertTrue(observation.found)
         self.assertEqual(tracker.last_diagnostics['detector_method'], 'edge_quad_exact')
-        self.assertIn('duplicate_check', tracker.last_diagnostics)
         self.assertNotIn('upscaled_wide_threshold',
                          [a['method'] for a in tracker.last_diagnostics['attempts']])
 

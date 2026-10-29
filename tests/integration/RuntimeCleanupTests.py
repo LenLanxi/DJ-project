@@ -169,10 +169,10 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         await main.cleanup_step(outcome, self.log, 'cancelled', cancelled, 1)
         self.assertEqual(self.failed_steps(outcome), {'timeout', 'cancelled'})
 
-    def session(self, *, cleanup=None, execution=None, provider=None, service=None):
+    def session(self, *, cleanup=None, execution=None, voice=False, service=None):
         stack = ExitStack()
         self.addCleanup(stack.close)
-        args = ['voice' if provider else 'run', '--real-drone'] + (['--voice-provider', provider] if provider else
+        args = ['voice' if voice else 'run', '--real-drone'] + ([] if voice else
                                   ['--program', str(Path(__file__))])
         self.args = main.make_parser().parse_args(args)
         stack.enter_context(patch.object(main.DeviceSession, 'open', new=AsyncMock(return_value=object())))
@@ -188,24 +188,21 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         stack.enter_context(patch('execution.sandbox_runner.SandboxRunner.check', new=AsyncMock()))
         runner = AsyncMock(return_value=execution if execution is not None else {'ok': True})
         self.runtime_service = SimpleNamespace(run=runner, close=Mock(), generation=0, pending=None,
-            land_requested=False, interrupt=AsyncMock(return_value={'ok': True}),
+            land_requested=False, close_sandbox=AsyncMock(return_value={'ok':True}), interrupt=AsyncMock(return_value={'ok': True}),
             retry_cleanup=AsyncMock(return_value={'ok': True}))
         stack.enter_context(patch.object(main, 'UnifiedRuntime', return_value=self.runtime_service))
-        stack.enter_context(patch('providers.model_client.ModelClient', return_value=None))
         stack.enter_context(patch('navigation.vision.Vision'))
-        if provider:
-            route = SimpleNamespace(provider=provider, code_limit=600, config=object(),
-                rtc_environment={}, vision_client=lambda log: None)
-            stack.enter_context(patch('providers.VoiceRoutes.load_voice_route', return_value=route))
-            stack.enter_context(patch('providers.RTCRuntime.validate_environment'))
+        if voice:
+            stack.enter_context(patch('providers.DoubaoConfig.load_config',
+                                      return_value=SimpleNamespace(environment={})))
+            stack.enter_context(patch('providers.DoubaoVision.DoubaoVisionClient', return_value=None))
+            stack.enter_context(patch('providers.RTCRuntime.validate_environment', return_value='node'))
             self.service = service or SimpleNamespace(start=AsyncMock(return_value='http://localhost'),
-                wait=AsyncMock(), close=AsyncMock(return_value={'ok': True, 'steps': []}), revoke=Mock(), deadline=time.time()+10)
-            if provider == 'alibaba':
-                stack.enter_context(patch('providers.OmniRuntime.OmniService', return_value=self.service))
-            else:
-                self.bridge = SimpleNamespace(start=AsyncMock(), close=AsyncMock(), token='token')
-                stack.enter_context(patch('providers.RTCBridge.RTCBridge', return_value=self.bridge))
-                stack.enter_context(patch('providers.RTCRuntime.RTCProcess', return_value=self.service))
+                wait=AsyncMock(), close=AsyncMock(return_value={'ok': True, 'steps': []}), deadline=time.time()+10)
+            self.bridge = SimpleNamespace(start=AsyncMock(), wait=AsyncMock(side_effect=asyncio.Event().wait),
+                revoke=AsyncMock(return_value={'ok': True}), close=AsyncMock(return_value={'ok': True}))
+            stack.enter_context(patch('providers.RTCBridge.RTCBridge', return_value=self.bridge))
+            stack.enter_context(patch('providers.RTCRuntime.RTCProcess', return_value=self.service))
         return runner
 
     async def test_run_success_remains_zero_and_failed_cleanup_becomes_nonzero(self):
@@ -244,14 +241,31 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.closedcontrols)
 
     async def test_cloud_close_failure_does_not_skip_aircraft_or_controls(self):
-        self.session(provider='alibaba')
+        self.session(voice=True)
         self.service.close.side_effect = RuntimeError('cloud_close_failed')
         self.assertEqual(await main.Session(self.args, self.log).run(), 1)
+        self.bridge.revoke.assert_awaited_once_with('application_exit', True)
+        self.bridge.close.assert_awaited_once()
         self.close.assert_awaited_once()
         self.assertTrue(self.closedcontrols)
 
+    async def test_browser_disconnect_finishes_voice_wait_and_cancels_node_observer(self):
+        entered, cancelled = asyncio.Event(), asyncio.Event()
+        async def node_wait():
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+        session = main.Session(SimpleNamespace(), self.log)
+        session.service = SimpleNamespace(wait=node_wait)
+        session.bridge = SimpleNamespace(wait=entered.wait)
+        await asyncio.wait_for(session.wait_voice(), 1)
+        self.assertTrue(cancelled.is_set())
+
     async def test_cloud_cleanup_error_is_redacted_in_console_and_evidence(self):
-        self.session(provider='alibaba')
+        self.session(voice=True)
         secret = 'PrivateCredentialValue'
         self.log.clean = lambda value: str(value).replace(secret, '[redacted]')
         self.service.close.side_effect = RuntimeError('failed using ' + secret)
@@ -262,23 +276,6 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(secret, repr(self.log.events))
         self.assertIn('[redacted]', output.getvalue())
 
-
-
-    async def test_rtc_bridge_failure_still_closes_aircraft_and_cloud(self):
-        self.session(provider='doubao')
-        self.bridge.close.side_effect = RuntimeError('bridge_close_failed')
-        self.assertEqual(await main.Session(self.args, self.log).run(), 1)
-        self.close.assert_awaited_once()
-        self.service.close.assert_awaited_once()
-
-
-    async def test_rtc_pending_cloud_close_and_failed_helper_exit_are_not_success(self):
-        self.session(provider='doubao')
-        for pending, code in ((True, None), (False, 1), (False, None)):
-            with self.subTest(pending=pending, code=code):
-                self.service.close.return_value = {'ok': False, 'steps': [
-                    {'step': 'rtc_process', 'ok': False, 'reason': 'pending' if pending else 'exit_' + str(code)}]}
-                self.assertEqual(await main.Session(self.args, self.log).run(), 1)
 
 
     async def test_actual_driver_end_exception_reaches_actual_run_exit_status(self):

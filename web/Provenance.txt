@@ -10,7 +10,7 @@ expiry and dynamic buffers. It does not copy the original token parser.
 
 RTCService.js adapts the official OpenAPI Signer request shape (service rtc,
 region cn-north-1, API version 2025-06-01). The HTTP service, single-session
-lifecycle, deadline, heartbeat, cleanup retry, same-origin checks, response
+lifecycle, deadline, cleanup retry, same-origin checks, response
 validation and test suite are project changes, not upstream guarantees.
 
 The complete upstream BSD-3-Clause license and attribution are in License.txt.

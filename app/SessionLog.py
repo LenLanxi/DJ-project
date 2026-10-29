@@ -76,6 +76,10 @@ class SessionLog:
             value = re.sub(r'(?i)([?&](?:token|key|access_token)=)[^&#\s]+', r'\1[redacted]', value)
             if value.startswith('data:'):
                 return '[payload omitted]'
+            # Tool stream evidence must survive intact for byte-for-byte replay.
+            # These fields contain JSON/code, never audio or request headers.
+            if key in ('arguments_raw', 'arguments_delta', 'arguments_assembled'):
+                return value
             return value if len(value) <= 16000 else value[:16000] + '[truncated]'
         if value is None or isinstance(value, (bool, int, float)):
             return value

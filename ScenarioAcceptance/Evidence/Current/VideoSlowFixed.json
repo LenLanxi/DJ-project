@@ -1,0 +1,101 @@
+{
+  "av_version": "16.1.0",
+  "library_versions": {
+    "libavutil": [
+      60,
+      8,
+      100
+    ],
+    "libavcodec": [
+      62,
+      11,
+      100
+    ],
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "libavdevice": [
+      62,
+      1,
+      100
+    ],
+    "libavfilter": [
+      11,
+      4,
+      100
+    ],
+    "libswscale": [
+      9,
+      1,
+      100
+    ],
+    "libswresample": [
+      6,
+      1,
+      100
+    ]
+  },
+  "samples": [
+    {
+      "case": "ProductionDecoder",
+      "profile": {
+        "width": 256,
+        "height": 128,
+        "rate": 30,
+        "frames": 105,
+        "requested_vbv_mbps": null
+      },
+      "stall_seconds": 0,
+      "driver_lf_sha256": "0971a619fedde55cdf6022fc811dac938a7635d8266f49cf2c631f756c883c08",
+      "url_options": "?overrun_nonfatal=0&fifo_size=1024&buffer_size=65536",
+      "av_options": {
+        "probesize": "32768",
+        "analyzeduration": "0"
+      },
+      "fixture_timeouts_seconds": [
+        2,
+        0.5
+      ],
+      "processing_delay_seconds": 0.1,
+      "decoded": [],
+      "stats": {
+        "backend": "av",
+        "count": 0,
+        "reconnects": 7,
+        "opened": 8,
+        "errors": [
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: frame_processing_exceeded: 0.094s; discard queued frames",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: frame_processing_exceeded: 0.094s; discard queued frames",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'",
+          "decode: [Errno 1094995529] Invalid data found when processing input: 'avcodec_send_packet()'"
+        ],
+        "age": null,
+        "shape": null,
+        "mean": null
+      },
+      "sender_errors": [],
+      "sender_finished": true,
+      "decoder_finished": true,
+      "ffmpeg_log_tail": [],
+      "summary": {
+        "count": 0,
+        "max_send_age_ms": null,
+        "unknown_source_count": 0,
+        "published_stale_count": 0,
+        "reconnects": 7,
+        "conversion_max_ms": 109.0,
+        "processing_rejected": true,
+        "gap_rejected": false
+      }
+    }
+  ],
+  "sources": [
+    "https://ffmpeg.org/ffmpeg-protocols.html#udp",
+    "https://ffmpeg.org/ffmpeg-formats.html#Format-Options"
+  ],
+  "scope": "generated pixels and local UDP send times; not camera or aircraft latency"
+}
