@@ -57,6 +57,7 @@ _command_context = threading.local()
 _delay = 0.0
 _velocity = (0, 0, 0, 0)
 _events = deque(maxlen=2000)
+_event_sequence = 0
 _tello = None
 _video = None
 _keepalive_stop = None
@@ -131,9 +132,20 @@ _MOVES = ('forward', 'back', 'left', 'right', 'up', 'down')
 
 
 def _record(event, **fields):
+    global _event_sequence
     with _lock:
+        _event_sequence += 1
         _events.append(dict(event=event, monotonic=time.monotonic(),
-                            simulated=SIMULATED, **fields))
+                            recorded_at=time.time(), sequence=_event_sequence,
+                            thread=threading.current_thread().name, simulated=SIMULATED, **fields))
+
+
+def events_since(sequence):
+    """Copy the bounded journal; never perform file I/O on SDK/UDP threads."""
+    with _lock:
+        rows = [dict(row) for row in _events if row['sequence'] > sequence]
+        missed = max(0, rows[0]['sequence'] - sequence - 1) if rows else 0
+        return rows, _event_sequence, missed
 
 
 def _set_link_ok():
@@ -519,13 +531,14 @@ def set_velocity(channels, reason, *, guard=None):
         return False
     with _lock:
         _velocity = applied
-        _events.append(dict(event='velocity', channels=_velocity, reason=reason,
-                            monotonic=time.monotonic(), simulated=not real))
+        _record('velocity', channels=_velocity, reason=reason)
         tello = _tello
     if not real: return True
     if tello is None: return False
     previous_guard = getattr(_command_context, 'guard', None)
+    previous_origin = getattr(_command_context, 'origin', None)
     _command_context.guard = guard
+    _command_context.origin = reason
     try:
         tello.send_rc_control(*applied)
         _set_link_ok()
@@ -537,6 +550,7 @@ def set_velocity(channels, reason, *, guard=None):
         return False
     finally:
         _command_context.guard = previous_guard
+        _command_context.origin = previous_origin
 
 
 def set_speed(cm_s):
@@ -555,8 +569,7 @@ def interrupt(action):
     cancel_pending('interrupt:%s' % action)
     set_velocity((0, 0, 0, 0), action)
     with _lock:
-        _events.append(dict(event='priority_sent', action=action,
-                            monotonic=time.monotonic(), simulated=SIMULATED))
+        _record('priority_sent', action=action)
         tello, real = _tello, not SIMULATED
     if real and tello is not None and action == 'land': _dispatch_land(tello)
 
@@ -680,14 +693,22 @@ def _wire_send(command, send):
                 raise RuntimeError('operation_cancelled_before_send')
             if _response_quarantine is not None and not safe:
                 raise RuntimeError('command_channel_ambiguous')
-        send(command)
+        try:
+            send(command)
+        except Exception as exc:
+            _record('wire_send_failed', command=command, error=repr(exc))
+            raise
         with _lock:
+            gap = time.monotonic() - _last_wire_send if _last_wire_send else None
             _last_wire_send = time.monotonic()
             outcome = getattr(_command_context, 'outcome', None)
             if outcome is not None and not command.startswith('rc '):
                 outcome['wire_sent'] = True
                 outcome['stage'] = 'response_wait'
-        _record('wire_sent', command=command)
+        _record('wire_sent', command=command, previous_send_gap_s=gap,
+                origin=getattr(_command_context, 'origin', None),
+                action=getattr(_command_context, 'action', None), cancel_epoch=_cancel_epoch,
+                receipt_verified=False)
 
 
 def _install_telemetry_clock(tello_type):
@@ -704,6 +725,10 @@ def _install_telemetry_clock(tello_type):
         if state:
             state['_received_at'] = time.time()
             state['_received_monotonic'] = time.monotonic()
+            with _lock:
+                _record('telemetry_received', state=dict(state), cached_flying=_flying,
+                        pending_commands=len(_pending_commands),
+                        last_wire_send_age_s=(time.monotonic()-_last_wire_send if _last_wire_send else None))
         return state
     tello_type.parse_state = staticmethod(stamped)
     tello_type._companion_receipt_clock = True
@@ -734,6 +759,9 @@ def _tello_class(timeout):
             if elapsed < self.TIME_BTW_COMMANDS:
                 time.sleep(self.TIME_BTW_COMMANDS - elapsed)
             responses = self.get_own_udp_object()['responses']
+            if responses:
+                _record('command_replies_discarded', next_command=command,
+                        replies_hex=[reply[:256].hex() for reply in responses])
             responses.clear()  # completed previous commands cannot answer this one
             _wire_send(command, lambda value: wire.client_socket.sendto(value.encode('utf-8'), self.address))
             started = time.monotonic()
@@ -743,10 +771,14 @@ def _tello_class(timeout):
                     _mark_response_unknown(getattr(_command_context, 'action', None) or command.split()[0], 'cancelled_after_send')
                     raise RuntimeError('cancelled_after_send')
                 if time.monotonic() - started >= timeout:
+                    _record('command_reply_timeout', command=command, timeout_s=timeout)
                     _mark_response_unknown(getattr(_command_context, 'action', None) or command.split()[0], 'response_timeout_after_send')
                     raise RuntimeError('response_timeout_after_send')
                 time.sleep(.01)
             reply = responses.pop(0)
+            _record('command_reply', command=command, reply_hex=reply[:256].hex(),
+                    reply_text=reply.decode('utf-8', errors='replace')[:500],
+                    elapsed_s=time.monotonic()-started, association='awaited_command_no_protocol_id')
             try:
                 response = reply.decode('utf-8').strip()
             except UnicodeDecodeError:
@@ -844,11 +876,14 @@ def _keepalive_loop(tello, stop):
         if action_pending(): continue        # 有在途命令时不插队
         if time.monotonic() - last_send < KEEPALIVE_INTERVAL_S: continue
         try:
+            _command_context.origin = 'keepalive'
             tello.send_rc_control(0, 0, 0, 0)
             tello._last_keepalive_sent = time.monotonic()
             _record('keepalive_sent', mode='rc_zero')
         except Exception as exc:
             _link_fault('keepalive: %s' % exc)
+        finally:
+            _command_context.origin = None
 
 
 def motors_on():
@@ -1177,4 +1212,5 @@ def diagnostics():
     telemetry, _, _, _ = _telemetry()
     return dict(video=video_stats(), health=health(),
                 raw_telemetry={key: telemetry.get(key) for key in
-                               ('h', 'tof', 'bat', 'time', 'templ', 'temph', 'vgx', 'vgy', 'vgz')})
+                               ('h', 'tof', 'bat', 'time', 'templ', 'temph', 'vgx', 'vgy', 'vgz',
+                                'pitch', 'roll', 'yaw', 'baro', 'agx', 'agy', 'agz')})

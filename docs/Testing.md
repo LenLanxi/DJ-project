@@ -46,6 +46,19 @@ Ground／Video 保留 --self-check 与 --props-removed。FieldTakeoff、Containe
 
 日志位于 logs/Runtime，Node 服务输出写入同一会话的 Rtc.log。检查工具到达、程序执行、结果回填、停止确认和清理记录；API 接收成功不等于媒体就绪、工具执行或实际动作完成。云端首音计时也不包含网页、声卡、蓝牙和飞机延迟。
 
+### 突然下降的被动诊断
+
+启动后自动记录到同一 Runtime JSONL，不另开 socket、不发额外查询命令、不改变控制逻辑。UDP/SDK 线程只写入现有有界内存队列；既有诊断循环每两秒增量落盘，设备关闭时再刷新，沿用 1 GB 日志保留策略。
+
+- `flight_diagnostic.record`：每个收到的遥测包（包括 pitch/roll/yaw、vgx/vgy/vgz、agx/agy/agz、h/tof/baro、bat、time、温度），以及实际发送命令、发送间隔、来源、取消代次、原始回复、超时和丢弃回复。`recorded_at` 是事件发生时间，外层 `timestamp` 是落盘时间；使用 `sequence` 和 `monotonic` 还原顺序。回复时间是等待线程取出回复的时间，不是网卡收包时间，UDP 回复没有命令 ID。
+- `flight_descent_observed`：三秒内遥测 h 降低至少 30 cm 时标记前后样本及最近 20 秒内存保留的命令。只标记现象，`cause=undetermined`，不会触发动作；完整前后遥测仍在相邻 flight_diagnostic 中。
+- `stop_request_source`：区分模型中断、新程序替换、操作员热键、网页关闭／停止和应用退出。普通模型动作另与 program_start/journal 对照。
+- `flight_diagnostic_gap` 和 device_diagnostics.flight_log_error：说明内存覆盖或记录失败。SessionLog.error/dropped_records 仍可能报告磁盘写入失败；不能把日志缺失解读成期间没有命令。进程崩溃可能丢失尚未落盘的末尾记录。
+
+判读顺序：先找下降，再检查是否发过 down、负升降 RC、land/emergency；核对发送间隔、回复和遥测连续性；再比较姿态／加速度突变、电量变化、ToF/气压高度及电机运行时间。发送成功不证明飞机收到，低电量不自动证明低电量保护触发，低高度不自动证明已经落地。
+
+官方依据：[SDK 2.0](https://dl-cdn.ryzerobotics.com/downloads/Tello/Tello%20SDK%202.0%20User%20Guide.pdf) 列出状态字段及 15 秒无命令自动降落；标准状态包没有电池电压、电机转速或自主降落原因字段。因此仅靠这些日志不能保证区分供电、碰撞或飞控自主保护，必要时需结合现场视频／指示灯或厂商诊断。
+
 ## 历史证据
 
 ScenarioAcceptance/Evidence 保留旧版本数据，不作为当前实现通过的证明，也不保证原比较脚本仍存在。新诊断写入独立输出路径，保留失败、超时和清理结果；不覆盖历史输入或结论。日志不包含原图／音频，现场录像单独记录。

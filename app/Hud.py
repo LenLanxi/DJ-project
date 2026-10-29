@@ -46,6 +46,8 @@ async def operator_controls(runtime, args, log, device):
     loop = asyncio.get_running_loop()
     def trigger(kind, combo):
         future = asyncio.run_coroutine_threadsafe(runtime.interrupt(kind == 'land'), loop)
+        log({'event': 'stop_request_source', 'source': 'operator_hotkey', 'key': combo,
+             'requested_land': kind == 'land'})
         def done(f):
             try: print('[热键] %s：%s' % (combo, json.dumps(f.result(), ensure_ascii=False)), flush=True)
             except Exception as exc: print('[热键] 失败：%s' % exc, flush=True)

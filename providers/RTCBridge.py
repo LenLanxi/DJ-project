@@ -69,6 +69,9 @@ class RTCBridge:
         self.epoch += 1
         self.land_requested |= bool(land)
         receipt = self.runtime.begin_interrupt(self.land_requested)
+        self.log({'event': 'stop_request_source', 'source': reason,
+                  'requested_land': land, 'effective_land': self.land_requested,
+                  'generation': self.runtime.generation})
         self.runtime_generation = self.runtime.generation
         try:
             result = await asyncio.wait_for(self.runtime.finish_interrupt(receipt), 3)
@@ -154,6 +157,9 @@ class RTCBridge:
             if stops or previous is not None and not previous.done() or self.runtime.running:
                 receipt = self.runtime.begin_interrupt(self.land_requested, expected_generation=self.runtime_generation)
                 if receipt is None: raise RuntimeError('runtime_authority_changed')
+                self.log({'event': 'stop_request_source', 'source': 'model_interrupt' if stops else 'superseding_program',
+                          'tool_call_ids': [cid for cid, _, _, _ in batch],
+                          'effective_land': self.land_requested, 'generation': receipt.generation})
                 self.runtime_generation = receipt.generation
         task = asyncio.create_task(self.dispatch(batch,self.epoch,receipt,previous))
         if executable: self.execution_task = task

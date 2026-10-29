@@ -43,13 +43,16 @@ def validate_health(health, args):
 
 class DeviceSession:
     def __init__(self, args, log):
+        from app.FlightDiagnostics import FlightDiagnostics
         self.args, self.log = args, log
+        self.flight_log = FlightDiagnostics(log)
         self.device = self.follow = None
         self.ready = False
 
     def diagnostics(self):
         from drone_sdk import _driver as driver
-        return driver.diagnostics()
+        self.flight_log.flush()
+        return dict(driver.diagnostics(), flight_log_error=self.flight_log.error)
 
     async def open(self):
         args, log = self.args, self.log
@@ -179,4 +182,5 @@ class DeviceSession:
             if not await asyncio.to_thread(drv.disconnect):
                 raise RuntimeError('disconnect_unconfirmed')
         await cleanup_step(outcome, log, 'disconnect', disconnect, 25)
+        self.flight_log.flush()
         return outcome

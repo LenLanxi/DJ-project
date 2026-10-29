@@ -13,6 +13,31 @@ from drone_sdk import _driver as drv, controller as ctl
 
 class SDKProtocolTests(SDKWireFixture):
 
+    def test_wire_and_reply_evidence_keep_actual_command_and_raw_reply(self):
+        _, cursor, _ = drv.events_since(0)
+        self.assertTrue(ctl.rotate(self.grant, 30).ok)
+        rows, _, missed = drv.events_since(cursor)
+        sent = next(row for row in rows if row['event'] == 'wire_sent' and row['command'] == 'cw 30')
+        reply = next(row for row in rows if row['event'] == 'command_reply')
+        self.assertEqual(missed, 0)
+        self.assertFalse(sent['receipt_verified'])
+        self.assertEqual(reply['reply_hex'], b'ok'.hex())
+        self.assertEqual(reply['command'], 'cw 30')
+        self.assertGreater(reply['sequence'], sent['sequence'])
+        self.assertGreaterEqual(reply['recorded_at'], sent['recorded_at'])
+
+    def test_received_telemetry_preserves_attitude_and_acceleration(self):
+        import djitellopy
+        _, cursor, _ = drv.events_since(0)
+        packet = djitellopy.Tello.parse_state('h:0;tof:10;bat:22;time:26;pitch:3;roll:4;yaw:180;baro:2.1;agx:1.2;agy:2.3;agz:-998.1;')
+        rows, _, _ = drv.events_since(cursor)
+        row = next(row for row in rows if row['event'] == 'telemetry_received')
+        self.assertEqual(row['state'], packet)
+        self.assertEqual(row['state']['roll'], 4)
+        self.assertEqual(row['state']['agz'], -998.1)
+        packet['h'] = 99
+        self.assertEqual(row['state']['h'], 0)
+
     def test_takeoff_temperature_rejection_explains_unsent_command(self):
         ctl.configure_takeoff(authorized=True)
         self.addCleanup(ctl.configure_takeoff, authorized=True)
