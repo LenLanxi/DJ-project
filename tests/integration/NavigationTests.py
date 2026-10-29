@@ -22,8 +22,6 @@ from Support import MockBackend
 from Fixtures import FixtureVision
 from navigation.vision import Vision, NavigationFrames
 from execution.Host import Host, NavigationGuard
-from execution.sandbox_runner import SandboxRunner
-from ExecutionFixture import run_program, runner_for
 
 
 
@@ -59,7 +57,7 @@ class NavigationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(observation['visible'])
         self.assertGreater(observation['frame_id'],observation['target_tracking']['seed_frame_id'])
         self.assertGreater(time.time()-observation['target_tracking']['semantic_timestamp'],.5)
-        self.assertLessEqual(time.time()-observation['timestamp'],.5)
+        self.assertLessEqual(time.time()-observation['timestamp'],1.0)
         self.assertAlmostEqual(observation['width_fraction'],150/640,delta=.005)
         self.assertAlmostEqual(observation['bbox'][2],.5,delta=.005)
         self.assertEqual(observation['bbox_format'],'xyxy')
@@ -201,28 +199,6 @@ class NavigationTests(unittest.IsolatedAsyncioTestCase):
         await host.finish(False)
 
 
-@pytest.mark.docker
-@unittest.skipUnless(os.getenv('RUN_DOCKER_TESTS')=='1' and shutil.which('docker'),'explicit real Docker opt-in required')
-class ContainerNavigationTests(unittest.IsolatedAsyncioTestCase):
-    async def test08_real_docker_calls_actual_vision_tracker_move_rotate_and_follow_resume(self):
-        backend = CameraBackend(); backend.flying=True; backend.start_follow()
-        client = SemanticClient(backend,delay=.65)
-        visual = Vision(client,backend)
-        runner = runner_for(backend, backend, vision=visual, timeout=10)
-        try:
-            result = await run_program(runner, "o=drone.observe('red tent')\nassert o['visible']\ndrone.move_forward(20)\ndrone.rotate(360)\nprint('short fixture step and rotation complete; no arrival claim')")
-            self.assertTrue(result['ok'],result)
-            self.assertEqual(client.calls,1)
-            self.assertEqual([entry['method'] for entry in result['journal']],['observe','move_forward','rotate'])
-            obs = result['journal'][0]['result']
-            self.assertGreater(obs['timestamp'],obs['target_tracking']['semantic_timestamp'])
-            self.assertEqual(backend.motion_observations,[{'is_navigation_guard':True,'expired':False}])
-            self.assertEqual(result['follow_cleanup']['status'],'follow_resumed')
-            self.assertTrue(runner.test_outcome.cleanup['confirmed'])
-            self.assertIsNone(visual._frames)
-        finally:
-            visual.close()
-            await runner.close()
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

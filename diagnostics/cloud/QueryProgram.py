@@ -1,8 +1,7 @@
-"""Real sandbox programs with status-only RPC and an unconnected synthetic device."""
+"""Read-only structured actions with an unconnected synthetic device."""
 import time
 from app.Runtime import UnifiedRuntime
 from drone_sdk.contract import StatusResult, FrameResult, CommandResult
-from execution.sandbox_runner import SandboxRunner
 
 QUERY_METHODS = frozenset({'get_status', 'is_following'})
 
@@ -34,16 +33,17 @@ class QueryDevice:
 
 class QueryProgram:
     def __init__(self, timeout=15):
-        self.sandbox = SandboxRunner(timeout=timeout)
         device = QueryDevice()
-        self.runtime = UnifiedRuntime(device, device, runner=self.sandbox, methods=QUERY_METHODS)
-        self.container_rpc = False
+        self.runtime = UnifiedRuntime(device, device, methods=QUERY_METHODS, timeout=timeout)
+        self.status_observed = False
 
-    async def run(self, code):
-        result = await self.runtime.run(code)
-        self.container_rpc = any(item.get('method') == 'get_status' and 'result' in item for item in result.get('journal', []))
+    async def run(self, request):
+        result = await self.runtime.run(request)
+        self.status_observed = any(item.get('method') == 'get_status' and 'result' in item for item in result.get('journal', []))
         return result
 
     def cancel(self): self.runtime.cancel()
     async def interrupt(self, land=False): return await self.runtime.interrupt(land)
-    async def close(self): return await self.runtime.close_sandbox()
+    async def close(self):
+        self.runtime.close()
+        return await self.runtime.retry_cleanup()

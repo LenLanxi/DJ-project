@@ -10,7 +10,7 @@ param(
     [int]$WebPort = 18848,
     [string]$DoubaoCredentials = '',
     [string]$ExitAction = 'land',
-    [string]$Program = '',
+    [string]$ActionFile = '',
     [string]$Text = '',
     [switch]$PlanOnly,
     [switch]$AllowTakeoff,
@@ -19,6 +19,8 @@ param(
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
+if ($ActionFile -and $Text) { throw 'ActionFile and Text are mutually exclusive.' }
+if ($PlanOnly -and (-not $Text -or $ActionFile)) { throw 'PlanOnly requires Text and cannot use ActionFile.' }
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -LiteralPath $projectRoot
 $env:PYTHONIOENCODING = 'utf-8'
@@ -39,18 +41,18 @@ Write-Host ('Takeoff authorized: {0}; min battery: {1}%; exit action: {2}' -f $A
 Write-Host 'Emergency: Ctrl+Shift+Alt+A = stop; Ctrl+Shift+Alt+L = land; F12/F11 are alternatives.'
 Write-Host 'One process controls one Tello.'
 
-$mode = if ($PlanOnly) {'plan'} elseif ($Program -or $Text) {'run'} else {'voice'}
+$mode = if ($PlanOnly) {'plan'} elseif ($ActionFile -or $Text) {'run'} else {'voice'}
 $runtimeArgs = @('-m', 'app.Application', $mode, '--doubao-credentials', $DoubaoCredentials)
 if (-not $PlanOnly) { $runtimeArgs += @('--follow-config', $configPath,
     '--min-battery', "$MinBattery", '--exit-action', $ExitAction) }
 if (-not $PlanOnly) { $runtimeArgs += '--real-drone' }
-if ($AllowTakeoff) { $runtimeArgs += '--allow-real-takeoff' }
-if ($Address) { $runtimeArgs += @('--address', $Address) }
-if ($Program) { $runtimeArgs += @('--program', $Program) }
+if ($AllowTakeoff -and -not $PlanOnly) { $runtimeArgs += '--allow-real-takeoff' }
+if ($Address -and -not $PlanOnly) { $runtimeArgs += @('--address', $Address) }
+if ($ActionFile) { $runtimeArgs += @('--action-file', $ActionFile) }
 if ($Text) { $runtimeArgs += @('--text', $Text) }
 
 if ($ShowVideo -and -not $PlanOnly) { $runtimeArgs += '--show-video' }
-if (-not $Text -and -not $Program) {
+if ($mode -eq 'voice') {
     $runtimeArgs += @('--max-session-seconds', "$MaxSessionSeconds", '--web-port', "$WebPort")
     Write-Host 'Voice provider: Doubao'
     Write-Host ('Local page: http://127.0.0.1:{0}; occupied ports cause an error instead of selecting another port.' -f $WebPort)
@@ -64,7 +66,7 @@ if ($DryRun) {
     Write-Host ('uv run --frozen --python 3.11 python -X utf8 -B ' + ($runtimeArgs -join ' '))
     exit 0
 }
-if (-not $Text -and -not $Program) {
+if ($mode -eq 'voice') {
     Write-Host 'Doubao credentials are checked before aircraft connection. File paths, not keys, are passed to Python.'
     Write-Host 'Open the printed local URL manually and select the Bluetooth microphone and speaker in the browser.'
 }

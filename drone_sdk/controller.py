@@ -201,12 +201,13 @@ def update_velocity(grant, left_right, forward_back, up_down, yaw, *, cancelled=
         if not reason and _active_action is not None: reason = 'action_busy'
         if reason: return CommandResult(False, 'failed', reason, False)
         options = {} if operation_event() is None else {'guard': operation_event()}
-        if _driver.set_velocity(channels, 'velocity_update', **options) is False:
-            return CommandResult(False, 'failed', 'velocity_send_failed', False)
+        details = {}
+        if _driver.set_velocity(channels, 'velocity_update', details=details, **options) is False:
+            return CommandResult(False, 'failed', 'velocity_send_failed', False, details=details)
         _last_velocity_time = time.monotonic() if any(channels) else 0.
         return CommandResult(True, 'accepted', '', False,
-                             details={**_driver.command_warning(), 'command_sent': True, 'motion_verified': False,
-                                      'meaning': '速度指令已发送；不证明已移动、上升或悬停，也不表示位移厘米数'})
+                             details={**details, **_driver.command_warning(), 'command_sent': details.get('wire_sent', False), 'motion_verified': False,
+                                      'meaning': '发送情况见wire_sent，裁剪后参数见applied_channels；不证明已移动、上升或悬停，也不表示位移厘米数'})
 
 def _move(grant, action, param=None):
     global _flight_state, _active_action
@@ -254,7 +255,8 @@ def _move(grant, action, param=None):
             return CommandResult(False, 'unknown' if details.get('outcome_unknown') else 'failed',
                                  details.get('reason') or 'driver_failed', details=details)
         if action == 'takeoff': _flight_state = 'flying'
-        return CommandResult(True, 'completed', details=_driver.command_warning() or None)
+        details.update(motion_verified=False)
+        return CommandResult(True, 'completed', details=details)
 
 _takeoff_authorized = False
 _min_battery = 30

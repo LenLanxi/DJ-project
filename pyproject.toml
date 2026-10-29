@@ -1,7 +1,7 @@
 [project]
 name = "Companion"
 version = "0.1.0"
-description = "Real-camera marker following and model-program control for Tello"
+description = "Real-camera marker following and structured-action control for Tello"
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "djitellopy==2.5.0",
@@ -20,4 +20,3 @@ dev = ["pytest>=8,<10"]
 pythonpath = [".", "tests/helpers", "diagnostics/cloud", "diagnostics/hardware", "diagnostics/follow"]
 testpaths = ["tests"]
 python_files = ["test*.py", "*Tests.py"]
-markers = ["docker: runs an actual local Docker container; requires RUN_DOCKER_TESTS=1"]

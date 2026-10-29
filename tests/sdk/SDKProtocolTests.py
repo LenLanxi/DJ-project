@@ -13,6 +13,62 @@ from drone_sdk import _driver as drv, controller as ctl
 
 class SDKProtocolTests(SDKWireFixture):
 
+    def test_height_limited_moves_report_actual_sent_distance(self):
+        for action, height, requested, applied, wire in (
+                ('move_up', 200, 100, 50, 'up 50'),
+                ('move_down', 80, 200, 80, 'down 80')):
+            with self.subTest(action=action):
+                self.packet.update(h=height, tof=height)
+                result = getattr(ctl, action)(self.grant, requested)
+                self.assertTrue(result.ok, result)
+                self.assertIn(wire, self.sent)
+                self.assertEqual(result.details['requested'], requested)
+                self.assertEqual(result.details['applied'], applied)
+                self.assertTrue(result.details['clamped'])
+                self.assertTrue(result.details['wire_sent'])
+                self.assertFalse(result.details['motion_verified'])
+                self.assertTrue(result.details['clamp_reason'])
+
+    def test_height_limited_rc_reports_the_actual_zero_command(self):
+        self.packet.update(h=250, tof=250)
+        result = ctl.update_velocity(self.grant, 0, 0, 20, 0)
+        self.assertTrue(result.ok, result)
+        self.assertIn('rc 0 0 0 0', self.sent)
+        self.assertEqual(result.details['requested_channels'], (0, 0, 20, 0))
+        self.assertEqual(result.details['applied_channels'], (0, 0, 0, 0))
+        self.assertEqual(result.details['clamp_reason'], 'height_ceiling')
+        self.assertTrue(result.details['clamped'])
+        self.assertTrue(result.details['wire_sent'])
+        self.assertFalse(result.details['motion_verified'])
+
+    def test_unclamped_move_keeps_reply_and_sent_parameter_evidence(self):
+        result = ctl.move_forward(self.grant, 20)
+        self.assertTrue(result.ok, result)
+        self.assertEqual(result.details['requested'], 20)
+        self.assertEqual(result.details['applied'], 20)
+        self.assertFalse(result.details['clamped'])
+        self.assertTrue(result.details['wire_sent'])
+        self.assertEqual(result.details['reply'], 'ok')
+
+    def test_rate_limited_rc_does_not_claim_a_wire_send(self):
+        self.tello.last_rc_control_timestamp = time.time() + 10
+        self.sent.clear()
+        result = ctl.update_velocity(self.grant, 0, 20, 0, 0)
+        self.assertTrue(result.ok, result)
+        self.assertFalse(result.details['wire_sent'])
+        self.assertFalse(result.details['command_sent'])
+        self.assertNotIn('rc 0 20 0 0', self.sent)
+
+    def test_simulated_commands_never_claim_wire_or_physical_verification(self):
+        with patch.object(drv, 'SIMULATED', True):
+            move = ctl.move_forward(self.grant, 20)
+            velocity = ctl.update_velocity(self.grant, 0, 20, 0, 0)
+        for result in (move, velocity):
+            self.assertTrue(result.ok, result)
+            self.assertTrue(result.details['simulated'])
+            self.assertFalse(result.details['wire_sent'])
+            self.assertFalse(result.details['motion_verified'])
+
     def test_long_move_accepts_reply_after_old_five_second_limit(self):
         self.auto_reply = False
         reply = None
@@ -375,22 +431,14 @@ class SDKProtocolTests(SDKWireFixture):
 
     def test_rotation_timeout_preserves_sent_unknown_result_through_cloud_projection(self):
         import asyncio
-        from unittest.mock import AsyncMock
-        from ContainerFixture import Process
-        from ExecutionFixture import runner_for, run_program
         from Support import MockBackend
+        from app.Runtime import UnifiedRuntime
         from app.Results import tool_result
         import drone_sdk as sdk
         self.auto_reply = False
-        runner = runner_for(sdk, MockBackend(), timeout=8)
-        runner.container, runner.created = 'companion-fixture', True
+        app = UnifiedRuntime(sdk, MockBackend())
         async def run():
-            process = Process([
-                {'type':'rpc','id':1,'method':'rotate','args':[360],'kwargs':{}},
-                {'type':'done','ok':False,'error':'RPC failed'}])
-            with patch.object(runner, '_remove_container', new=AsyncMock(return_value=[])), patch(
-                    'execution.sandbox_runner.asyncio.create_subprocess_exec', return_value=process):
-                return await run_program(runner, 'drone.rotate(360)')
+            return await app.run({'action':'rotate','args':[360]})
         with patch.object(drv, '_move_deadline', return_value=1.2):
             result = tool_result(asyncio.run(run()))
         detail = result['action_error']

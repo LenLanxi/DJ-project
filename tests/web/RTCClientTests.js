@@ -19,12 +19,11 @@ function fixture() {
   return { client, sent, states };
 }
 
-test('TLV preserves Unicode and large escaped tool arguments without a 64KB local cutoff', () => {
-  const value = { tool_calls: [{ id: 'call', function: { name: 'run_program',
-    arguments: JSON.stringify({ code: '# 中文引号"'.repeat(7000) }) } }] };
-  const raw = envelope('tool', value);
+test('TLV preserves Unicode and large subtitle payloads without a 64KB local cutoff', () => {
+  const value = { data: [{ userId: identity.userId, text: '中文引号"'.repeat(7000) }] };
+  const raw = envelope('subv', value);
   assert.ok(raw.length > 65536);
-  assert.deepEqual(decodeTLV(raw), { type: 'tool', value });
+  assert.deepEqual(decodeTLV(raw), { type: 'subv', value });
   raw.writeUInt32BE(1, 4);
   assert.throws(() => decodeTLV(raw), /length/);
 });

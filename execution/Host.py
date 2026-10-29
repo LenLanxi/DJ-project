@@ -1,4 +1,4 @@
-"""One host gateway for every model program; device grants never cross the RPC boundary."""
+"""One host gateway for model actions; device grants never leave the host."""
 import asyncio
 from dataclasses import asdict
 import math
@@ -41,9 +41,9 @@ async def interrupt_device(device, follow, land=False):
 
 
 class Host:
-    """Validate sandbox RPC; trust the fixed Vision and SDK result contracts.
+    """Dispatch validated actions; trust the fixed Vision and SDK result contracts.
 
-    Single-use program state. Its event is never cleared or replaced.
+    Single-use action state. Its event is never cleared or replaced.
     """
     def __init__(self, device, follow, vision=None, *, recovery=False, methods=None, motion=None):
         self.device, self.follow, self.vision = device, follow, vision

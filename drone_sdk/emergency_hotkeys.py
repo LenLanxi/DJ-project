@@ -13,6 +13,7 @@ import threading
 import time
 
 HOTKEY_COOLDOWN_S = 1.0
+HOTKEY_START_TIMEOUT_S = 2.0
 HOTKEYS = (
     ('<ctrl>+<shift>+<alt>+a', 'stop', 'Ctrl+Shift+Alt+A'),
     ('<ctrl>+<shift>+<alt>+l', 'land', 'Ctrl+Shift+Alt+L'),
@@ -49,6 +50,7 @@ class EmergencyHotkeys:
         self._emit = emit or _default_emit
         self.cooldown = cooldown
         self.listener = None
+        self._started = False
         self._lock = threading.Lock()
         self._last = {}
 
@@ -83,11 +85,33 @@ class EmergencyHotkeys:
         })
         self.listener.daemon = True
         self.listener.start()
+        self._started = True
+        deadline = time.monotonic() + HOTKEY_START_TIMEOUT_S
+        # pynput.wait() has no timeout and never notices a dead startup thread.
+        # Its ready flag is set by the backend, separately from Thread.start().
+        while True:
+            self.check()
+            if self.listener._ready:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError('hotkey_listener_start_timeout')
+            time.sleep(.01)
         self._emit('快捷键', HOTKEY_HELP)
+
+    def check(self):
+        """Propagate listener death to the application's supervised controls task."""
+        if self.listener is None or not self.listener.is_alive():
+            if self.listener is not None and self._started:
+                try:
+                    self.listener.join(0)  # Surface a queued pynput callback exception.
+                except Exception as exc:
+                    raise RuntimeError('hotkey_listener_failed: ' + str(exc)) from exc
+            raise RuntimeError('hotkey_listener_stopped')
 
     def stop(self):
         if self.listener is not None:
             self.listener.stop()
-            self.listener.join(1.0)
+            if self._started:
+                self.listener.join(1.0)
             if self.listener.is_alive():
                 raise RuntimeError('hotkey_listener_still_running')

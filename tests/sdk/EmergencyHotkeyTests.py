@@ -5,6 +5,7 @@ import time
 import unittest
 import asyncio
 import types
+import threading
 from unittest.mock import AsyncMock, patch
 
 
@@ -66,6 +67,70 @@ class CooldownAndDispatchTests(unittest.TestCase):
         self.assertIn('boom', lines[-1][1])
 
 
+class HookThread(threading.Thread):
+    """Listener contract without installing an operating-system hook."""
+    mode = 'ready'
+
+    def __init__(self, mapping):
+        super().__init__()
+        self._ready = False
+        self.ended = threading.Event()
+
+    def run(self):
+        if self.mode == 'dead':
+            return
+        self._ready = self.mode == 'ready'
+        self.ended.wait(2)
+
+    def stop(self):
+        self.ended.set()
+
+
+class ListenerHealthTests(unittest.TestCase):
+    def guard(self, mode='ready'):
+        listener = type('Listener', (HookThread,), {'mode': mode})
+        return patch('drone_sdk.emergency_hotkeys.ensure_pynput',
+                     return_value=types.SimpleNamespace(GlobalHotKeys=listener))
+
+    def test_ready_listener_can_stop_normally(self):
+        with self.guard():
+            guard = EmergencyHotkeys(lambda *args: None, emit=lambda *args: None)
+            guard.start()
+            guard.check()
+            guard.stop()
+            self.assertFalse(guard.listener.is_alive())
+
+    def test_startup_death_does_not_claim_hotkeys_are_enabled(self):
+        lines = []
+        with self.guard('dead'):
+            guard = EmergencyHotkeys(lambda *args: None, emit=lambda *args: lines.append(args))
+            try:
+                with self.assertRaisesRegex(RuntimeError, 'hotkey_listener_stopped'):
+                    guard.start()
+            finally:
+                guard.stop()
+        self.assertFalse(lines)
+
+    def test_unready_live_thread_has_a_bounded_startup(self):
+        with self.guard('stalled'), patch('drone_sdk.emergency_hotkeys.HOTKEY_START_TIMEOUT_S', .03):
+            guard = EmergencyHotkeys(lambda *args: None)
+            try:
+                with self.assertRaisesRegex(RuntimeError, 'hotkey_listener_start_timeout'):
+                    guard.start()
+            finally:
+                guard.stop()
+        self.assertFalse(guard.listener.is_alive())
+
+    def test_dead_listener_reports_queued_backend_error(self):
+        with self.guard():
+            guard = EmergencyHotkeys(lambda *args: None, emit=lambda *args: None)
+            guard.start()
+            guard.stop()
+            with patch.object(guard.listener, 'join', side_effect=ValueError('backend hook failed')):
+                with self.assertRaisesRegex(RuntimeError, 'hotkey_listener_failed: backend hook failed'):
+                    guard.check()
+
+
 class FlightEntryWiringTests(unittest.IsolatedAsyncioTestCase):
     """实飞入口（app/Hud.py）必须注册同一组组合键。"""
 
@@ -78,6 +143,7 @@ class FlightEntryWiringTests(unittest.IsolatedAsyncioTestCase):
                 created.append(self)
             def start(self): self.started=True
             def stop(self): self.stopped=True
+            def check(self): pass
         runtime=types.SimpleNamespace(interrupt=AsyncMock(return_value={'ok':True}))
         with patch('drone_sdk.emergency_hotkeys.EmergencyHotkeys',Listener):
             worker=asyncio.create_task(Hud.operator_controls(runtime,types.SimpleNamespace(show_video=False),lambda e:None,
@@ -102,6 +168,38 @@ class FlightEntryWiringTests(unittest.IsolatedAsyncioTestCase):
         # The low-level OS hook is deliberately replaced, not registered during
         # unattended tests. Definition/parsing is checked independently above.
         await self.exercise(dispatch=True)
+
+    async def test_listener_death_reaches_supervisor_and_cancels_active_operation(self):
+        from app.Hud import operator_controls
+        from app.Application import supervise
+        operation_cancelled = asyncio.Event()
+        async def operation():
+            try:
+                await asyncio.Event().wait()
+            finally:
+                operation_cancelled.set()
+
+        with ListenerHealthTests().guard():
+            # Use the real EmergencyHotkeys owner and health check, replacing
+            # only the thread that would otherwise register the OS hook.
+            owner = EmergencyHotkeys(lambda *args: None, emit=lambda *args: None)
+            runtime = types.SimpleNamespace(interrupt=AsyncMock())
+            with patch('drone_sdk.emergency_hotkeys.EmergencyHotkeys', return_value=owner):
+                controls = asyncio.create_task(operator_controls(runtime,
+                    types.SimpleNamespace(show_video=False), lambda row: None,
+                    types.SimpleNamespace(diagnostics=lambda: {})))
+                supervising = asyncio.create_task(supervise(operation(), controls))
+                try:
+                    await asyncio.sleep(.02)
+                    owner.listener.stop()
+                    await asyncio.to_thread(owner.listener.join, .5)
+                    with self.assertRaisesRegex(RuntimeError, 'hotkey_listener_stopped'):
+                        await asyncio.wait_for(supervising, 1)
+                    self.assertTrue(operation_cancelled.is_set())
+                finally:
+                    controls.cancel()
+                    supervising.cancel()
+                    await asyncio.gather(controls, supervising, return_exceptions=True)
 
 
 if __name__ == '__main__':

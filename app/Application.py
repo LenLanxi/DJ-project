@@ -1,8 +1,4 @@
-"""One production entry: real voice/text -> Python sandbox -> Host -> real SDK.
-
-Hardware is opt-in. No canned intent parser, simulated-aircraft mode, STT/TTS
-fallback, legacy execution chain or host Python exec is selectable here.
-"""
+"""Production entry: structured model actions -> Host -> real SDK."""
 import argparse
 import asyncio
 import json
@@ -17,10 +13,10 @@ from app.SessionLog import SessionLog
 from app.Cleanup import cleanup_step, cleanup_record
 from app.Hud import EMERGENCY_HELP, operator_controls
 from app.DeviceSession import DeviceSession
-from app.Tools import PROGRAM_INSTRUCTIONS, OMNI_INSTRUCTIONS, OMNI_TOOLS, PROGRAM_MAX_BYTES
+from app.Tools import ACTION_INSTRUCTIONS, OMNI_INSTRUCTIONS, OMNI_TOOLS, validate_action
 
 
-def plan_program(client, text, image=None):
+def plan_action(client, text, image=None):
     content = text
     if image:
         from navigation.vision import Vision
@@ -28,13 +24,13 @@ def plan_program(client, text, image=None):
         content = [{'type': 'text', 'text': text},
                    {'type': 'image_url', 'image_url': {'url': frame['image_url']}}]
     raw = client.complete([
-        {'role': 'system', 'content': PROGRAM_INSTRUCTIONS + '\n只返回JSON对象：{"code":"完整Python", "explanation":"说明"}。不执行就code为空。'},
+        {'role': 'system', 'content': ACTION_INSTRUCTIONS + '\n只返回JSON对象：{"action_request":{"action":"get_status","args":[]},"explanation":"说明"}。不执行就action_request为null。'},
         {'role': 'user', 'content': content}])
     result = json.loads(raw)
-    if not isinstance(result, dict) or not isinstance(result.get('code'), str):
-        raise ValueError('模型未返回有效程序JSON')
-    if len(result['code'].encode()) > PROGRAM_MAX_BYTES:
-        raise ValueError('模型程序超过60KB')
+    if not isinstance(result, dict) or set(result) != {'action_request', 'explanation'} or not isinstance(result['explanation'], str):
+        raise ValueError('模型未返回有效动作JSON')
+    if result['action_request'] is not None:
+        validate_action(result['action_request'])
     return result
 
 
@@ -76,12 +72,11 @@ class Session:
         from providers.DoubaoConfig import load_config
         from providers.DoubaoVision import DoubaoVisionClient
         if not args.real_drone:
-            raise ValueError('执行或语音必须显式--real-drone；无模拟模式。只生成程序使用plan --text')
-        code = None
-        if args.program:
-            code = Path(args.program).read_text(encoding='utf-8-sig')
-            if not code.strip() or len(code.encode()) > PROGRAM_MAX_BYTES:
-                raise ValueError('程序必须非空且不超过60KB')
+            raise ValueError('执行或语音必须显式--real-drone；无模拟模式。只生成动作使用plan --text')
+        action_request = None
+        if args.action_file:
+            action_request = json.loads(Path(args.action_file).read_text(encoding='utf-8-sig'))
+            validate_action(action_request)
         voice = args.command == 'voice'
         config = load_config(args.doubao_credentials, log) if voice or args.text or args.vision else None
         if getattr(log, 'capture', None) is not None and config:
@@ -92,9 +87,6 @@ class Session:
                 ensure_ascii=False, indent=2), encoding='utf-8')
         client = DoubaoVisionClient(config, on_usage=log,
             max_output_tokens=None) if config else None
-        from execution.sandbox_runner import SandboxRunner
-        runner = SandboxRunner(image=args.sandbox_image, timeout=args.program_timeout)
-        await runner.check()  # Credentials and Docker checked before hardware.
         if voice:
             from providers.RTCRuntime import RTCProcess, validate_environment
             node = validate_environment(args.max_session_seconds, config.environment)
@@ -105,20 +97,20 @@ class Session:
             from navigation.vision import Vision
             log({'event': 'vision_capability', 'configured': client is not None})
             self.runtime = UnifiedRuntime(device, self.device.follow, Vision(client, device), log,
-                runner=runner)
+                timeout=args.action_timeout)
             self.controls = asyncio.create_task(operator_controls(self.runtime, args, log, self.device))
             print(EMERGENCY_HELP, flush=True)
-            if args.program:
-                result = await supervise(self.runtime.run(code), self.controls)
+            if args.action_file:
+                result = await supervise(self.runtime.run(action_request), self.controls)
             elif args.text:
                 generation = self.runtime.generation
-                plan = await supervise(asyncio.to_thread(plan_program, client, args.text), self.controls)
+                plan = await supervise(asyncio.to_thread(plan_action, client, args.text), self.controls)
                 log({'event': 'model_plan', 'plan': plan, 'usage_source': 'model_request_end_by_request_id'})
-                if not plan['code'].strip():
-                    print(plan.get('explanation') or '模型未生成动作程序', flush=True)
+                if plan['action_request'] is None:
+                    print(plan.get('explanation') or '模型未生成动作', flush=True)
                     result = None
                 else:
-                    result = await supervise(self.runtime.run(plan['code'], expected_generation=generation), self.controls)
+                    result = await supervise(self.runtime.run(plan['action_request'], expected_generation=generation), self.controls)
             else:
                 from providers.RTCBridge import RTCBridge
                 self.bridge = RTCBridge(self.runtime, device, log,
@@ -170,8 +162,6 @@ class Session:
         if self.device:
             await cleanup_step(outcome, log, 'real_resources',
                                lambda: self.device.close(self.runtime), args.landing_timeout + 100)
-        if self.runtime:
-            await cleanup_step(outcome, log, 'sandbox_session', self.runtime.close_sandbox, 15)
         if self.controls:
             async def close_controls():
                 self.controls.cancel()
@@ -190,7 +180,7 @@ class Session:
 def make_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
-    plan = commands.add_parser('plan', help='只生成程序，不连接设备')
+    plan = commands.add_parser('plan', help='只生成结构化动作，不连接设备')
     plan.add_argument('--text', required=True)
     plan.add_argument('--image', help='静态图片，仅用于计划')
     plan.add_argument('--log-file')
@@ -210,16 +200,15 @@ def make_parser():
     device.add_argument('--exit-action', choices=('land', 'hover'), default='land',
                         help='结束/失败默认请求降落；hover只归零，需人工继续控制')
     device.add_argument('--show-video', action='store_true', help='显示实时HUD；q只关显示，不结束任务')
-    device.add_argument('--program-timeout', type=float, default=90)
-    device.add_argument('--sandbox-image', default='companion-sandbox:0.5')
+    device.add_argument('--action-timeout', type=float, default=90)
     device.add_argument('--log-file', help='JSONL日志路径；不记录密钥、图片或音频')
 
-    device.set_defaults(program=None, text=None)
-    run = commands.add_parser('run', parents=[device], help='执行文件或根据文字生成后执行')
-    run.add_argument('--vision', action='store_true', help='文件程序启用环境配置的视觉客户端')
+    device.set_defaults(action_file=None, text=None)
+    run = commands.add_parser('run', parents=[device], help='执行动作JSON文件或根据文字生成动作后执行')
+    run.add_argument('--vision', action='store_true', help='动作文件启用环境配置的视觉客户端')
     source = run.add_mutually_exclusive_group(required=True)
-    source.add_argument('--program', help='UTF-8 Python文件')
-    source.add_argument('--text', help='由真实模型生成程序并执行')
+    source.add_argument('--action-file', help='UTF-8动作JSON文件')
+    source.add_argument('--text', help='由真实模型生成单个结构化动作并执行')
     voice = commands.add_parser('voice', parents=[device], help='持续语音会话')
     voice.set_defaults(vision=False)
     voice.add_argument('--record-test', action='store_true', help='单独保留完整复盘音视频和日志，不自动清理')
@@ -243,7 +232,7 @@ def main(argv=None):
         parser.error('--min-battery必须在0到100之间；0关闭项目百分比门限')
     if args.command != 'plan' and not 0 < args.temp_warn < args.temp_max <= 100:
         parser.error('温度阈值须满足0 < warn < max <= 100')
-    limits = () if args.command == 'plan' else ('program_timeout', 'frame_timeout', 'landing_timeout')
+    limits = () if args.command == 'plan' else ('action_timeout', 'frame_timeout', 'landing_timeout')
     if args.command == 'voice': limits += ('max_session_seconds',)
     for name in limits:
         value = getattr(args, name)
@@ -274,7 +263,7 @@ def main(argv=None):
             from providers.DoubaoConfig import load_config
             from providers.DoubaoVision import DoubaoVisionClient
             client = DoubaoVisionClient(load_config(args.doubao_credentials, log), on_usage=log)
-            result = plan_program(client, args.text, args.image)
+            result = plan_action(client, args.text, args.image)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         return asyncio.run(Session(args, log).run())

@@ -37,15 +37,13 @@ def tool_result(value, *, secrets=()):
             result[key] = str(value[key])[:limit]
     if isinstance(value.get('action_error'), dict):
         result['action_error'] = value['action_error']
+    for key in ('action', 'action_result', 'adjustment'):
+        if key in value:
+            result[key] = value[key]
     follow = value.get('follow_cleanup')
     if isinstance(follow, dict):
         result['follow_cleanup'] = {key: follow[key] for key in
             ('ok', 'status', 'reason', 'reference_adjusted') if key in follow}
-    result['debug'] = str(value.get('debug',''))[:2000]
-    if value.get('debug_truncated') or len(str(value.get('debug',''))) > 2000:
-        result['debug_truncated'] = True
-    if value.get('debug_warnings'):
-        result['debug_warnings'] = value['debug_warnings']
     journal = []
     for item in value.get('journal', [])[-12:]:
         entry = {k:v for k,v in item.items() if k in ('method','args','error')}

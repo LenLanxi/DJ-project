@@ -5,6 +5,8 @@ import types
 import unittest
 from unittest.mock import AsyncMock, patch
 from providers.RTCBridge import RTCBridge
+from app.Tools import validate_action, validate_tool, OMNI_TOOLS
+from app.Results import tool_result
 
 
 IDENTITY = dict(sessionId='session1',roomId='room1',taskId='task1',botId='bot1',userId='user1')
@@ -36,9 +38,9 @@ class Runtime:
         finally: self.running = False
 
 
-def call(cid='call1',name='run_program',args=None):
+def call(cid='call1',name='execute_action',args=None):
     return {'id':cid,'function':{'name':name,'arguments':json.dumps(
-        args if args is not None else {'code':'drone.rotate(360)'})}}
+        args if args is not None else {'action':'rotate','args':[360]})}}
 
 
 class BridgeTests(unittest.IsolatedAsyncioTestCase):
@@ -56,7 +58,7 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
     async def test_tool_executes_without_any_subtitle(self):
         await self.tools([call()])
         await self.settle()
-        self.assertEqual(self.runtime.executed,['drone.rotate(360)'])
+        self.assertEqual(self.runtime.executed,[{'action':'rotate','args':[360]}])
         self.assertTrue(self.results[0][1]['ok'])
     async def test_duplicate_call_never_replays_motion(self):
         await self.tools([call()])
@@ -136,22 +138,34 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         self.runtime.gate = asyncio.Event()
         await self.tools([call()])
         await asyncio.sleep(0)
-        await self.tools([call('call2',args={'code':'drone.get_status()'})])
+        await self.tools([call('call2',args={'action':'get_status','args':[]})])
         await self.settle()
-        self.assertEqual(self.runtime.executed,['drone.rotate(360)','drone.get_status()'])
+        self.assertEqual(self.runtime.executed,[{'action':'rotate','args':[360]}, {'action':'get_status','args':[]}])
         self.assertEqual(self.results[0][1]['status'],'cancelled')
     async def test_invalid_arguments_do_not_stop_running_program(self):
         self.runtime.gate = asyncio.Event()
         await self.tools([call()])
         await asyncio.sleep(0)
         malformed = call('bad')
-        malformed['function']['arguments'] = '{"code":"cut'
+        malformed['function']['arguments'] = '{"action":"cut'
         await self.tools([malformed])
         await asyncio.sleep(0)
         self.assertEqual(self.runtime.stops,[])
         self.runtime.gate.set()
         await self.settle()
         self.assertTrue(any('JSONDecodeError' in value.get('reason','') for _,value in self.results))
+
+    async def test_old_python_tool_is_rejected_without_stopping_current_action(self):
+        self.runtime.gate = asyncio.Event()
+        await self.tools([call()])
+        await asyncio.sleep(0)
+        await self.tools([call('legacy', name='run_program', args={'code':'drone.land()'})])
+        await asyncio.sleep(0)
+        self.assertEqual(self.runtime.stops, [])
+        self.runtime.gate.set()
+        await self.settle()
+        self.assertEqual(len(self.runtime.executed), 1)
+        self.assertTrue(any('host_tool_not_exposed' in value.get('reason','') for _,value in self.results))
     async def test_temporary_missing_frame_does_not_revoke(self):
         self.bridge.device = types.SimpleNamespace(get_frame=lambda: (_ for _ in ()).throw(RuntimeError('no frame')))
         self.bridge.send = AsyncMock()
@@ -162,3 +176,31 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.bridge.revoked)
         self.assertEqual(self.runtime.stops,[])
         self.bridge.send.assert_awaited_with({'type':'invalid_frame','reason':'sdk_frame_unavailable'})
+
+
+class ActionContractTests(unittest.TestCase):
+    def test_action_boundary_rejects_code_extra_fields_and_invalid_values(self):
+        invalid = [None, [], {'code':'drone.land()'}, {'action':'__getattribute__','args':[]},
+                   {'action':'observe','args':[]}, {'action':'land','args':[1]},
+                   {'action':'rotate','args':[0]}, {'action':'rotate','args':[True]},
+                   {'action':'move_forward','args':[19]}, {'action':'move_forward','args':[501]},
+                   {'action':'start_velocity','args':[0,20,0]},
+                   {'action':'start_velocity','args':[0,101,0,0]},
+                   {'action':'get_status','args':[], 'code':'anything'},
+                   {'action':'move_forward','args':[20], 'adjust_follow_reference':'vertical'}]
+        for request in invalid:
+            with self.subTest(request=request), self.assertRaises(ValueError):
+                validate_action(request)
+
+    def test_matching_reference_adjustment_and_fixed_tool_schema(self):
+        request = {'action':'move_forward','args':[20], 'adjust_follow_reference':'depth'}
+        self.assertIs(validate_tool('execute_action', request), request)
+        self.assertEqual([tool['name'] for tool in OMNI_TOOLS], ['execute_action', 'interrupt'])
+        self.assertEqual(validate_action({'action':'start_velocity','args':[0,20,0,0]})['args'], [0,20,0,0])
+
+    def test_query_boolean_and_detailed_error_survive_cloud_result(self):
+        self.assertIs(tool_result({'ok':True, 'action_result':False})['action_result'], False)
+        evidence = {'details': {'wire_sent':True, 'outcome_unknown':True}, 'reason':'response_timeout'}
+        result = tool_result({'ok':False, 'action_error':evidence, 'action_result': evidence})
+        self.assertEqual(result['action_error'], evidence)
+        self.assertEqual(result['action_result'], evidence)

@@ -1,8 +1,9 @@
-"""One owner for program execution, cancellation and resource reconciliation."""
+"""One owner for structured actions, cancellation and control reconciliation."""
 import asyncio
 from dataclasses import dataclass, field
 from execution.Host import Host, SDKActionError, interrupt_device
-from execution.sandbox_runner import SandboxRunner, SandboxOutcome
+from execution.ActionRunner import ActionRunner, ActionOutcome
+from app.Tools import validate_action
 
 
 @dataclass(frozen=True)
@@ -12,9 +13,9 @@ class StopReceipt:
 
 
 @dataclass
-class ProgramRun:
+class ActionRun:
     host: Host
-    outcome: SandboxOutcome = field(default_factory=SandboxOutcome)
+    outcome: ActionOutcome = field(default_factory=ActionOutcome)
     task: asyncio.Task | None = None
 
     def cancel(self):
@@ -36,17 +37,18 @@ async def _settle(task):
 
 
 class UnifiedRuntime:
-    def __init__(self, device, follow, vision=None, log=None, *, runner=None, methods=None):
+    def __init__(self, device, follow, vision=None, log=None, *, runner=None, methods=None, timeout=90):
         self.device, self.follow, self.vision = device, follow, vision
         self.methods = methods
-        self.runner = runner if runner is not None else SandboxRunner()
+        self.runner = runner if runner is not None else ActionRunner(timeout=timeout)
         self.log = log or (lambda _event: None)
         self.running = self.closed = False
         self.generation = 0
         self.land_requested = False
-        self.current = self.pending = self.pending_sandbox = None
+        self.current = self.pending = None
         self.motion_host = self.motion_task = self.motion_owner = None
         self.motion_channels = None
+        self.motion_details = None
         self.motion_startup = None
         self.motion_stop_lock = asyncio.Lock()
         self.motion_reason = 'not_started'
@@ -60,7 +62,15 @@ class UnifiedRuntime:
 
     def velocity_status(self):
         return {'running': self.motion_host is not None and not self.motion_host.cancelled.is_set(),
-                'channels': self.motion_channels, 'last_reason': self.motion_reason, 'units': 'RC [-100,100], not cm/s'}
+                'channels': self.motion_channels, 'last_command': self.motion_details,
+                'last_reason': self.motion_reason, 'units': 'RC [-100,100], not cm/s'}
+
+    def _velocity_result(self, result):
+        previous = self.motion_details or {}
+        self.motion_details = result.get('details')
+        details = self.motion_details or {}
+        if (previous.get('clamped', False), previous.get('clamp_reason')) != (details.get('clamped', False), details.get('clamp_reason')):
+            self.log({'event': 'continuous_motion_clamp_changed', 'details': details})
 
     async def start_velocity(self, owner, channels):
         if len(channels) != 4 or any(type(value) is not int or not -100 <= value <= 100 for value in channels):
@@ -86,6 +96,7 @@ class UnifiedRuntime:
             if not result.get('ok'):
                 raise SDKActionError(result)
             owner._current()
+            self._velocity_result(result)
             self.motion_task = asyncio.create_task(self._renew_velocity(host, tuple(channels)))
         except BaseException:
             host.cancel()
@@ -96,7 +107,8 @@ class UnifiedRuntime:
                 self.motion_startup = None
         self.motion_reason = 'running'
         self.log({'event': 'continuous_motion_started', 'channels': channels, 'units': 'RC'})
-        return {'ok': True, 'status': 'running', 'command_sent': True, 'motion_verified': False,
+        return {'ok': True, 'status': 'running', 'command_sent': bool((result.get('details') or {}).get('wire_sent')),
+                'motion_verified': False,
                 'details': result.get('details'), 'continuous_motion': self.velocity_status(),
                 'meaning': 'Host renews RC until stopped, replaced, failed or session ends; not a measured physical speed.'}
 
@@ -110,6 +122,7 @@ class UnifiedRuntime:
                 result = await host._action('update_velocity', *channels)
                 if not result.get('ok'):
                     raise RuntimeError(str(result))
+                self._velocity_result(result)
         except asyncio.CancelledError:
             reason = 'task_cancelled'
         except Exception as exc:
@@ -125,6 +138,7 @@ class UnifiedRuntime:
                 if self.motion_host is host:
                     self.motion_host = self.motion_owner = None
                     self.motion_channels = None
+                    self.motion_details = None
             self.motion_reason = reason
             self.log({'event': 'continuous_motion_stopped', 'reason': reason, 'cleanup': host.cleanup})
 
@@ -143,6 +157,7 @@ class UnifiedRuntime:
                 await host.finish(False)
                 self.motion_host = self.motion_owner = None
                 self.motion_channels = None
+                self.motion_details = None
                 self.motion_reason = 'stopped'
             if self.motion_task is task:
                 self.motion_task = None
@@ -158,38 +173,28 @@ class UnifiedRuntime:
         self.pending = None
         return {'ok': True, 'follow_cleanup': host.cleanup}
 
-    async def _recover_sandbox(self):
-        if self.pending_sandbox is None:
-            return {'ok': True, 'status': 'no_pending_container'}
-        result = await self.runner.retry_cleanup(self.pending_sandbox)
-        if result['ok']:
-            self.pending_sandbox = None
-        return result
-
-    async def run(self, code, expected_generation=None):
+    async def run(self, request, expected_generation=None):
+        validate_action(request)
         if expected_generation is not None and expected_generation != self.generation:
             return {'ok': False, 'status': 'cancelled', 'reason': 'stale_plan'}
         if self.closed or self.running:
             return {'ok': False, 'status': 'cancelled' if self.closed else 'busy',
-                    'reason': 'runtime_closed' if self.closed else 'another_program_running'}
+                    'reason': 'runtime_closed' if self.closed else 'another_action_running'}
         entry_generation = self.generation
         self.running = True
         run = None
         error = None
         try:
             await self._recover()
-            sandbox = await self._recover_sandbox()
-            if not sandbox['ok']:
-                return {**sandbox, 'ok': False, 'status': 'failed', 'reason': 'sandbox_cleanup_pending'}
             if self.closed or self.generation != entry_generation:
                 return {'ok': False, 'status': 'cancelled', 'reason': 'stale_plan'}
             recovery = self.pending is not None
             vision = None if recovery else self.vision
             if vision is not None:
                 vision.reset()
-            run = self.current = ProgramRun(Host(self.device, self.follow, vision, recovery=recovery, methods=self.methods, motion=self))
-            self.log({'event': 'program_start', 'code': code, 'recovery': recovery})
-            run.task = asyncio.create_task(self.runner.run(code, run.host, run.outcome))
+            run = self.current = ActionRun(Host(self.device, self.follow, vision, recovery=recovery, methods=self.methods, motion=self))
+            self.log({'event': 'action_start', 'request': request, 'recovery': recovery})
+            run.task = asyncio.create_task(self.runner.run(request, run.host, run.outcome))
             try:
                 await asyncio.shield(run.task)
             except asyncio.CancelledError as exc:
@@ -209,7 +214,7 @@ class UnifiedRuntime:
                 run.host.close_admission()
                 result = run.outcome.result
                 if not result:
-                    result.update(ok=False, status='cancelled', reason='program_cancelled')
+                    result.update(ok=False, status='cancelled', reason='action_cancelled')
                 async def finish():
                     try:
                         if self.motion_owner is run.host and (error is not None or not result['ok']):
@@ -217,8 +222,7 @@ class UnifiedRuntime:
                         await run.host.finish(error is None and result['ok'])
                     except Exception as exc:
                         result['follow_cleanup_error'] = str(exc)
-                        if not (result.get('cleanup_errors') or result.get('pending_container')):
-                            result.update(ok=False, status='failed', reason='cleanup_unconfirmed: ' + str(exc))
+                        result.update(ok=False, status='failed', reason='cleanup_unconfirmed: ' + str(exc))
                     result['follow_cleanup'] = run.host.cleanup
                 cleanup = asyncio.create_task(finish())
                 try:
@@ -226,17 +230,18 @@ class UnifiedRuntime:
                 except asyncio.CancelledError as exc:
                     run.host.cancel()
                     error = exc
+                    result.update(ok=False, status='cancelled', reason='action_cancelled')
                     await _settle(cleanup)
+                    if self.motion_owner is run.host:
+                        await self.stop_velocity()
                 if run.host.cleanup_pending:
                     self.pending = run.host
-                if run.outcome.cleanup.get('pending_container'):
-                    self.pending_sandbox = run.outcome
                 # Record evidence even when cancellation must propagate.
             self.current = None
             self.running = False
             if run is not None:
                 try:
-                    self.log({'event': 'program_result', 'result': run.outcome.result})
+                    self.log({'event': 'action_result', 'result': run.outcome.result})
                 except Exception:
                     if error is None:
                         raise  # A log failure cannot replace an existing cancellation/error.
@@ -246,13 +251,12 @@ class UnifiedRuntime:
 
     async def retry_cleanup(self):
         if self.running:
-            return {'ok': False, 'reason': 'program_cleanup_in_progress'}
+            return {'ok': False, 'reason': 'action_cleanup_in_progress'}
         self.running = True
         try:
             await self.stop_velocity()
             control = await self._recover()
-            sandbox = await self._recover_sandbox()
-            return {'ok': control['ok'] and sandbox['ok'], 'control': control, 'sandbox': sandbox}
+            return {'ok': control['ok'], 'control': control}
         finally:
             self.running = False
 
@@ -278,7 +282,3 @@ class UnifiedRuntime:
     def close(self):
         self.closed = True
         self.cancel()
-
-
-    async def close_sandbox(self):
-        return await self.runner.close() if isinstance(self.runner, SandboxRunner) else {'ok': True}

@@ -15,7 +15,7 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
         from types import SimpleNamespace
         async def execute(code, host, outcome):
             try:
-                if 'move_forward' in code:
+                if code['action'] == 'move_forward':
                     await host.dispatch('move_forward', [30], {})
                 else:
                     await host.dispatch('get_status', [], {})
@@ -34,7 +34,7 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
             finished.set()
             return True
         with patch.object(driver, 'execute', side_effect=block):
-            turn = asyncio.create_task(self.app.run('drone.move_forward(30)'))
+            turn = asyncio.create_task(self.app.run({'action':'move_forward','args':[30]}))
             try:
                 await wait_until(entered.is_set)
                 began = time.perf_counter()
@@ -61,7 +61,7 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
     async def test_late_program_cancelled_after_interrupt(self):
         generation = self.app.generation
         await self.app.interrupt(False)
-        record = await self.app.run('drone.move_forward(30)', expected_generation=generation)
+        record = await self.app.run({'action':'move_forward','args':[30]}, expected_generation=generation)
         self.assertEqual(record['status'], 'cancelled')
         self.assertEqual(record['reason'], 'stale_plan')
 
@@ -70,7 +70,7 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
         self.app.cancel()
         self.assertEqual(self.app.generation, generation + 1)
         self.assertIsNone(self.app.current)
-        record = await self.app.run('print(drone.get_status())', expected_generation=generation)
+        record = await self.app.run({'action':'get_status','args':[]}, expected_generation=generation)
         self.assertEqual(record['status'], 'cancelled')
 
     async def test_emergency_path_releases_follow_control(self):

@@ -9,18 +9,19 @@ const ENV = { RTC_APP_ID: '123456789012345678901234', RTC_APP_KEY: 'test-app-sec
   VOLCENGINE_ACCESS_KEY_ID: 'test-access-id', VOLCENGINE_SECRET_ACCESS_KEY: 'test-access-secret',
   VOLC_S2S_APP_ID: 'test-speech-id', VOLC_S2S_TOKEN: 'test-speech-secret',
   RTC_VLM_MODEL: 'test-model', RTC_VLM_API_KEY: 'test-model-secret',
-  RTC_INSTRUCTIONS: 'Run complete Python and report actual results.',
-  RTC_TOOLS_JSON: JSON.stringify([{ type: 'function', name: 'run_program',
-    parameters: { type: 'object', properties: { code: { type: 'string', maxLength: 60000 } }, required: ['code'] } }]) };
+  RTC_INSTRUCTIONS: 'Execute structured actions and report actual results.',
+  RTC_TOOLS_JSON: JSON.stringify([{ type: 'function', name: 'execute_action',
+    parameters: { type: 'object', properties: { action: { type: 'string', enum: ['rotate', 'get_status'] }, args: { type: 'array', items: { type: 'integer' } } }, required: ['action', 'args'] } }]) };
 const success = action => ({ ResponseMetadata: { Action: action, RequestId: 'test-request' } });
 
-test('cloud request config retains duplex audio, video and complete-program tools', () => {
+test('cloud request config retains duplex audio, video and structured-action tools', () => {
   const config = loadConfig(ENV);
   const body = startBody({ roomId: 'room', taskId: 'task', botId: 'bot', userId: 'user' }, config);
   assert.equal(body.Config.S2SConfig.Provider, 'volcano_duplex');
   assert.equal(body.Config.LLMConfig.Mode, 'ArkV3');
   assert.equal(body.Config.LLMConfig.VisionConfig.Enable, true);
-  assert.equal(body.Config.LLMConfig.Tools[0].function.parameters.properties.code.maxLength, 60000);
+  assert.equal(body.Config.LLMConfig.Tools[0].function.name, 'execute_action');
+  assert.deepEqual(body.Config.LLMConfig.Tools[0].function.parameters.required, ['action', 'args']);
   assert.match(body.Config.LLMConfig.SystemMessages.join('\n'), /NOVISION/);
   assert.equal(body.Config.LLMConfig.APIKey, ENV.RTC_VLM_API_KEY);
 });

@@ -3,7 +3,6 @@ import asyncio
 import os
 import time
 import unittest
-from ExecutionFixture import run_program, runner_for
 import pytest
 from pathlib import Path
 from unittest.mock import patch
@@ -174,10 +173,8 @@ class R3IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(config.reference_size_limit, .20)
         self.assertEqual(self.service.rc_caps, (50, 40, 20, 50))
 
-    @pytest.mark.docker
-    @unittest.skipUnless(os.getenv('RUN_DOCKER_TESTS') == '1', 'explicit Docker checks only')
-    async def test_actual_container_can_explicitly_adjust_and_receive_cleanup_confirmation(self):
-        from execution.sandbox_runner import SandboxRunner
+    async def test_structured_action_can_adjust_reference_and_confirm_cleanup(self):
+        from app.Runtime import UnifiedRuntime
         await self.start()
         execute = driver.execute
         def simulated_move(*args, **kwargs):
@@ -185,11 +182,10 @@ class R3IntegrationTests(unittest.IsolatedAsyncioTestCase):
             if args[0] == 'back':
                 self.feed.size = .15
             return result
-        runner = runner_for(sdk, self.follow)
-        self.addAsyncCleanup(runner.close)
+        runtime = UnifiedRuntime(sdk, self.follow)
         with patch.object(driver, 'execute', side_effect=simulated_move):
-            result = await run_program(runner,
-                "drone.move_back(20)\ndrone.adjust_follow_reference('depth')")
+            result = await runtime.run({'action': 'move_back', 'args': [20],
+                                        'adjust_follow_reference': 'depth'})
         self.assertTrue(result['ok'], result)
         self.assertEqual(result['follow_cleanup']['reference_adjusted'], 'depth')
         self.assertAlmostEqual(self.service.controller.reference_size, .15, delta=.005)

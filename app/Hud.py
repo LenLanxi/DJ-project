@@ -62,6 +62,7 @@ async def operator_controls(runtime, args, log, device):
             import cv2
             from drone_sdk import controller as ctl
         while True:
+            listener.check()
             if time.monotonic() >= next_diagnostics:
                 log(dict(device.diagnostics(), event='device_diagnostics'))
                 next_diagnostics = time.monotonic()+2

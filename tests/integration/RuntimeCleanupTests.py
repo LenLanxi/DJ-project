@@ -131,10 +131,10 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         self.stopvideo.assert_called_once()
         self.disconnect.assert_not_called()
 
-    async def test_pending_container_failure_does_not_retain_device_connection(self):
+    async def test_reported_noncontrol_cleanup_failure_does_not_retain_device_connection(self):
         self.aircraft()
         self.runtime.retry_cleanup.return_value = {'ok': False,
-            'control': {'ok': True}, 'sandbox': {'ok': False, 'reason': 'engine_unavailable'}}
+            'control': {'ok': True}, 'diagnostic': {'ok': False, 'reason': 'writer_unavailable'}}
         result = await self.close_aircraft()
         self.assertIn('pending_resources', self.failed_steps(result))
         self.stopvideo.assert_called_once()
@@ -173,7 +173,7 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
         stack = ExitStack()
         self.addCleanup(stack.close)
         args = ['voice' if voice else 'run', '--real-drone'] + ([] if voice else
-                                  ['--program', str(Path(__file__))])
+                                  ['--action-file', str(Path(__file__))])
         self.args = main.make_parser().parse_args(args)
         stack.enter_context(patch.object(main.DeviceSession, 'open', new=AsyncMock(return_value=object())))
         self.close = stack.enter_context(patch.object(main.DeviceSession, 'close', new=AsyncMock(
@@ -185,10 +185,10 @@ class RuntimeCleanupTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 self.closedcontrols = True
         stack.enter_context(patch.object(main, 'operator_controls', side_effect=controls))
-        stack.enter_context(patch('execution.sandbox_runner.SandboxRunner.check', new=AsyncMock()))
+        stack.enter_context(patch.object(main.Path, 'read_text', return_value='{"action":"get_status","args":[]}'))
         runner = AsyncMock(return_value=execution if execution is not None else {'ok': True})
         self.runtime_service = SimpleNamespace(run=runner, close=Mock(), generation=0, pending=None,
-            land_requested=False, close_sandbox=AsyncMock(return_value={'ok':True}), interrupt=AsyncMock(return_value={'ok': True}),
+            land_requested=False, interrupt=AsyncMock(return_value={'ok': True}),
             retry_cleanup=AsyncMock(return_value={'ok': True}))
         stack.enter_context(patch.object(main, 'UnifiedRuntime', return_value=self.runtime_service))
         stack.enter_context(patch('navigation.vision.Vision'))
@@ -331,7 +331,7 @@ class DeviceReadyTests(unittest.IsolatedAsyncioTestCase):
             connected=True, link_ok=True, battery=80, temperature_c=35, telemetry_fresh=True, video=True)))
         self.configure = stack.enter_context(patch.object(controller, 'configure_takeoff'))
         self.frames = stack.enter_context(patch.object(controller, 'get_frame', side_effect=packets))
-        args = main.make_parser().parse_args(['voice', '--real-drone', '--allow-real-takeoff', '--frame-timeout', '.16'])
+        args = main.make_parser().parse_args(['voice', '--real-drone', '--allow-real-takeoff', '--frame-timeout', '1'])
         return DeviceSession(args, Log())
 
     async def test_ready_requires_a_second_source_identity_without_fixed_ten_second_wait(self):

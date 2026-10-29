@@ -205,14 +205,14 @@ class RTCBridge:
             elif self.blocked_reason:
                 result = {'ok':False,'status':'failed','reason':self.blocked_reason}
             else:
-                try: result = await self.runtime.run(args['code'],expected_generation=generation)
+                try: result = await self.runtime.run(args,expected_generation=generation)
                 except Exception as exc:
                     result = {'ok':False,'status':'failed','reason':type(exc).__name__+': '+str(exc)}
             if epoch != self.epoch or self.runtime.generation != generation:
                 result = {'ok':False,'status':'cancelled','reason':'superseded_input'}
             if self.revoked or self.closing: return
             safe = tool_result(result,secrets=(*getattr(self.log,'secrets',()),self.token))
-            if (name == 'run_program' and safe.get('status') != 'cancelled'
+            if (name == 'execute_action' and safe.get('status') != 'cancelled'
                     and any(row.get('method') in ('takeoff', 'land', 'rotate', 'update_velocity',
                         'move_forward', 'move_back', 'move_left', 'move_right', 'move_up', 'move_down',
                         'start_follow', 'stop_follow', 'start_velocity', 'stop_motion') for row in result.get('journal', []))):

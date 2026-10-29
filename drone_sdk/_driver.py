@@ -292,21 +292,28 @@ def _plan_descent(cm):
     return granted if granted >= 20 else cm
 
 
-def _sanitise_rc(channels):
+def _sanitise_rc(channels, details=None):
     with _lock: flying = _flying
-    if not flying: return (0, 0, 0, 0)
+    if not flying:
+        if details is not None and any(channels): details['clamp_reason'] = 'not_flying'
+        return (0, 0, 0, 0)
     left_right, forward_back, up_down, yaw = (
         max(-RC_LIMIT, min(RC_LIMIT, int(v))) for v in channels)
+    if details is not None and tuple(channels) != (left_right, forward_back, up_down, yaw):
+        details['clamp_reason'] = 'rc_limit'
     if up_down != 0:
         height, source = _height_probe()
         if height is None:
+            if details is not None: details['clamp_reason'] = 'height_unknown'
             _record('height_limit_clamped', requested=up_down, height_cm=None,
                     channel='up_down', reason='height_unknown', source=source)
             up_down = 0
         elif up_down > 0 and height >= MAX_HEIGHT_CM:
+            if details is not None: details['clamp_reason'] = 'height_ceiling'
             _record('height_limit_clamped', requested=up_down, height_cm=height, channel='up_down')
             up_down = 0
         elif up_down < 0 and height <= 0:
+            if details is not None: details['clamp_reason'] = 'height_floor'
             up_down = 0
     return (left_right, forward_back, up_down, yaw)
 
@@ -462,6 +469,10 @@ def _execute_real(action, param=None, *, epoch=None, guard=None, details=None):
         cm = _plan_ascent(param, details=details) if action == 'up' else (
              _plan_descent(param) if action == 'down' else param)
         if cm is None: return False
+        if details is not None:
+            details.update(requested=param, applied=cm, clamped=cm != param,
+                           clamp_reason=('height_ceiling' if action == 'up' else 'current_height') if cm != param else None,
+                           units='cm', motion_verified=False)
         ok, _error = _call_real(lambda: _execute_move(tello, action, cm), action=action,
                                 deadline=_move_deadline(action, cm), epoch=epoch, guard=guard, details=details)
         if ok:
@@ -471,6 +482,7 @@ def _execute_real(action, param=None, *, epoch=None, guard=None, details=None):
                 _current_height(tello)
         return ok
     if action == 'rotate':
+        if details is not None: details.update(applied=param, units='degrees')
         ok, _error = _call_real(lambda: _execute_move(tello, action, param), action=action,
                                 deadline=_move_deadline(action, param), epoch=epoch, guard=guard, details=details)
         return ok
@@ -482,7 +494,13 @@ def _execute_real(action, param=None, *, epoch=None, guard=None, details=None):
 def execute(action, param=None, *, epoch=None, guard=None, details=None):
     with _lock:
         real, delay = not SIMULATED, _delay
+    if details is not None:
+        details.update(requested=param, applied=None, clamped=False, clamp_reason=None,
+                       wire_sent=False, motion_verified=False, simulated=not real)
     if not real:
+        if details is not None:
+            details.update(requested=param, applied=param, clamped=False, clamp_reason=None,
+                           simulated=True, wire_sent=False, motion_verified=False)
         if guard is not None and guard.is_set() and action != 'land':
             _record('command_dropped', action=action, reason='operation_cancelled_before_send')
             return False
@@ -530,10 +548,14 @@ def reconcile_state(tello=None, token=None):
         return resolved
 
 
-def set_velocity(channels, reason, *, guard=None):
+def set_velocity(channels, reason, *, guard=None, details=None):
     global _velocity
     with _lock: real = not SIMULATED
-    applied = _sanitise_rc(channels) if real else tuple(channels)
+    receipt = {} if details is None else details
+    receipt.update(requested_channels=tuple(channels), applied_channels=None, clamped=False,
+                   clamp_reason=None, wire_sent=False, simulated=not real, motion_verified=False)
+    applied = _sanitise_rc(channels, receipt) if real else tuple(channels)
+    receipt.update(applied_channels=applied, clamped=tuple(channels) != applied)
     if any(applied) and guard is not None and guard.is_set():
         _record('velocity_rejected', reason='operation_cancelled_before_send')
         return False
@@ -545,8 +567,10 @@ def set_velocity(channels, reason, *, guard=None):
     if tello is None: return False
     previous_guard = getattr(_command_context, 'guard', None)
     previous_origin = getattr(_command_context, 'origin', None)
+    previous_receipt = getattr(_command_context, 'velocity_receipt', None)
     _command_context.guard = guard
     _command_context.origin = reason
+    _command_context.velocity_receipt = receipt
     try:
         tello.send_rc_control(*applied)
         _set_link_ok()
@@ -559,6 +583,7 @@ def set_velocity(channels, reason, *, guard=None):
     finally:
         _command_context.guard = previous_guard
         _command_context.origin = previous_origin
+        _command_context.velocity_receipt = previous_receipt
 
 
 def set_speed(cm_s):
@@ -707,6 +732,9 @@ def _wire_send(command, send):
         with _lock:
             gap = time.monotonic() - _last_wire_send if _last_wire_send else None
             _last_wire_send = time.monotonic()
+            velocity_receipt = getattr(_command_context, 'velocity_receipt', None)
+            if velocity_receipt is not None and command.startswith('rc '):
+                velocity_receipt['wire_sent'] = True
             outcome = getattr(_command_context, 'outcome', None)
             if outcome is not None and not command.startswith('rc '):
                 outcome['wire_sent'] = True

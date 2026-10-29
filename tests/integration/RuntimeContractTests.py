@@ -48,7 +48,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_runtime_finishes_the_exact_context_passed_to_runner(self):
         runtime = self.runtime()
-        self.assertTrue((await runtime.run('program'))['ok'])
+        self.assertTrue((await runtime.run({'action':'get_status','args':[]}))['ok'])
         host = self.runner.run.call_args.args[1]
         with self.assertRaisesRegex(RuntimeError, 'execution_closed'):
             await host.dispatch('move_forward', [20], {})
@@ -56,7 +56,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_pending_cleanup_allows_status_but_blocks_motion(self):
         async def program(code, host):
-            method, args = ('get_status', []) if code == 'status' else ('move_forward', [20])
+            method, args = ('get_status', []) if code['action'] == 'get_status' else ('move_forward', [20])
             try:
                 return {'ok': True, 'value': await host.dispatch(method, args, {})}
             except RuntimeError as exc:
@@ -64,8 +64,8 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
         runtime = self.runtime(program)
         finish = AsyncMock(side_effect=RuntimeError('release unconfirmed'))
         runtime.pending = SimpleNamespace(finish=finish, cleanup={'status': 'release_unconfirmed'})
-        self.assertTrue((await runtime.run('status'))['ok'])
-        self.assertIn('readonly_or_priority', (await runtime.run('motion'))['reason'])
+        self.assertTrue((await runtime.run({'action':'get_status','args':[]}))['ok'])
+        self.assertIn('readonly_or_priority', (await runtime.run({'action':'move_forward','args':[20]}))['reason'])
         finish.side_effect = None
         self.assertTrue((await runtime.retry_cleanup())['ok'])
         self.assertIsNone(runtime.pending)
@@ -77,25 +77,13 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
             entered.set()
             await release.wait()
         runtime.pending = SimpleNamespace(finish=finish, cleanup={})
-        task = asyncio.create_task(runtime.run('old program'))
+        task = asyncio.create_task(runtime.run({'action':'get_status','args':[]}))
         await entered.wait()
         runtime.cancel()
         release.set()
         self.assertEqual((await task)['status'], 'cancelled')
         self.runner.run.assert_not_awaited()
 
-    async def test_container_recovery_failure_does_not_skip_control_recovery(self):
-        runtime = self.runtime()
-        finish = AsyncMock()
-        runtime.pending = SimpleNamespace(finish=finish, cleanup={})
-        runtime.pending_sandbox = object()
-        self.runner.retry_cleanup.return_value = {'ok':False, 'reason':'engine_unavailable'}
-        result = await runtime.retry_cleanup()
-        self.assertFalse(result['ok'])
-        finish.assert_awaited_once_with(False)
-        self.assertIsNone(runtime.pending)
-        self.assertTrue(result['control']['ok'])
-        self.runner.retry_cleanup.assert_awaited_once()
 
     async def test_repeated_stop_does_not_interrupt_container_cleanup(self):
         entered, cleaning, release, completed = (asyncio.Event() for _ in range(4))
@@ -109,7 +97,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
                 await release.wait()
                 completed.set()
         runtime = self.runtime(run)
-        task = asyncio.create_task(runtime.run('program'))
+        task = asyncio.create_task(runtime.run({'action':'get_status','args':[]}))
         await entered.wait()
         runtime.cancel()
         await cleaning.wait()
@@ -131,7 +119,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
                 cleaning.set()
                 await release.wait()
         runtime = self.runtime(run)
-        task = asyncio.create_task(runtime.run('program'))
+        task = asyncio.create_task(runtime.run({'action':'get_status','args':[]}))
         await entered.wait()
         task.cancel()
         await cleaning.wait()
@@ -144,15 +132,15 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_result_log_failure_does_not_leave_runtime_busy(self):
         runtime = self.runtime()
         def log(event):
-            if event['event'] == 'program_result':
+            if event['event'] == 'action_result':
                 raise OSError('disk unavailable')
         runtime.log = log
         with self.assertRaisesRegex(OSError, 'disk unavailable'):
-            await runtime.run('program')
+            await runtime.run({'action':'get_status','args':[]})
         self.assertFalse(runtime.running)
         self.assertIsNone(runtime.current)
         runtime.log = lambda event: None
-        self.assertTrue((await runtime.run('next'))['ok'])
+        self.assertTrue((await runtime.run({'action':'get_status','args':[]}))['ok'])
 
     async def test_cancelled_stop_keeps_its_late_updated_grant_for_cleanup(self):
         import threading
@@ -175,7 +163,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
         runtime = UnifiedRuntime(sdk, MockBackend(), runner=SimpleNamespace(run=execute))
         try:
             with patch.object(sdk, 'stop_motion', side_effect=stop):
-                task = asyncio.create_task(runtime.run('stop'))
+                task = asyncio.create_task(runtime.run({'action':'get_status','args':[]}))
                 self.assertTrue(await asyncio.to_thread(entered.wait, 1))
                 runtime.cancel()
                 await task
