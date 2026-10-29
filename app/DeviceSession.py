@@ -60,7 +60,7 @@ class DeviceSession:
         log({'event': 'follow_config', 'path': os.getenv('R3_FOLLOW_CONFIG'),
              'profile': config.control_profile, 'steering': config.steering_mode,
              'target_id': config.target_id})
-        ctl.configure_takeoff(authorized=False, min_battery=args.min_battery)
+        ctl.configure_takeoff(authorized=False, min_battery=args.min_battery, temp_max=args.temp_max)
         stage = 'sdk_connect'
         try:
             log({'event':'preflight_stage','stage':stage,'status':'start'})
@@ -94,7 +94,7 @@ class DeviceSession:
             print('[预检] 电量=%s%%，温度=%s℃，遥测新鲜=%s' %
                   (health.get('battery'),health.get('temperature_c'),health.get('telemetry_fresh')),flush=True)
             validate_health(health, args)
-            ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery)
+            ctl.configure_takeoff(authorized=args.allow_real_takeoff, min_battery=args.min_battery, temp_max=args.temp_max)
             log({'event': 'real_ready', 'health': health, 'takeoff_authorized': args.allow_real_takeoff})
             print('[设备] 真机已连接，起飞授权=%s，最低电量=%d%%' % (args.allow_real_takeoff, args.min_battery), flush=True)
             self.ready = True

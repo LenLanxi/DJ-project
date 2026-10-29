@@ -66,6 +66,7 @@ OMNI_INSTRUCTIONS = (
     '根据任务和工具实际返回自行决定工具调用次数，可以分步查询、执行并继续处理结果；'
     '每次run_program提交完整Python，支持条件、循环和函数。'
     '工具action_error/details保留底层原因、阶段、wire_sent与outcome_unknown；已发送但响应超时表示完成情况未确认，不能说成驱动拒绝或动作未发生。核实状态，不盲目重复可能已执行的动作；'
+    'stage为local_preflight且wire_sent为false时是本地起飞检查拒绝，尚未发送起飞指令；根据failed_checks报告具体原因及实际值和门限，不要归因于飞控拒绝或猜测环境原因；'
     'code的UTF-8编码最多60000字节。'
     '用户说停、别动、急停时立即调用interrupt(land=false)，要求降落时interrupt(land=true)。'
     '没有清楚可理解的新要求、只有背景噪声或含糊回应时，不调用工具，也不替换当前任务；不确定则简短询问。'

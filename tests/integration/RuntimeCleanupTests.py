@@ -342,7 +342,7 @@ class DeviceReadyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(await device.open(), controller)
         self.assertLess(time.monotonic()-started, 2)
         self.assertEqual(self.frames.call_count, 3)
-        self.configure.assert_called_with(authorized=True, min_battery=30)
+        self.configure.assert_called_with(authorized=True, min_battery=30, temp_max=95)
 
     async def test_a_repeated_cached_frame_never_completes_device_readiness(self):
         packet = FrameResult(object(), 5, time.time(), False)
@@ -351,7 +351,7 @@ class DeviceReadyTests(unittest.IsolatedAsyncioTestCase):
         self.frames.return_value = packet
         with self.assertRaisesRegex(RuntimeError, '连续两张'):
             await device.open()
-        self.configure.assert_called_once_with(authorized=False, min_battery=30)
+        self.configure.assert_called_once_with(authorized=False, min_battery=30, temp_max=95)
 
     async def test_follow_captures_real_mode_after_connect(self):
         device = self.device([FrameResult(object(), 1, time.time(), False),

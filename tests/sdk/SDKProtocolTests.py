@@ -13,6 +13,42 @@ from drone_sdk import _driver as drv, controller as ctl
 
 class SDKProtocolTests(SDKWireFixture):
 
+    def test_takeoff_temperature_rejection_explains_unsent_command(self):
+        ctl.configure_takeoff(authorized=True)
+        self.addCleanup(ctl.configure_takeoff, authorized=True)
+        self.packet.update(templ=95, temph=95)
+        result = ctl.takeoff(self.grant)
+        self.assertEqual(result.reason, 'temperature_limit_reached')
+        self.assertEqual(result.details['stage'], 'local_preflight')
+        self.assertFalse(result.details['wire_sent'])
+        self.assertEqual(result.details['temperature_c'], 95)
+        self.assertEqual(result.details['temp_max'], 95)
+        self.assertNotIn('takeoff', self.sent)
+
+    def test_takeoff_respects_configured_temperature_limit(self):
+        self.addCleanup(ctl.configure_takeoff, authorized=True)
+        ctl.configure_takeoff(authorized=True, temp_max=90)
+        self.packet.update(templ=90, temph=90)
+        self.assertEqual(ctl.takeoff(self.grant).reason, 'temperature_limit_reached')
+        self.assertNotIn('takeoff', self.sent)
+        self.packet.update(templ=89, temph=89, h=0, tof=0)
+        ctl._flight_state = 'landed'
+        drv._flying = self.tello.is_flying = False
+        self.assertTrue(ctl.takeoff(self.grant).ok)
+        self.assertIn('takeoff', self.sent)
+
+    def test_takeoff_reports_multiple_local_failures(self):
+        self.addCleanup(ctl.configure_takeoff, authorized=True)
+        ctl.configure_takeoff(authorized=False)
+        self.packet.update(bat=10, templ=95, temph=95)
+        result = ctl.takeoff(self.grant)
+        self.assertEqual(result.reason, 'takeoff_not_authorized')
+        self.assertEqual(result.details['failed_checks'], [
+            'takeoff_not_authorized', 'battery_below_limit', 'temperature_limit_reached'])
+        self.assertEqual(result.details['battery'], 10)
+        self.assertEqual(result.details['min_battery'], 30)
+        self.assertNotIn('takeoff', self.sent)
+
     def test_keepalive_worst_phase_stays_below_firmware_deadline(self):
         clock = [0.0]
         sends = []

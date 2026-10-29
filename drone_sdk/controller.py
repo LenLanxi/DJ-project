@@ -261,22 +261,42 @@ def _move(grant, action, param=None):
 
 _takeoff_authorized = False
 _min_battery = 30
+_temp_max = 95
 
-def configure_takeoff(*, authorized=False, min_battery=30):
+def configure_takeoff(*, authorized=False, min_battery=30, temp_max=95):
     """Software authorization; the threshold is not a firmware guarantee."""
-    global _takeoff_authorized, _min_battery
+    global _takeoff_authorized, _min_battery, _temp_max
     if type(min_battery) is not int or not 0 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
+    if type(temp_max) not in (int, float) or not 0 < temp_max <= 100: raise ValueError('invalid_temperature_limit')
     _takeoff_authorized, _min_battery = bool(authorized), min_battery
+    _temp_max = temp_max
 
 def takeoff(grant, *, cancelled=None):
     if not _driver.SIMULATED:
-        h = _driver.health(); battery = h['battery']
-        if (not _takeoff_authorized or type(battery) is not int
-                or not _min_battery <= battery <= 100 or not h['link_ok']
-                or not h.get('telemetry_fresh')
-                or type(h.get('temperature_c')) not in (int, float)
-                or h['temperature_c'] >= 95):
-            return CommandResult(False, 'failed', 'takeoff_gate_rejected')
+        h = _driver.health()
+        battery, temperature = h['battery'], h.get('temperature_c')
+        failed = []
+        if not _takeoff_authorized: failed.append('takeoff_not_authorized')
+        if not h['link_ok']: failed.append('link_unavailable')
+        if not h.get('telemetry_fresh'): failed.append('telemetry_stale')
+        if type(battery) is not int or not 0 <= battery <= 100:
+            failed.append('battery_unavailable')
+        elif battery < _min_battery:
+            failed.append('battery_below_limit')
+        if type(temperature) not in (int, float):
+            failed.append('temperature_unavailable')
+        elif temperature >= _temp_max:
+            failed.append('temperature_limit_reached')
+        if failed:
+            return CommandResult(False, 'failed', failed[0], details={
+                'stage': 'local_preflight', 'wire_sent': False,
+                'failed_checks': failed, 'takeoff_authorized': _takeoff_authorized,
+                'battery': battery, 'min_battery': _min_battery,
+                'temperature_c': temperature, 'temp_max': _temp_max,
+                'link_ok': h['link_ok'], 'telemetry_fresh': h.get('telemetry_fresh'),
+                'telemetry_age_s': h.get('telemetry_age_s'),
+                'telemetry_timestamp': h.get('telemetry_timestamp'),
+            })
     with operation_guard(cancelled) if cancelled is not None else nullcontext():
         return _move(grant, 'takeoff')
 
