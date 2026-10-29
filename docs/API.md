@@ -2,6 +2,10 @@
 
 模型提示和工具契约集中在 `app/Tools.py`；动作宿主在 `execution/Host.py`。云模型只有 `run_program(code)` 和 `interrupt(land: boolean)` 两个工具，不直接访问设备、文件或密钥。工具结果须与原工具 ID 对应。
 
+语音模型直接看 RTC 前摄像头画面，逐轮生成一个动作的程序，读取执行结果和新画面后再决定下一步。只看得到当前朝向，必要时单独转向再观察；每次一个动作是提示词约定，不是宿主动作数量限制。提示词不再要求调用 `observe` / `describe`；以下旧观察接口仍供已有手工脚本使用，不是语音导航的前置条件。
+
+运动程序返回云端前，宿主最多等待 2 秒，让浏览器提交解码时间晚于程序收尾的新帧。`camera_observation.status=published` 表示提交到本地 RTC 视频轨，`cloud_verified=false` 明确没有云端收帧证明；不可用时返回 `unavailable`，保留原动作结果及语音连接。模型应等待新画面再做视觉决策。
+
 ## 完整 Python
 
 `code` 是完整 Python，支持变量、条件、循环、函数及标准库。沙箱预置全局 `drone`，不要 `import drone`，也不存在裸 `get_status()` 函数。例如：

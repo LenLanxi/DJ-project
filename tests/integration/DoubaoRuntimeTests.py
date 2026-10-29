@@ -3,7 +3,7 @@ import asyncio
 import json
 import types
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from providers.RTCBridge import RTCBridge
 
 
@@ -65,6 +65,43 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         await self.settle()
         self.assertEqual(len(self.runtime.executed),1)
         self.assertEqual(len(self.results),1)
+
+    async def test_action_result_waits_for_post_action_frame_before_cloud_delivery(self):
+        self.runtime.run = AsyncMock(return_value={'ok':True, 'status':'completed',
+            'journal':[{'method':'rotate', 'result':{'ok':True}}]})
+        self.bridge.send = AsyncMock()
+        await self.tools([call()])
+        while self.bridge.pending_frame is None: await asyncio.sleep(0)
+        cid, after, _ = self.bridge.pending_frame
+        self.assertEqual(self.results, [])
+        await self.bridge.message(dict(IDENTITY, type='frame_published', request_id=cid,
+                                      frame_id=1, timestamp=after-1))
+        self.assertEqual(self.results, [])
+        with patch('providers.RTCBridge.time.time', return_value=after+.2):
+            await self.bridge.message(dict(IDENTITY, type='frame_published', request_id=cid,
+                                          frame_id=2, timestamp=after+.1))
+        await self.settle()
+        camera = self.results[0][1]['camera_observation']
+        self.assertEqual(camera['frame_id'], 2)
+        self.assertFalse(camera['cloud_verified'])
+
+    async def test_frame_wait_timeout_keeps_session_and_action_result(self):
+        self.bridge.send = AsyncMock()
+        result = await self.bridge.post_action_frame('missing-frame')
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertFalse(self.bridge.revoked)
+        self.assertIsNone(self.bridge.pending_frame)
+
+    async def test_interrupt_during_frame_wait_supersedes_old_result(self):
+        self.runtime.run = AsyncMock(return_value={'ok':True, 'status':'completed',
+            'journal':[{'method':'rotate', 'result':{'ok':True}}]})
+        self.bridge.send = AsyncMock()
+        await self.tools([call()])
+        while self.bridge.pending_frame is None: await asyncio.sleep(0)
+        await self.tools([call('stop', name='interrupt', args={'land':True})])
+        await self.settle()
+        self.assertEqual(self.runtime.stops, [True])
+        self.assertEqual(self.results[0][1]['status'], 'cancelled')
     async def test_subtitle_and_barge_in_do_not_stop_program(self):
         for kind,value in [('subv',{'data':[{'userId':'user1','text':'看看画面'}]}),
                            ('conv',{'Stage':{'Code':4}})]:

@@ -77,6 +77,24 @@ test('tool results retain detailed errors and never trigger a duplicate browser 
   assert.match(displayed, /wire_sent/); assert.match(displayed, /outcome_unknown/);
 });
 
+test('post-action frame acknowledgement follows publishing a newer image', async () => {
+  const { client, sent } = fixture(), original = globalThis.Image, after = Date.now()/1000 - .2;
+  client.track = { requestFrame() { this.published = true; } };
+  globalThis.Image = class { constructor() { this.naturalWidth = this.naturalHeight = 16; }
+    set src(_) { queueMicrotask(() => this.onload()); } };
+  try {
+    await client.bridgeMessage({ type: 'frame_request', request_id: 'action', after });
+    await client.renderFrame({ id: 1, timestamp: after-.1, jpeg: 'fixture' });
+    assert.equal(sent.length, 0);
+    await client.renderFrame({ id: 2, timestamp: after+.1, jpeg: 'fixture' });
+    assert.equal(client.track.published, true);
+    assert.equal(sent[0].type, 'frame_published');
+    assert.equal(sent[0].request_id, 'action');
+    assert.equal(sent[0].frame_id, 2);
+    assert.equal(client.frameRequest, null);
+  } finally { globalThis.Image = original; }
+});
+
 test('operator interrupt is sent locally before any cloud request', async () => {
   const { client, sent } = fixture(); client.post = () => assert.fail('must not wait for cloud');
   await client.interrupt(true);

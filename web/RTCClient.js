@@ -43,6 +43,7 @@
       this.lastFrame = 0;
       this.lastFrameId = null;
       this.frameGeneration = 0;
+      this.frameRequest = null;
       this.timers = [];
       this.ending = null;
       this.readyWaiters = [];
@@ -280,6 +281,8 @@
         this.onMessage('执行：' + JSON.stringify(message.result || {}));
       } else if (message.type === 'frame') {
         await this.renderFrame(message);
+      } else if (message.type === 'frame_request') {
+        this.frameRequest = message;
       } else if (message.type === 'invalid_frame') {
         this.clearFrame();
       } else if (message.type === 'session_reset_required') {
@@ -308,6 +311,11 @@
       this.canvas.getContext('2d').drawImage(image, 0, 0);
       this.lastFrame = message.timestamp*1000;
       if (this.track) { this.track.enabled = true; this.track.requestFrame(); }
+      if (this.track && this.frameRequest && message.timestamp > this.frameRequest.after) {
+        this.send({ type: 'frame_published', sessionId: this.session.sessionId,
+          request_id: this.frameRequest.request_id, frame_id: message.id, timestamp: message.timestamp });
+        this.frameRequest = null;
+      }
       this.onFrame({ id: message.id, ageMs: Date.now()-this.lastFrame });
       this.notify();
     }
@@ -383,6 +391,7 @@
       if (this.ending) return this.ending;
       this.connectionGeneration += 1;
       this.active = false;
+      this.frameRequest = null;
       this.ending = (async () => {
         for (const timer of this.timers.splice(0)) clearTimeout(timer);
         for (const waiter of this.readyWaiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(new Error('连接已结束')); }

@@ -31,6 +31,7 @@ class RTCBridge:
         self.blocked_reason = None
         self.finished = asyncio.Event()
         self.failure = None
+        self.pending_frame = None
 
     async def start(self):
         from websockets.asyncio.server import serve
@@ -97,7 +98,17 @@ class RTCBridge:
             await self.revoke('operator_interrupt', message['land'])
             return
         self.current(message)
-        if kind == 'tool_calls':
+        if kind == 'frame_published':
+            pending = self.pending_frame
+            if pending is not None:
+                cid, after, future = pending
+                stamp = message.get('timestamp')
+                if (message.get('request_id') == cid and not future.done()
+                        and type(stamp) in (int, float) and math.isfinite(stamp)
+                        and after < stamp <= time.time()):
+                    future.set_result({'status': 'published', 'frame_id': message.get('frame_id'),
+                        'timestamp': stamp, 'camera': 'front', 'cloud_verified': False})
+        elif kind == 'tool_calls':
             await self.accept_tools(message.get('calls'))
         elif kind == 'cloud_event':
             event = message['event']
@@ -190,11 +201,35 @@ class RTCBridge:
                 result = {'ok':False,'status':'cancelled','reason':'superseded_input'}
             if self.revoked or self.closing: return
             safe = tool_result(result,secrets=(*getattr(self.log,'secrets',()),self.token))
+            if (name == 'run_program' and safe.get('status') != 'cancelled'
+                    and any(row.get('method') in ('takeoff', 'land', 'rotate', 'update_velocity',
+                        'move_forward', 'move_back', 'move_left', 'move_right', 'move_up', 'move_down',
+                        'start_follow', 'stop_follow', 'stop_motion') for row in result.get('journal', []))):
+                safe['camera_observation'] = await self.post_action_frame(cid)
+            if epoch != self.epoch or self.runtime.generation != generation:
+                safe = {'ok':False,'status':'cancelled','reason':'superseded_input'}
+            if self.revoked or self.closing: return
             self.log({'event':'tool_result','transport':'rtc','id':cid,'epoch':epoch,'result':safe})
             if self.result_sink is None: raise RuntimeError('rtc_result_sink_not_configured')
             await self.result_sink(dict(self.session),cid,safe)
             try: await self.send({'type':'tool_result','id':cid,'epoch':epoch,'result':safe})
             except Exception: pass  # The authoritative cloud delivery already completed.
+
+    async def post_action_frame(self, call_id):
+        """Wait for a new frame submitted to RTC, not a guessed cloud receipt."""
+        after = time.time()
+        future = asyncio.get_running_loop().create_future()
+        pending = self.pending_frame = (call_id, after, future)
+        try:
+            await self.send({'type': 'frame_request', 'request_id': call_id, 'after': after})
+            result = await asyncio.wait_for(future, 2)
+        except (TimeoutError, OSError):
+            result = {'status': 'unavailable', 'camera': 'front', 'cloud_verified': False,
+                      'reason': 'post_action_frame_not_confirmed; wait for a new image before visual decisions'}
+        finally:
+            if self.pending_frame is pending: self.pending_frame = None
+        self.log({'event': 'post_action_frame', 'call_id': call_id, 'after': after, **result})
+        return result
 
     async def frames(self):
         previous = None
