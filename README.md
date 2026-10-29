@@ -20,7 +20,7 @@ docker build -t companion-sandbox:0.5 execution/sandbox
 .\start_flight.ps1 -AllowTakeoff
 ```
 
-手动打开 http://127.0.0.1:18848，选择麦克风与耳机。页面只接收真实 SDK 无人机画面，不打开电脑摄像头。Ctrl+Shift+Alt+A / F12 停止；Ctrl+Shift+Alt+L / F11 降落。
+手动打开 http://127.0.0.1:18848，选择麦克风与耳机。连接后点击“开始说话”，说完点击“发送并静音”；麦克风默认不采集。页面只接收真实 SDK 无人机画面，不打开电脑摄像头。Ctrl+Shift+Alt+A / F12 停止；Ctrl+Shift+Alt+L / F11 降落。
 
 ## 接手阅读
 

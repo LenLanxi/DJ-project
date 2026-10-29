@@ -27,6 +27,7 @@ import traceback
 from .contract import FrameResult
 
 SIMULATED = True
+replay_capture = None
 
 MAX_SPEED_CM_S = 100
 MIN_SPEED_CM_S = 10
@@ -89,11 +90,23 @@ def command_channel_clear():
         return _response_quarantine is None
 
 
+def command_warning():
+    with _lock:
+        if _response_quarantine is None:
+            return {}
+        return {'command_channel_ambiguous': True,
+                'command_uncertainty': dict(_response_quarantine),
+                'reply_association_verified': False,
+                'warning': 'Earlier command outcome is unknown. Further commands are allowed; '
+                           'a reply may belong to an earlier command. Observe before deciding the next action; '
+                           'do not assume the earlier action did not execute or blindly repeat it.'}
+
+
 def _mark_response_unknown(action, reason):
     """UDP replies carry no command IDs. A late reply cannot safely answer B.
 
-    No timer clears this barrier. Normal motion is disabled until an explicit
-    disconnect/reconnect; emergency RC zero and landing remain available.
+    Diagnostic only: keep the uncertainty visible without blocking later commands.
+    A later reply cannot prove which command the aircraft acknowledged.
     """
     global _response_quarantine
     with _lock:
@@ -319,8 +332,6 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None,
         return ok, error
     with _lock:
         bound_epoch = _cancel_epoch if epoch is None else epoch
-        if _response_quarantine is not None and action not in ('land', 'streamoff'):
-            return finish(False, 'command_channel_ambiguous')
     done = threading.Event()
 
     with _lock: _pending_commands.add(done)
@@ -335,6 +346,7 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None,
             _command_context.action = action
             _command_context.outcome = outcome
             _command_context.guard = guard
+            _command_context.deadline = started + deadline
             with _lock: cancelled = _cancel_epoch != bound_epoch
             if cancelled:
                 outcome['error'] = 'cancelled_before_send'
@@ -344,9 +356,6 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None,
                 outcome['error'] = 'operation_cancelled_before_send'
                 _record('command_dropped', action=action, reason='operation_cancelled_before_send')
             else:
-                if not command_channel_clear() and action not in ('land','streamoff'):
-                    outcome['error'] = 'command_channel_ambiguous'
-                    return
                 outcome['stage'] = 'send'
                 fn()
                 outcome['stage'] = 'completed'
@@ -358,13 +367,14 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None,
             _record('command_exception', action=action, error=str(exc), traceback=traceback.format_exc())
             outcome['error'] = (str(exc) if str(exc) in ('cancelled_before_send', 'cancelled_after_send',
                                                         'response_timeout_after_send','command_channel_ambiguous',
-                                                        'operation_cancelled_before_send')
+                                                        'operation_cancelled_before_send','caller_deadline_before_send')
                                 else '%s: %s' % (type(exc).__name__, exc))
         finally:
             _command_context.epoch = None
             _command_context.action = None
             _command_context.outcome = None
             _command_context.guard = None
+            _command_context.deadline = None
             _command_lock.release()
             with _lock: _pending_commands.discard(done)
             done.set()
@@ -388,7 +398,8 @@ def _call_real(fn, *, action, deadline, epoch=None, on_success=None, guard=None,
 def _move_deadline(action, param):
     if action in COMMAND_DEADLINE_S: return COMMAND_DEADLINE_S[action]
     magnitude = abs(param or 0)
-    return (12.0 + magnitude / 45.0) if action == 'rotate' else (8.0 + magnitude / 20.0)
+    with _lock: speed = max(MIN_SPEED_CM_S, _speed_cm_s)
+    return (12.0 + magnitude / 45.0) if action == 'rotate' else (8.0 + 2 * magnitude / speed)
 
 
 def _execute_move(tello, action, cm):
@@ -522,9 +533,6 @@ def reconcile_state(tello=None, token=None):
 def set_velocity(channels, reason, *, guard=None):
     global _velocity
     with _lock: real = not SIMULATED
-    if real and any(channels) and not command_channel_clear():
-        _record('velocity_rejected', reason='command_channel_ambiguous')
-        return False
     applied = _sanitise_rc(channels) if real else tuple(channels)
     if any(applied) and guard is not None and guard.is_set():
         _record('velocity_rejected', reason='operation_cancelled_before_send')
@@ -691,8 +699,6 @@ def _wire_send(command, send):
             if not safe and guard is not None and guard.is_set():
                 _record('command_dropped', command=command, reason='operation_cancelled_before_send')
                 raise RuntimeError('operation_cancelled_before_send')
-            if _response_quarantine is not None and not safe:
-                raise RuntimeError('command_channel_ambiguous')
         try:
             send(command)
         except Exception as exc:
@@ -752,12 +758,19 @@ def _tello_class(timeout):
             self.retry_count = 1
         def send_command_with_return(self, command, timeout=timeout):
             outcome = getattr(_command_context, 'outcome', None)
-            if outcome is not None: outcome['response_timeout_seconds'] = timeout
             # Copy the narrow 2.5 protocol wait, replacing only its final send
             # with the cancellation gate. Do not hold a lock during a reply.
             elapsed = time.time() - self.last_received_command_timestamp
             if elapsed < self.TIME_BTW_COMMANDS:
                 time.sleep(self.TIME_BTW_COMMANDS - elapsed)
+            deadline = getattr(_command_context, 'deadline', None)
+            if deadline is not None:
+                # The action already owns a distance/speed budget. A second
+                # fixed five-second wait used to stop valid long moves early.
+                timeout = deadline - time.monotonic() - .05
+                if timeout <= 0:
+                    raise RuntimeError('caller_deadline_before_send')
+            if outcome is not None: outcome['response_timeout_seconds'] = timeout
             responses = self.get_own_udp_object()['responses']
             if responses:
                 _record('command_replies_discarded', next_command=command,
@@ -1011,6 +1024,8 @@ class _VideoDecoder(threading.Thread):
         if self._halt.is_set():
             return
         for packet in container.demux(video=0):
+            if replay_capture is not None and packet.size:
+                replay_capture.submit('video_packet', bytes(packet), stream_open=self.opened)
             if self._halt.is_set():
                 return
             try:

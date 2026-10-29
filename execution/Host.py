@@ -45,11 +45,12 @@ class Host:
 
     Single-use program state. Its event is never cleared or replaced.
     """
-    def __init__(self, device, follow, vision=None, *, recovery=False, methods=None):
+    def __init__(self, device, follow, vision=None, *, recovery=False, methods=None, motion=None):
         self.device, self.follow, self.vision = device, follow, vision
         self.simulated = device.get_status().simulated
         self.recovery = recovery
         self.methods = methods
+        self.motion = motion
         self.cancelled = threading.Event()
         self.control_lock = asyncio.Lock()
         self.acquired = False
@@ -106,6 +107,9 @@ class Host:
             self._current()
             if self.acquired:
                 return
+            if self.motion is not None:
+                await self.motion.stop_velocity()
+                self._current()
             self.ticket = await self._follow(self.follow.pause_if_active)
             self._current()
             # Thread cancellation cannot undo an SDK grant. Keep the request
@@ -189,7 +193,15 @@ class Host:
             result = (asdict(await asyncio.to_thread(self.device.get_status)) if method == 'get_status'
                       else await asyncio.to_thread(self.follow.is_following))
             self._current()
+            if method == 'get_status' and self.motion is not None:
+                result['continuous_motion'] = self.motion.velocity_status()
             return result
+        if method == 'start_velocity':
+            if self.follow_adjust_axis is not None:
+                raise RuntimeError('follow_adjustment_must_be_last_motion')
+            if self.motion is None:
+                raise RuntimeError('continuous_motion_not_configured')
+            return await self.motion.start_velocity(self, args)
         if method in ('observe', 'describe'):
             if len(args) != 1 or not isinstance(args[0], str) or not 0 < len(args[0]) <= 2000:
                 raise ValueError('vision requires a target/question of 1 to 2000 characters')
@@ -243,6 +255,9 @@ class Host:
         if method in ('start_follow', 'stop_follow'):
             if args:
                 raise ValueError('follow takes no arguments')
+            if self.motion is not None:
+                await self.motion.stop_velocity()
+                self._current()
             if self.follow_adjust_axis is not None:
                 if method == 'start_follow':
                     raise RuntimeError('follow_adjustment_must_be_last_motion')

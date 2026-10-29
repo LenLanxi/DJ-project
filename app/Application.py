@@ -84,6 +84,12 @@ class Session:
                 raise ValueError('程序必须非空且不超过60KB')
         voice = args.command == 'voice'
         config = load_config(args.doubao_credentials, log) if voice or args.text or args.vision else None
+        if getattr(log, 'capture', None) is not None and config:
+            (log.capture.root / 'Model.json').write_text(json.dumps({
+                'model': config.vision_model, 'thinking': 'disabled',
+                'snapshot_interval_ms': 500, 'images_limit': 1,
+                'voice': config.environment.get('VOLC_VOICE', 'zh_female_vv_jupiter_bigtts')},
+                ensure_ascii=False, indent=2), encoding='utf-8')
         client = DoubaoVisionClient(config, on_usage=log,
             max_output_tokens=None) if config else None
         from execution.sandbox_runner import SandboxRunner
@@ -216,6 +222,7 @@ def make_parser():
     source.add_argument('--text', help='由真实模型生成程序并执行')
     voice = commands.add_parser('voice', parents=[device], help='持续语音会话')
     voice.set_defaults(vision=False)
+    voice.add_argument('--record-test', action='store_true', help='单独保留完整复盘音视频和日志，不自动清理')
     voice.add_argument('--max-session-seconds', type=float, default=30000,
                         help='会话默认30000秒，到期停止云端并退出')
     voice.add_argument('--web-port', type=int, default=18848,
@@ -243,10 +250,26 @@ def main(argv=None):
         maximum = 30000 if name == 'max_session_seconds' else 900
         if not math.isfinite(value) or not 0 < value <= maximum:
             parser.error('--%s必须在0到%s秒之间' % (name.replace('_', '-'), maximum))
-    log = SessionLog(args.log_file)
+    capture = None
+    if getattr(args, 'record_test', False):
+        from app.ReplayCapture import ReplayCapture
+        from drone_sdk import _driver
+        import uuid
+        root = Path(__file__).resolve().parents[1] / 'Recordings' / ('Test' + time.strftime('%Y%m%dT%H%M%S') + uuid.uuid4().hex[:8])
+        capture = ReplayCapture(root)
+        capture.snapshot_source(Path(__file__).resolve().parents[1])
+        if args.follow_config and Path(args.follow_config).is_file():
+            (root / 'FollowConfig.json').write_bytes(Path(args.follow_config).read_bytes())
+        args.log_file = str(root / 'Runtime.jsonl')
+        _driver.replay_capture = capture
+        print('[复盘录制] ' + str(root), flush=True)
+    log = SessionLog(args.log_file, retain_all=capture is not None)
+    log.capture = capture
     print('[日志] ' + str(log.path.resolve()), flush=True)
     try:
-        log({'event': 'runtime_start', 'mode': args.command})
+        log({'event': 'runtime_start', 'mode': args.command, 'settings': vars(args)})
+        if capture:
+            log({'event':'recording_started', 'root':str(capture.root), 'instructions':OMNI_INSTRUCTIONS, 'tools':OMNI_TOOLS})
         if args.command == 'plan':
             from providers.DoubaoConfig import load_config
             from providers.DoubaoVision import DoubaoVisionClient
@@ -265,6 +288,10 @@ def main(argv=None):
         print('[错误] ' + message, file=sys.stderr, flush=True)
         return 1
     finally:
+        if capture:
+            from drone_sdk import _driver
+            _driver.replay_capture = None
+            log({'event':'recording_finished', **capture.close()})
         log.close()
 
 

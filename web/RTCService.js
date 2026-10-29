@@ -10,6 +10,7 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { saveRecording } = require('./ReplayStore');
 const { createToken } = require('./RTCToken');
 
 const VERSION = '2025-06-01';
@@ -37,6 +38,7 @@ function loadConfig(env = process.env) {
     s2sAppId: env.VOLC_S2S_APP_ID || '', s2sToken: env.VOLC_S2S_TOKEN || '',
     model: env.RTC_VLM_MODEL || '', modelKey: env.RTC_VLM_API_KEY || '',
     instructions: env.RTC_INSTRUCTIONS || '', tools,
+    recordingDir: env.RTC_RECORDING_DIR || '',
     bridgeUrl: env.RTC_BRIDGE_URL || '', bridgeToken: env.RTC_BRIDGE_TOKEN || '',
     businessId: env.RTC_BUSINESS_ID || undefined, voice: env.VOLC_VOICE || 'zh_female_vv_jupiter_bigtts',
     port, sessionMs: sessionSeconds * 1000, runtimeDeadline,
@@ -160,6 +162,7 @@ class SessionController {
       roomId: s.roomId, userId: s.userId, botId: s.botId, taskId: s.taskId,
       businessId: this.config.businessId, expiresAt: s.expiresAt, tokenExpiresAt,
       bridgeUrl: this.config.bridgeUrl, bridgeToken: this.config.bridgeToken,
+      recording: Boolean(this.config.recordingDir),
       status: s.status, hardwareVerified: false };
   }
   renewToken(id) {
@@ -301,6 +304,12 @@ function createService(options = {}) {
         if (shutdownRequested) return json(res, 409, { ok: false, error: 'service_shutting_down' });
         return json(res, 200, controller.create());
       }
+      if (req.method === 'POST' && route === '/api/record') {
+        const sessionId = new URL(req.url, 'http://' + host).searchParams.get('sessionId');
+        if (!config.recordingDir || !sessionId || sessionId !== controller.session?.id)
+          return json(res, 403, { ok: false, error: 'recording_not_authorized' });
+        return json(res, 200, await saveRecording(req, config.recordingDir, sessionId));
+      }
       if (req.method === 'POST' && route.startsWith('/api/')) {
         const value = await body(req);
         let result;
@@ -319,7 +328,8 @@ function createService(options = {}) {
         return json(res, result.ok ? 200 : 409, result);
       }
       const files = { '/': ['index.html', 'text/html'], '/index.html': ['index.html', 'text/html'],
-        '/RTCClient.js': ['RTCClient.js', 'text/javascript'] };
+        '/RTCClient.js': ['RTCClient.js', 'text/javascript'],
+        '/ReplayRecorder.js': ['ReplayRecorder.js', 'text/javascript'] };
       let file, mime;
       if (req.method === 'GET' && files[route]) { [file, mime] = files[route]; file = path.join(config.staticRoot, file); }
       else if (req.method === 'GET' && route === '/sdk/rtc.js') { file = sdkFile(); mime = 'text/javascript'; }
@@ -335,6 +345,8 @@ function createService(options = {}) {
   });
   const finalize = () => finalized || (finalized = (async () => {
     clearInterval(timer);
+    // Flight stop has already been requested. Allow the browser to flush its final PCM segment.
+    if (config.recordingDir) await new Promise(resolve => setTimeout(resolve, 5000));
     server.closeIdleConnections();
     await new Promise(resolve => server.close(resolve));
     if (options.onClosed) options.onClosed();

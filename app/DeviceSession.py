@@ -52,7 +52,10 @@ class DeviceSession:
     def diagnostics(self):
         from drone_sdk import _driver as driver
         self.flight_log.flush()
-        return dict(driver.diagnostics(), flight_log_error=self.flight_log.error)
+        capture = getattr(self.log, 'capture', None)
+        recording = None if capture is None else dict(dropped=capture.dropped, error=capture.error,
+            queued=capture.pending.qsize(), writer_alive=capture.thread.is_alive(), written=dict(capture.written))
+        return dict(driver.diagnostics(), flight_log_error=self.flight_log.error, recording=recording)
 
     async def open(self):
         args, log = self.args, self.log

@@ -19,6 +19,7 @@
     @media(max-width:760px){main{display:block}body{padding:16px}}
   </style>
   <script src="/sdk/rtc.js" defer></script>
+  <script src="/ReplayRecorder.js" defer></script>
   <script src="/RTCClient.js" defer></script>
 </head>
 <body>
@@ -42,8 +43,11 @@
       <label for="speaker">耳机输出</label><select id="speaker"><option value="">请选择具体设备</option></select>
       <button id="connect" disabled>连接语音与图传</button>
       <button id="disconnect" class="subtle" disabled>结束连接</button>
+      <button id="microphoneToggle" disabled>开始说话</button>
+      <p class="small" id="microphoneStatus">麦克风默认静音；说话前点击开始，说完点击发送并静音。</p>
       <button id="resumeAudio" class="subtle" hidden>恢复所选设备音频</button>
       <p class="small">设备断开时暂停相应音频并保留控制连接，不会自动换成扬声器。恢复按钮只使用本次选择的设备。</p>
+      <p class="small" id="recordingStatus">复盘录制未开启。需要完整记录时使用 -RecordTest 启动。</p>
       <p class="small" id="sessionTime">单次连接有墙钟时限，到期将退出房间并停止云端任务。</p>
       <details><summary>使用提示</summary><p class="small">可先询问状态，再分阶段要求起飞、开始跟随。看图回答与到达判断不同；模型和执行器不能证明不存在障碍。图传暂缺时保留语音，视觉任务需等待新帧。普通插话保留连接；点击停止或降落后，请使用物理按键核对状态，并重新连接语音。</p></details>
     </section>

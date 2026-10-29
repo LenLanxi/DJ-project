@@ -38,12 +38,15 @@ SDK 动作异常的具体结果保存在工具输出 `action_error` 以及 journ
 | `move_forward/back/left/right/up/down(cm)` | 各为单独方法，整数 20..500 cm；bool 不算整数。导航观察后的平移限定每次 20 cm，并消耗该观察，下一步须重新 observe。 |
 | `rotate(degrees)` | 非零整数 -360..360，正顺时针、负逆时针；现场需核对实际方向。 |
 | `update_velocity(lr, fb, ud, yaw)` | 四整数 -100..100，是 RC 请求值而非 cm/s；看门狗会归零。 |
+| `start_velocity(lr, fb, ud, yaw)` | 四整数 -100..100，启动会话持有的持续 RC 任务，每 100 ms 续发，返回 running。仅用于用户明确要求持续运动直到停止的指令；不是物理速度控制。正常程序结束与只读查询不停止；新运动、跟随切换、急停、发起程序失败或会话退出时停止。全零参数停止持续任务。 |
 | `start_follow()` / `stop_follow()` | 无参数。已有跟随被本程序暂停时，start_follow 只登记成功后恢复，以最终 follow_cleanup 为准；stop_follow 是显式停止。 |
 | `adjust_follow_reference(axis)` | axis 为 depth/horizontal/vertical；须已有暂停票据且对应轴平移已完成，此后不再运动。动作后新帧有效且整段程序成功才应用；accepted 尚未生效。 |
 
 `observe` 会临时接管、归零并等待图像稳定，再用云语义种子与本地有界跟踪关联到新鲜帧。源帧、语义历史窗口与最终动作各有时效检查，详见 [Architecture](Architecture.md)。丢失、歧义或跟踪不可靠会失败。自然目标导航须有限步数/总时限，不能用图像占比声称实际到达。
 
 临时动作默认保留原跟随距离与构图；成功且原目标仍有效才恢复。停止、降落、中断或失败不自动恢复。红帐篷任务不应重设跟随参考。程序被接收或正常退出不证明整段任务完成；最终还需检查输出、动作状态和 `follow_cleanup`。
+
+`get_status().continuous_motion` 返回持续 RC 任务的 running、channels、units 和 last_reason；running 只说明宿主在续发，不证明飞机按指定速度或位移运动。持续任务与单次程序分别持有控制权，停止后不自动恢复旧跟随；原有 0.3 秒 RC 看门狗保留。运动指令的回复等待沿用整个动作的截止时间，平移预算依据距离与当前配置速度计算，不再被底层固定 5 秒提前截断；超时仍返回结果不确定，不自动重发。
 
 ## 内部维护契约
 

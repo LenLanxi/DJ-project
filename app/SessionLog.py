@@ -21,11 +21,12 @@ _SESSION = r'\d{8}T\d{6}[0-9a-f]{8}'
 class SessionLog:
     """Best-effort diagnostics; logging failures never stop a running task."""
 
-    def __init__(self, path=None, *, max_bytes=1_000_000_000, segment_bytes=16_000_000):
+    def __init__(self, path=None, *, max_bytes=1_000_000_000, segment_bytes=16_000_000, retain_all=False):
         if type(max_bytes) is not int or type(segment_bytes) is not int \
                 or max_bytes <= 0 or segment_bytes <= 0:
             raise ValueError('log byte budgets must be positive integers')
         self.session_id = time.strftime('%Y%m%dT%H%M%S') + uuid.uuid4().hex[:8]
+        self.retain_all = retain_all
         self.max_bytes, self.segment_bytes = max_bytes, min(segment_bytes, max_bytes)
         self.lock = threading.Lock()
         self.sequence = 0
@@ -68,7 +69,7 @@ class SessionLog:
         if isinstance(value, dict):
             return {str(k): self.clean(v, str(k)) for k, v in value.items()}
         if isinstance(value, (list, tuple)):
-            return [self.clean(v) for v in value[:3000]]
+            return [self.clean(v) for v in (value if self.retain_all else value[:3000])]
         if isinstance(value, str):
             for secret in self.secrets:
                 value = value.replace(secret, '[redacted]')
@@ -80,7 +81,7 @@ class SessionLog:
             # These fields contain JSON/code, never audio or request headers.
             if key in ('arguments_raw', 'arguments_delta', 'arguments_assembled'):
                 return value
-            return value if len(value) <= 16000 else value[:16000] + '[truncated]'
+            return value if self.retain_all or len(value) <= 16000 else value[:16000] + '[truncated]'
         if value is None or isinstance(value, (bool, int, float)):
             return value
         return self.clean(str(value))
@@ -96,6 +97,8 @@ class SessionLog:
                     continue
 
     def _reserve(self, size):
+        if self.retain_all:
+            return
         now = time.monotonic()
         if size <= self._remaining and now-self._checked_at < 5:
             self._remaining -= size
@@ -140,7 +143,7 @@ class SessionLog:
                 record = self.clean(dict(event, timestamp=time.time(), session_id=self.session_id))
                 line = json.dumps(record, ensure_ascii=False, allow_nan=False) + '\n'
                 size = len(line.encode('utf-8'))
-                if size > self.max_bytes:
+                if not self.retain_all and size > self.max_bytes:
                     raise ValueError('单条运行日志超过保留预算')
                 with _FILES_LOCK:
                     if self.handle.tell() and self.handle.tell() + size > self.segment_bytes:

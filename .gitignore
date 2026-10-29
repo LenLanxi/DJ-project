@@ -257,3 +257,6 @@ temp_follow_pid/
 !.env.example
 node_modules/
 web/Build/
+
+# Private, manually retained replay evidence
+Recordings/

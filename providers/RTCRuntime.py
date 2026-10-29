@@ -87,6 +87,8 @@ class RTCProcess:
                  RTC_PORT=str(self.web_port),RTC_SESSION_SECONDS=str(seconds),
                  RTC_RUNTIME_DEADLINE_MS=str(int(self.deadline*1000)),
                  RTC_INSTRUCTIONS=instructions,RTC_TOOLS_JSON=json.dumps(tools,ensure_ascii=False))
+        capture = getattr(self.log, 'capture', None)
+        env['RTC_RECORDING_DIR'] = str(capture.root) if capture is not None else ''
         self.output.parent.mkdir(parents=True,exist_ok=True)
         with self.output.open('ab') as output:
             self.proc=await asyncio.create_subprocess_exec(self.node,'RTCService.js',cwd=ROOT/'web',

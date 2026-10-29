@@ -1,7 +1,7 @@
 """One owner for program execution, cancellation and resource reconciliation."""
 import asyncio
 from dataclasses import dataclass, field
-from execution.Host import Host, interrupt_device
+from execution.Host import Host, SDKActionError, interrupt_device
 from execution.sandbox_runner import SandboxRunner, SandboxOutcome
 
 
@@ -45,11 +45,107 @@ class UnifiedRuntime:
         self.generation = 0
         self.land_requested = False
         self.current = self.pending = self.pending_sandbox = None
+        self.motion_host = self.motion_task = self.motion_owner = None
+        self.motion_channels = None
+        self.motion_startup = None
+        self.motion_stop_lock = asyncio.Lock()
+        self.motion_reason = 'not_started'
 
     def cancel(self):
         self.generation += 1
+        if self.motion_host is not None:
+            self.motion_host.cancel()
         if self.current is not None:
             self.current.cancel()
+
+    def velocity_status(self):
+        return {'running': self.motion_host is not None and not self.motion_host.cancelled.is_set(),
+                'channels': self.motion_channels, 'last_reason': self.motion_reason, 'units': 'RC [-100,100], not cm/s'}
+
+    async def start_velocity(self, owner, channels):
+        if len(channels) != 4 or any(type(value) is not int or not -100 <= value <= 100 for value in channels):
+            raise ValueError('start_velocity requires four RC integers in [-100,100]')
+        owner._current()
+        await self.stop_velocity()
+        owner._current()
+        if not any(channels):
+            return {'ok': True, 'status': 'stopped', 'continuous_motion': self.velocity_status()}
+        if owner.acquired:
+            owner.resume = False
+            await owner._finish_control(True)
+        host = Host(self.device, self.follow)
+        host.resume = False
+        self.motion_host, self.motion_owner = host, owner
+        self.motion_channels = tuple(channels)
+        self.motion_reason = 'starting'
+        startup = self.motion_startup = asyncio.create_task(host.acquire())
+        try:
+            await asyncio.shield(startup)
+            owner._current()
+            result = await host._action('update_velocity', *channels)
+            if not result.get('ok'):
+                raise SDKActionError(result)
+            owner._current()
+            self.motion_task = asyncio.create_task(self._renew_velocity(host, tuple(channels)))
+        except BaseException:
+            host.cancel()
+            await self.stop_velocity()
+            raise
+        finally:
+            if self.motion_startup is startup:
+                self.motion_startup = None
+        self.motion_reason = 'running'
+        self.log({'event': 'continuous_motion_started', 'channels': channels, 'units': 'RC'})
+        return {'ok': True, 'status': 'running', 'command_sent': True, 'motion_verified': False,
+                'details': result.get('details'), 'continuous_motion': self.velocity_status(),
+                'meaning': 'Host renews RC until stopped, replaced, failed or session ends; not a measured physical speed.'}
+
+    async def _renew_velocity(self, host, channels):
+        reason = 'stopped'
+        try:
+            while not host.cancelled.is_set():
+                await asyncio.sleep(.1)
+                if host.cancelled.is_set():
+                    break
+                result = await host._action('update_velocity', *channels)
+                if not result.get('ok'):
+                    raise RuntimeError(str(result))
+        except asyncio.CancelledError:
+            reason = 'task_cancelled'
+        except Exception as exc:
+            reason = str(exc)
+        finally:
+            self.motion_reason = reason
+            host.cancel()
+            try:
+                await host.finish(False)
+            except Exception as exc:
+                reason += '; cleanup_unconfirmed: ' + str(exc)
+            else:
+                if self.motion_host is host:
+                    self.motion_host = self.motion_owner = None
+                    self.motion_channels = None
+            self.motion_reason = reason
+            self.log({'event': 'continuous_motion_stopped', 'reason': reason, 'cleanup': host.cleanup})
+
+    async def stop_velocity(self):
+        async with self.motion_stop_lock:
+            host, task = self.motion_host, self.motion_task
+            if host is None:
+                self.motion_task = None
+                return
+            host.cancel()
+            if self.motion_startup is not None:
+                await _settle(self.motion_startup)
+            if task is not None:
+                await asyncio.shield(task)
+            if self.motion_host is host:
+                await host.finish(False)
+                self.motion_host = self.motion_owner = None
+                self.motion_channels = None
+                self.motion_reason = 'stopped'
+            if self.motion_task is task:
+                self.motion_task = None
 
     async def _recover(self):
         host = self.pending
@@ -91,7 +187,7 @@ class UnifiedRuntime:
             vision = None if recovery else self.vision
             if vision is not None:
                 vision.reset()
-            run = self.current = ProgramRun(Host(self.device, self.follow, vision, recovery=recovery, methods=self.methods))
+            run = self.current = ProgramRun(Host(self.device, self.follow, vision, recovery=recovery, methods=self.methods, motion=self))
             self.log({'event': 'program_start', 'code': code, 'recovery': recovery})
             run.task = asyncio.create_task(self.runner.run(code, run.host, run.outcome))
             try:
@@ -116,6 +212,8 @@ class UnifiedRuntime:
                     result.update(ok=False, status='cancelled', reason='program_cancelled')
                 async def finish():
                     try:
+                        if self.motion_owner is run.host and (error is not None or not result['ok']):
+                            await self.stop_velocity()
                         await run.host.finish(error is None and result['ok'])
                     except Exception as exc:
                         result['follow_cleanup_error'] = str(exc)
@@ -151,6 +249,7 @@ class UnifiedRuntime:
             return {'ok': False, 'reason': 'program_cleanup_in_progress'}
         self.running = True
         try:
+            await self.stop_velocity()
             control = await self._recover()
             sandbox = await self._recover_sandbox()
             return {'ok': control['ok'] and sandbox['ok'], 'control': control, 'sandbox': sandbox}
@@ -168,6 +267,7 @@ class UnifiedRuntime:
         if receipt.generation != self.generation:
             return {'ok': False, 'status': 'cancelled', 'reason': 'stale_interrupt'}
         result = await interrupt_device(self.device, self.follow, self.land_requested)
+        await self.stop_velocity()
         self.log({'event': 'interrupt_result', 'requested_land': receipt.requested_land,
                   'effective_land': self.land_requested, 'result': result})
         return result

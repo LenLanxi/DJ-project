@@ -91,6 +91,8 @@ class RTCBridge:
         if self.failure: raise RuntimeError(self.failure)
 
     async def message(self, message):
+        if getattr(self.log, 'capture', None) is not None:
+            self.log({'event':'rtc_browser_message', 'message':message})
         kind = message.get('type')
         if kind == 'bind':
             self.bind(message)
@@ -111,6 +113,9 @@ class RTCBridge:
                         and after < stamp <= time.time()):
                     future.set_result({'status': 'published', 'frame_id': message.get('frame_id'),
                         'timestamp': stamp, 'camera': 'front', 'cloud_verified': False})
+        elif kind == 'input_control':
+            self.log({'event': 'microphone_control', 'action': message.get('action'),
+                      'submit': message.get('submit'), 'capture_stop': message.get('capture_stop')})
         elif kind == 'tool_calls':
             await self.accept_tools(message.get('calls'))
         elif kind == 'cloud_event':
@@ -210,7 +215,7 @@ class RTCBridge:
             if (name == 'run_program' and safe.get('status') != 'cancelled'
                     and any(row.get('method') in ('takeoff', 'land', 'rotate', 'update_velocity',
                         'move_forward', 'move_back', 'move_left', 'move_right', 'move_up', 'move_down',
-                        'start_follow', 'stop_follow', 'stop_motion') for row in result.get('journal', []))):
+                        'start_follow', 'stop_follow', 'start_velocity', 'stop_motion') for row in result.get('journal', []))):
                 safe['camera_observation'] = await self.post_action_frame(cid)
             if epoch != self.epoch or self.runtime.generation != generation:
                 safe = {'ok':False,'status':'cancelled','reason':'superseded_input'}
@@ -260,6 +265,9 @@ class RTCBridge:
                     import cv2
                     ok, encoded = cv2.imencode('.jpg',packet.frame,[cv2.IMWRITE_JPEG_QUALITY,75])
                     if not ok: raise RuntimeError('frame_encoding_failed')
+                    capture = getattr(self.log, 'capture', None)
+                    if capture is not None:
+                        capture.submit('rtc_frame', encoded.tobytes(), frame_id=packet.frame_id, decoded_at=packet.timestamp)
                     await self.send({'type':'frame','id':packet.frame_id,'timestamp':packet.timestamp,
                                      'jpeg':base64.b64encode(encoded).decode()})
                     previous = packet.frame_id

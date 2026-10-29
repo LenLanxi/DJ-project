@@ -146,7 +146,6 @@ def request_control(owner, *, priority=False, cancelled=None, exclusive=False):
                   '' if priority else
                   'program_cancelled' if operation_cancelled() else
                   'landing_in_progress' if _flight_state == 'landing' else
-                  'command_channel_ambiguous' if not _driver.command_channel_clear() else
                   'action_result_pending' if _driver.action_pending() else
                   'busy' if _current_owner is not None and (exclusive or _current_owner != owner) else '')
         if reason: return _control_result(False, reason)
@@ -195,8 +194,6 @@ def update_velocity(grant, left_right, forward_back, up_down, yaw, *, cancelled=
     channels = (left_right, forward_back, up_down, yaw)
     with operation_guard(cancelled) if cancelled is not None else nullcontext(), _velocity_lock:
         reason = _check(grant)
-        if not reason and any(channels) and not _driver.command_channel_clear():
-            reason = 'command_channel_ambiguous'
         if not reason and not _driver.SIMULATED and not _driver.health().get('telemetry_fresh') and any(channels):
             reason = 'telemetry_stale'
         if not reason and any(type(v) is not int or not -100 <= v <= 100 for v in channels): reason = 'invalid_channels'
@@ -208,14 +205,13 @@ def update_velocity(grant, left_right, forward_back, up_down, yaw, *, cancelled=
             return CommandResult(False, 'failed', 'velocity_send_failed', False)
         _last_velocity_time = time.monotonic() if any(channels) else 0.
         return CommandResult(True, 'accepted', '', False,
-                             details={'command_sent': True, 'motion_verified': False,
+                             details={**_driver.command_warning(), 'command_sent': True, 'motion_verified': False,
                                       'meaning': '速度指令已发送；不证明已移动、上升或悬停，也不表示位移厘米数'})
 
 def _move(grant, action, param=None):
     global _flight_state, _active_action
     with _velocity_lock:
         reason = _check(grant)
-        if not reason and not _driver.command_channel_clear(): reason = 'command_channel_ambiguous'
         if not reason and _active_action is not None: reason = 'action_busy'
         if not reason and _driver.action_pending(): reason = 'action_result_pending'
         if not reason and not _driver.SIMULATED and not _driver.health().get('telemetry_fresh'):
@@ -238,6 +234,7 @@ def _move(grant, action, param=None):
     except Exception as exc:
         details.update(reason=str(exc), error_type=type(exc).__name__)
         ok = False
+    details.update(_driver.command_warning())
     with _velocity_lock:
         if _active_action != token or token[:2] != (_control_epoch, _command_epoch):
             if action == 'takeoff' and _flight_state != 'landing':
@@ -257,7 +254,7 @@ def _move(grant, action, param=None):
             return CommandResult(False, 'unknown' if details.get('outcome_unknown') else 'failed',
                                  details.get('reason') or 'driver_failed', details=details)
         if action == 'takeoff': _flight_state = 'flying'
-        return CommandResult(True, 'completed')
+        return CommandResult(True, 'completed', details=_driver.command_warning() or None)
 
 _takeoff_authorized = False
 _min_battery = 30

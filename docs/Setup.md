@@ -58,7 +58,7 @@ uv run --frozen python -m app.Application voice --real-drone --doubao-credential
 
 - plan：调用方舟模型生成程序，不连接飞机；可用 `--image` 提供静态图片。
 - run：`--program` 与 `--text` 二选一。文件程序默认不创建视觉客户端，需要时加 `--vision`；文字任务使用方舟模型生成程序。
-- voice：耳机语音和无人机视频经 RTC 持续传输，支持多轮程序执行；本地不等待最终 ASR 字幕才接受工具，普通插话不关闭 RTC 会话。
+- voice：模型语音和无人机视频经 RTC 传输，麦克风默认静音，点击开始说话、说完发送并静音，支持多轮程序执行；本地不等待最终 ASR 字幕才接受工具，普通插话不关闭 RTC 会话。
 
 启动器只转发参数，Python 负责校验。`-DryRun` 不运行 Python、不验证配置、不打开资源。`-Program` / `-Text` 映射到 run，`-Text ... -PlanOnly` 映射到 plan。
 

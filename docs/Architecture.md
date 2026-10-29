@@ -9,7 +9,7 @@
 | 位置 | 负责什么 |
 | --- | --- |
 | app/Application.py、DeviceSession.py | plan/run/voice 组装、设备与会话关闭 |
-| app/Runtime.py | 程序准入、撤权、ProgramRun 与清理 |
+| app/Runtime.py | 程序准入、撤权、ProgramRun、持续 RC 任务与清理 |
 | app/Tools.py、Results.py | 模型提示、工具契约、结果摘要 |
 | app/SessionLog.py | 脱敏运行日志与滚动保留 |
 | providers/DoubaoConfig.py | 唯一豆包凭据加载与服务端配置 |
@@ -17,7 +17,8 @@
 | providers/RTCRuntime.py | 隐藏 Node 服务的启动、结果回填与关闭 |
 | providers/DoubaoVision.py | 官方 Ark SDK：文字计划、图片问答和结构化观察 |
 | web/RTCService.js、RTCToken.js | 官方 OpenAPI 签名、RTC 房间授权和云任务生命周期 |
-| web/RTCClient.js | 官方 RTC SDK、选定耳机设备和外部无人机视频流 |
+| web/RTCClient.js | 官方 RTC SDK、选定耳机设备、麦克风开关与外部无人机视频流 |
+| app/ReplayCapture.py、web/ReplayRecorder.js、ReplayStore.js | 可选的独立复盘存档：源码、日志、音频、图传与时间线 |
 | execution/Host.py | 程序动作授权、跟随交接、导航证据及 RPC 分发 |
 | execution/sandbox_runner.py、sandbox/worker.py | 会话容器、每程序独立进程、RPC 与回收 |
 | navigation | 观察解析、图像稳定与自然目标跟踪 |
@@ -42,6 +43,8 @@
 
 Runtime 统一准入和控制收尾；Runner 负责容器与 RPC。结果和回收证据保存在 SandboxOutcome，不挂到 CancelledError，也不使用全局结果槽。成功的临时动作不会因为普通自动跟随恢复失败而改判失败；恢复结果单独记录。
 
+用户明确要求持续运动时，`start_velocity` 把任务交给 Runtime 单独持有的 Host，每 100 ms 续发 RC；正常程序结束与只读查询不会释放这个任务。新运动、跟随切换、停止、发起程序失败或会话结束会收尾，原有 RC 看门狗不变。持续任务不会在结束后恢复旧跟随，详情与状态字段见 [API](API.md)。
+
 ## 跟随与导航
 
 算法固定为 adaptive 横移／转向、relative_size 前后跟随、responsive_v1 参数；默认配置开启上下跟随。RC 上限与参考大小等数值仍可调整，增益常量在 openpose_control.py。其他候选模式、相机／米制标定和离线穷举重复标记扫描已移除。
@@ -56,7 +59,7 @@ Runtime 统一准入和控制收尾；Runner 负责容器与 RPC。结果和回�
 
 ## 运行边界
 
-动作须传不可变 ControlGrant(owner, control_epoch, command_epoch)。同名 owner 不代表同次授权；停止／降落返回更新后的 grant。取消先同步撤销旧 generation，再异步停止；迟到线程不能借新授权执行。已发命令回复归属不明时，普通运动与非零 RC 仍被拒绝，归零和优先降落可用。
+动作须传不可变 ControlGrant(owner, control_epoch, command_epoch)。同名 owner 不代表同次授权；停止／降落返回更新后的 grant。取消先同步撤销旧 generation，再异步停止；迟到线程不能借新授权执行。已发命令回复归属不明时，记录 command_channel_ambiguous 和 command_uncertainty 并继续允许后续动作；后来收到的 ok 不能证明回复属于新动作，模型需结合新画面和遥测判断，不能盲目重复前一动作。
 
 控制清理未确认时保留待清理 Host，仅允许状态查询、停止和降落。日志／通知线程未排空不阻止设备清理，实际视觉和控制线程仍须退出。accepted 只表示接受，不代表动作已完成。
 

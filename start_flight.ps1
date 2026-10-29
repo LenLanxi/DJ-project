@@ -15,6 +15,7 @@ param(
     [switch]$PlanOnly,
     [switch]$AllowTakeoff,
     [switch]$ShowVideo,
+    [switch]$RecordTest,
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
@@ -53,6 +54,10 @@ if (-not $Text -and -not $Program) {
     $runtimeArgs += @('--max-session-seconds', "$MaxSessionSeconds", '--web-port', "$WebPort")
     Write-Host 'Voice provider: Doubao'
     Write-Host ('Local page: http://127.0.0.1:{0}; occupied ports cause an error instead of selecting another port.' -f $WebPort)
+}
+if ($RecordTest) {
+    if ($mode -ne 'voice') { throw 'RecordTest is available in voice mode only.' }
+    $runtimeArgs += '--record-test'
 }
 if ($DryRun) {
     Write-Host 'DryRun: command preview only; Python validates arguments when run. No resources are opened.'

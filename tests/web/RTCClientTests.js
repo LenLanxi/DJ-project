@@ -41,6 +41,7 @@ test('tools before subtitles and ordinary interruptions forward without stopping
 
 test('recoverable SDK events preserve control and explicit device recovery', async () => {
   const { client } = fixture(), handlers = {}, calls = [];
+  client.microphoneMuted = false;
   client.inputId = 'mic'; client.outputId = 'speaker';
   client.engine = { on(name, handler) { handlers[name] = handler; },
     stopAudioCapture() { calls.push('pause'); }, stop() {},
@@ -53,6 +54,46 @@ test('recoverable SDK events preserve control and explicit device recovery', asy
   assert.equal(client.active, true);
   await client.resumeAudio();
   assert.deepEqual(calls, ['pause', 'mic', 'speaker']);
+});
+
+test('mute submits official turn-end signal before waiting for capture shutdown', async () => {
+  const { client, sent } = fixture(), order = [];
+  let finishStop;
+  client.microphoneMuted = false;
+  const track = { enabled: true };
+  client.engine = {
+    sendUserBinaryMessage(user, message) {
+      order.push('submit');
+      assert.equal(user, identity.botId);
+      assert.deepEqual(decodeTLV(message), { type: 'ctrl', value: { Command: 'FinishSpeechRecognition' } });
+      return Promise.resolve();
+    },
+    getLocalStreamTrack() { return track; },
+    stopAudioCapture() { order.push('stop'); return new Promise(resolve => { finishStop = resolve; }); }
+  };
+  const pending = client.setMicrophoneMuted(true);
+  assert.deepEqual(order, ['submit', 'stop']);
+  assert.equal(client.microphoneMuted, true);
+  assert.equal(track.enabled, false);
+  finishStop(); await pending;
+  assert.equal(sent[0].action, 'mute_and_submit');
+  assert.equal(sent[0].sessionId, identity.sessionId);
+});
+
+test('submission failure still closes microphone and audio recovery never unmutes it', async () => {
+  const { client } = fixture(), calls = [];
+  client.microphoneMuted = false;
+  client.engine = {
+    sendUserBinaryMessage() { return Promise.reject(new Error('signaling unavailable')); },
+    stopAudioCapture() { calls.push('stop'); },
+    startAudioCapture() { assert.fail('must respect operator mute'); },
+    async setAudioPlaybackDevice() {}, async play() {}
+  };
+  await client.setMicrophoneMuted(true);
+  client.capturePaused = true;
+  await client.resumeAudio();
+  assert.deepEqual(calls, ['stop']);
+  assert.equal(client.microphoneMuted, true);
 });
 
 test('video can recover after invalid frames without stopping voice or publishing a stale canvas', async () => {
@@ -125,7 +166,11 @@ test('connection publishes the drone canvas and explicit audio devices without P
   engine.startVideoCapture = () => assert.fail('must not use PC camera');
   class Socket {
     constructor() { this.readyState = 0; queueMicrotask(() => { this.readyState = 1; this.onopen(); }); }
-    send(raw) { if (JSON.parse(raw).type === 'bind') queueMicrotask(() => this.onmessage({ data: '{"type":"bound"}' })); }
+    send(raw) {
+      const message = JSON.parse(raw);
+      if (message.type === 'bind') queueMicrotask(() => this.onmessage({ data: '{"type":"bound"}' }));
+      if (message.type === 'input_control') assert.equal(message.sessionId, identity.sessionId);
+    }
     close() { this.readyState = 3; }
   }
   const client = new Client({ sdk: { createEngine: () => engine, destroyEngine() {} }, WebSocket: Socket,
@@ -135,6 +180,9 @@ test('connection publishes the drone canvas and explicit audio devices without P
       appId: 'app', token: 'temporary', bridgeUrl: 'ws://127.0.0.1:1234', expiresAt: Date.now() + 60000 } : { ok: true } }) });
   try {
     await client.connect('headsetMic', 'headsetOutput');
+    assert.equal(calls.some(([name]) => name === 'startAudioCapture'), false);
+    assert.equal(client.microphoneMuted, true);
+    await client.setMicrophoneMuted(false);
     assert.deepEqual(calls.find(([name]) => name === 'startAudioCapture')[1], ['headsetMic']);
     assert.deepEqual(calls.find(([name]) => name === 'setAudioPlaybackDevice')[1], ['headsetOutput']);
     assert.equal(calls.find(([name]) => name === 'setExternalVideoTrack')[1][1], track);

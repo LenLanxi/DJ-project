@@ -25,6 +25,15 @@
       && !/^(default|communications|默认|通信设备)(\s|\s*-|$)/i.test(device.label || '');
   }
 
+  function finishSpeechMessage() {
+    const data = new TextEncoder().encode(JSON.stringify({ Command: 'FinishSpeechRecognition' }));
+    const bytes = new Uint8Array(8 + data.length);
+    bytes.set(new TextEncoder().encode('ctrl'));
+    new DataView(bytes.buffer).setUint32(4, data.length, false);
+    bytes.set(data, 8);
+    return bytes.buffer;
+  }
+
   class Client {
     constructor(options) {
       this.sdk = options.sdk;
@@ -34,6 +43,10 @@
       this.canvas = options.canvas;
       this.onState = options.onState || (() => {});
       this.onMessage = options.onMessage || (() => {});
+      this.onRecordingStatus = options.onRecordingStatus || (() => {});
+      this.onMicrophone = options.onMicrophone || (() => {});
+      this.microphoneMuted = true;
+      this.microphoneChanging = false;
       this.onFrame = options.onFrame || (() => {});
       this.onAutoplay = options.onAutoplay || (() => {});
       this.engine = this.socket = this.session = null;
@@ -49,6 +62,7 @@
       this.readyWaiters = [];
       this.requestTimeoutMs = options.requestTimeoutMs || 10000;
       this.connectionGeneration = 0;
+      this.recording = null;
       this.tokenRenewal = null;
       this.botJoined = false;
       this.cloudMessages = false;
@@ -79,6 +93,7 @@
     }
 
     send(message) {
+      if (this.recording && ['interrupt', 'frame_published'].includes(message.type)) this.recording.event('browser_send', message);
       if (!this.socket || this.socket.readyState !== 1) throw new Error('本机控制连接已断开');
       this.socket.send(JSON.stringify(message));
     }
@@ -114,6 +129,9 @@
         || ['default', 'communications'].includes(outputId)) throw new Error('请明确选择麦克风和耳机输出');
       this.ending = null;
       this.active = true;
+      this.microphoneMuted = true;
+      this.microphoneChanging = false;
+      this.onMicrophone(true, false);
       this.inputId = inputId; this.outputId = outputId; this.capturePaused = false;
       const generation = ++this.connectionGeneration;
       const current = () => {
@@ -156,9 +174,12 @@
         this.onState('正在接入语音房间…');
         this.engine = this.api.createEngine(session.appId);
         this.installEvents(generation);
+        if (session.recording) {
+          this.recording = new global.ReplayRecorder(session, this.fetch, text => { this.onMessage(text); this.onRecordingStatus(text); });
+          this.recording.setMicrophoneMuted(true);
+          this.recording.start(this.engine, this.sdk.StreamIndex ? this.sdk.StreamIndex.STREAM_INDEX_MAIN : 0);
+        }
         await this.engine.setAudioPlaybackDevice(outputId);
-        current();
-        await this.engine.startAudioCapture(inputId);
         current();
         const mainStream = this.sdk.StreamIndex ? this.sdk.StreamIndex.STREAM_INDEX_MAIN : 0;
         const external = this.sdk.VideoSourceType ? this.sdk.VideoSourceType.VIDEO_SOURCE_TYPE_EXTERNAL : 0;
@@ -167,6 +188,7 @@
         this.stream = this.canvas.captureStream(0);
         this.track = this.stream.getVideoTracks()[0];
         if (!this.track || typeof this.track.requestFrame !== 'function') throw new Error('浏览器不支持按新帧发布画面，请使用当前Edge/Chrome');
+        if (this.recording) this.recording.video(this.track);
         this.track.enabled = Boolean(this.lastFrame && Date.now()-this.lastFrame <= FRAME_AGE_MS);
         await this.engine.setExternalVideoTrack(mainStream, this.track);
         current();
@@ -175,7 +197,7 @@
           roomProfileType: this.sdk.RoomProfileType ? this.sdk.RoomProfileType.chat : 5
         });
         current();
-        await this.engine.publishStream(this.sdk.MediaType ? this.sdk.MediaType.AUDIO_AND_VIDEO : 3);
+        await this.engine.publishStream(this.sdk.MediaType ? this.sdk.MediaType.VIDEO : 2);
         current();
         this.track.requestFrame();
         await this.post('/api/start', { sessionId: session.sessionId });
@@ -208,7 +230,12 @@
       const events = this.api.events || this.sdk.events || {};
       const engine = this.engine;
       const on = (name, handler) => engine.on(events[name] || name, event => {
-        if (this.active && generation === this.connectionGeneration && this.engine === engine) handler(event);
+        if (this.active && generation === this.connectionGeneration && this.engine === engine) {
+          if (this.recording && !name.includes('BinaryMessage')) {
+            try { this.recording.event('rtc_callback', { name, value: event }); } catch (_) {}
+          }
+          handler(event);
+        }
       });
       const receive = event => {
         if (!this.active || !this.session || event.userId !== this.session.botId) return;
@@ -310,6 +337,7 @@
       if (this.canvas.height !== image.naturalHeight) this.canvas.height = image.naturalHeight;
       this.canvas.getContext('2d').drawImage(image, 0, 0);
       this.lastFrame = message.timestamp*1000;
+      if (this.recording) this.recording.frame(message.id, message.timestamp);
       if (this.track) { this.track.enabled = true; this.track.requestFrame(); }
       if (this.track && this.frameRequest && message.timestamp > this.frameRequest.after) {
         this.send({ type: 'frame_published', sessionId: this.session.sessionId,
@@ -361,10 +389,64 @@
       this.onState(land ? '已请求降落，请核对实际状态' : '已请求停止，请核对实际状态');
     }
 
+    async setMicrophoneMuted(muted) {
+      if (!this.active || !this.engine || !this.session) throw new Error('请先连接语音');
+      if (this.microphoneChanging || muted === this.microphoneMuted) return;
+      const engine = this.engine, session = this.session, generation = this.connectionGeneration;
+      const live = () => this.active && generation === this.connectionGeneration && engine === this.engine;
+      this.microphoneChanging = true;
+      this.onMicrophone(this.microphoneMuted, true);
+      try {
+        if (muted) {
+          // Start the official turn-end signal BEFORE stopping capture, without awaiting either operation.
+          let submitted;
+          try { submitted = Promise.resolve(engine.sendUserBinaryMessage(session.botId, finishSpeechMessage())); }
+          catch (error) { submitted = Promise.reject(error); }
+          this.microphoneMuted = true;
+          this.onMicrophone(true, true);
+          if (this.recording) this.recording.setMicrophoneMuted(true);
+          const main = this.sdk.StreamIndex ? this.sdk.StreamIndex.STREAM_INDEX_MAIN : 0;
+          const track = engine.getLocalStreamTrack?.(main, 'audio');
+          if (track) track.enabled = false;
+          let stopped;
+          try { stopped = Promise.resolve(engine.stopAudioCapture()); }
+          catch (error) { stopped = Promise.reject(error); }
+          const result = await Promise.allSettled([submitted, stopped]);
+          if (!live()) return;
+          this.onMessage(result[0].status === 'fulfilled'
+            ? '已发送本轮输入结束指令；等待云端响应。' : '本轮输入提交未确认：' + String(result[0].reason));
+          if (result[1].status === 'rejected') this.onMessage('麦克风轨道已静音，但关闭设备采集失败：' + String(result[1].reason));
+          this.send({ type: 'input_control', ...this.identity(), action: 'mute_and_submit',
+            submit: result[0].status, capture_stop: result[1].status });
+        } else {
+          if (this.recording) this.recording.setMicrophoneMuted(false);
+          await engine.startAudioCapture(this.inputId);
+          if (!live()) return;
+          await engine.publishStream(this.sdk.MediaType ? this.sdk.MediaType.AUDIO : 1);
+          if (!live()) return;
+          this.microphoneMuted = false;
+          this.capturePaused = false;
+          this.send({ type: 'input_control', ...this.identity(), action: 'microphone_started' });
+        }
+      } catch (error) {
+        if (live()) {
+          this.microphoneMuted = true;
+          if (this.recording) this.recording.setMicrophoneMuted(true);
+          try { await engine.stopAudioCapture(); } catch (_) {}
+        }
+        throw error;
+      } finally {
+        if (live()) {
+          this.microphoneChanging = false;
+          this.onMicrophone(this.microphoneMuted, false);
+        }
+      }
+    }
+
     async resumeAudio() {
       if (!this.engine || !this.session) return;
       const engine = this.engine, generation = this.connectionGeneration;
-      if (this.capturePaused) {
+      if (this.capturePaused && !this.microphoneMuted) {
         await engine.startAudioCapture(this.inputId);
         if (!this.active || generation !== this.connectionGeneration || engine !== this.engine) return;
         this.capturePaused = false;
@@ -376,6 +458,7 @@
     }
 
     pauseCapture() {
+      if (this.microphoneMuted) return;  // Intentional mute must not become a device-disconnection recovery.
       this.capturePaused = true;
       Promise.resolve(this.engine.stopAudioCapture()).catch(() => {});
       this.onAutoplay(true);
@@ -391,6 +474,9 @@
       if (this.ending) return this.ending;
       this.connectionGeneration += 1;
       this.active = false;
+      this.microphoneMuted = true;
+      this.microphoneChanging = false;
+      this.onMicrophone(true, false);
       this.frameRequest = null;
       this.ending = (async () => {
         for (const timer of this.timers.splice(0)) clearTimeout(timer);
@@ -399,11 +485,14 @@
           try { this.socket.send(JSON.stringify({ type: 'interrupt', land: false,
             source: 'client_stop', reason: String(reason).slice(0, 1000) })); } catch (_) {}
         }
+        const recording = this.recording;
+        this.recording = null;
+        const recordingDone = recording ? recording.stop() : Promise.resolve();
         const session = this.session;
         this.session = null;
         const engine = this.engine;
         this.engine = null;
-        const work = [];
+        const work = [recordingDone];
         const bounded = promise => new Promise(resolve => {
           const timer = setTimeout(resolve, 3000);
           Promise.resolve(promise).then(() => { clearTimeout(timer); resolve(); }, () => { clearTimeout(timer); resolve(); });
@@ -431,7 +520,7 @@
     }
   }
 
-  const exported = { Client, decodeTLV, explicitDevice };
+  const exported = { Client, decodeTLV, explicitDevice, finishSpeechMessage };
   global.CompanionRTC = exported;
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (typeof document === 'undefined') return;
@@ -451,9 +540,16 @@
       const active = client.active;
       byId('connect').disabled = active || !byId('microphone').value || !byId('speaker').value;
       for (const id of ['disconnect', 'stop', 'land']) byId(id).disabled = !active;
+      byId('microphoneToggle').disabled = !active || !client.engine || client.microphoneChanging;
       for (const id of ['devices', 'microphone', 'speaker']) byId(id).disabled = active;
     }
     const client = new Client({ sdk: global.VERTC, canvas: byId('camera'), onState: state, onMessage: add,
+      onMicrophone: (muted, changing) => {
+        byId('microphoneToggle').textContent = muted ? '开始说话' : '发送并静音';
+        byId('microphoneToggle').disabled = !client.active || !client.engine || changing;
+        byId('microphoneStatus').textContent = muted ? '麦克风已静音；说话前点击开始。' : '正在听取输入；说完点击发送并静音。';
+      },
+      onRecordingStatus: text => { byId('recordingStatus').textContent = text; },
       onFrame: frame => { byId('cameraStatus').textContent = frame ?
         '无人机新帧 #' + frame.id + ' · 图像年龄 ' + Math.round(frame.ageMs) + 'ms' : '无有效新帧；画面已清空'; },
       onAutoplay: failed => { byId('resumeAudio').hidden = !failed; if (failed) add('音频已暂停，请点击恢复所选设备音频。'); } });
@@ -474,6 +570,8 @@
       catch (error) { state(String(error.message || error)); }
     };
     byId('disconnect').onclick = () => client.stop();
+    byId('microphoneToggle').onclick = () => client.setMicrophoneMuted(!client.microphoneMuted)
+      .catch(error => add(String(error.message || error)));
     byId('stop').onclick = () => client.interrupt(false).catch(error => state(error.message));
     byId('land').onclick = () => client.interrupt(true).catch(error => state(error.message));
     byId('resumeAudio').onclick = () => client.resumeAudio().catch(error => state(error.message));

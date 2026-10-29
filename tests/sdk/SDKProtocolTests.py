@@ -13,6 +13,32 @@ from drone_sdk import _driver as drv, controller as ctl
 
 class SDKProtocolTests(SDKWireFixture):
 
+    def test_long_move_accepts_reply_after_old_five_second_limit(self):
+        self.auto_reply = False
+        reply = None
+        def delayed(data):
+            nonlocal reply
+            if data == b'forward 300':
+                reply = threading.Timer(5.2, lambda: self.responses.append(b'ok'))
+                reply.start()
+        self.on_send = delayed
+        with patch.object(drv, '_speed_cm_s', 50):
+            result = ctl.move_forward(self.grant, 300)
+        if reply is not None: reply.join()
+        self.assertTrue(result.ok, result)
+        self.assertEqual(self.sent.count('forward 300'), 1)
+        self.assertFalse(drv.health()['command_channel_ambiguous'])
+        self.assertFalse(any(e['event'] == 'command_reply_timeout' for e in drv.snapshot()['events']))
+        self.assertFalse(any(e.get('reason') == 'action_failed' for e in drv.snapshot()['events']))
+
+    def test_slow_configured_speed_gets_more_move_time(self):
+        with patch.object(drv, '_speed_cm_s', 10):
+            slow = drv._move_deadline('forward', 300)
+        with patch.object(drv, '_speed_cm_s', 100):
+            fast = drv._move_deadline('forward', 300)
+        self.assertGreater(slow, fast)
+        self.assertGreater(slow, 300 / 10)
+
     def test_wire_and_reply_evidence_keep_actual_command_and_raw_reply(self):
         _, cursor, _ = drv.events_since(0)
         self.assertTrue(ctl.rotate(self.grant, 30).ok)
@@ -186,7 +212,7 @@ class SDKProtocolTests(SDKWireFixture):
         self.assertIsNone(first['battery'])
         self.assertIsNone(first['temperature_c'])
 
-    def test09_late_reply_cannot_approve_a_new_move(self):
+    def test09_cancelled_command_allows_next_move_with_reply_warning(self):
         self.auto_reply = False
         old_result = []
         worker = threading.Thread(target=lambda: old_result.append(ctl.move_forward(self.grant, 20)))
@@ -197,23 +223,33 @@ class SDKProtocolTests(SDKWireFixture):
         worker.join(0.5)
         self.assertFalse(worker.is_alive())
         grant = ctl.request_control('model')
-        self.assertFalse(grant.ok)
-        self.assertIsNone(grant.grant)
+        self.assertTrue(grant.ok)
         self.on_send = lambda data: self.responses.append(b'ok') if data == b'forward 30' else None
-        result = ctl.move_forward(stopped.grant, 30)
-        self.assertFalse(result.ok, 'Late acknowledgement of A was mistaken for successful B')
-        self.assertNotIn('forward 30', self.sent)
+        result = ctl.move_forward(grant.grant, 30)
+        self.assertTrue(result.ok)
+        self.assertIn('forward 30', self.sent)
+        self.assertTrue(result.details['command_channel_ambiguous'])
+        self.assertFalse(result.details['reply_association_verified'])
+        self.assertEqual(result.details['command_uncertainty']['reason'], 'cancelled_after_send')
 
-    def test10_response_timeout_keeps_barrier_despite_ground_telemetry(self):
+    def test10_response_timeout_reports_uncertainty_without_blocking_motion(self):
         self.auto_reply = False
         with self.assertRaisesRegex(RuntimeError, 'response_timeout_after_send'):
             self.tello.send_command_with_return('forward 20', timeout=0.02)
         self.assertTrue(drv.health()['command_channel_ambiguous'])
-        self.packet.update(h=0, tof=0)
         drv.reconcile_state()
         self.assertFalse(drv.command_channel_clear())
-        self.assertEqual(ctl.request_control('model').reason, 'command_channel_ambiguous')
-        self.assertFalse(drv.set_velocity((0, 20, 0, 0), 'test'))
+        grant = ctl.request_control('model')
+        self.assertTrue(grant.ok)
+        self.auto_reply = True
+        self.responses.append(b'ok')  # Discard a reply already queued before the next send.
+        result = ctl.move_forward(grant.grant, 30)
+        self.assertTrue(result.ok)
+        self.assertTrue(result.details['command_channel_ambiguous'])
+        velocity = ctl.update_velocity(grant.grant, 0, 20, 0, 0)
+        self.assertTrue(velocity.ok)
+        self.assertTrue(velocity.details['command_channel_ambiguous'])
+        self.assertIn('rc 0 20 0 0', self.sent)
         self.assertTrue(drv.set_velocity((0, 0, 0, 0), 'safe stop'))
         self.assertTrue(ctl.get_status().command_channel_ambiguous)
 
@@ -355,7 +391,8 @@ class SDKProtocolTests(SDKWireFixture):
             with patch.object(runner, '_remove_container', new=AsyncMock(return_value=[])), patch(
                     'execution.sandbox_runner.asyncio.create_subprocess_exec', return_value=process):
                 return await run_program(runner, 'drone.rotate(360)')
-        result = tool_result(asyncio.run(run()))
+        with patch.object(drv, '_move_deadline', return_value=1.2):
+            result = tool_result(asyncio.run(run()))
         detail = result['action_error']
         self.assertEqual(detail['status'], 'unknown')
         self.assertEqual(detail['reason'], 'response_timeout_after_send')
@@ -365,8 +402,9 @@ class SDKProtocolTests(SDKWireFixture):
         self.assertTrue(detail['details']['outcome_unknown'])
         self.assertEqual(detail['details']['stage'], 'response_wait')
         self.assertGreaterEqual(detail['details']['elapsed_seconds'], 1)
-        self.assertEqual(detail['details']['response_timeout_seconds'], 1)
-        self.assertGreater(detail['details']['caller_deadline_seconds'], 1)
+        self.assertGreater(detail['details']['response_timeout_seconds'], 1)
+        self.assertLess(detail['details']['response_timeout_seconds'], 1.2)
+        self.assertEqual(detail['details']['caller_deadline_seconds'], 1.2)
         self.assertEqual(result['journal'][0]['result'], detail)
         self.assertEqual(self.sent.count('cw 360'), 1)
         self.assertTrue(any(e['event']=='command_exception' and 'traceback' in e for e in drv.snapshot()['events']))
