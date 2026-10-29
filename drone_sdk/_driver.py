@@ -37,7 +37,7 @@ RC_LIMIT = 100
 RESPONSE_TIMEOUT_S = 5.0
 COMMAND_DEADLINE_S = {'takeoff': 25.0, 'land': 20.0}
 LAND_DISPATCH_TIMEOUT_S = 6.0
-KEEPALIVE_INTERVAL_S = 8.0
+KEEPALIVE_INTERVAL_S = 4.0
 LINK_FAULT_LIMIT = 3
 # 飞控刚上电时 Wi-Fi 已广播但飞控没就绪，`command` 会收到 0xcc 之类的半包，
 # djitellopy 把它当 UTF-8 解码错误抛出（现场复现 3 次）。等待 + 重试可消除。
@@ -402,6 +402,7 @@ def _execute_real(action, param=None, *, epoch=None, guard=None, details=None):
                 if _tello is not tello:
                     return
                 _flying = action == 'takeoff'
+                tello._motor_stop_reported = False
                 _landing_acknowledged = action == 'land'
                 if action == 'land': _height_cm = 0
             _record('action_acknowledged', action=action)
@@ -604,6 +605,7 @@ def snapshot():
 
 
 def health():
+    global _flying, _height_cm
     with _lock:
         tello, connected = _tello, _tello is not None
         unknown = sorted(_unknown_actions) if not SIMULATED else []
@@ -623,6 +625,21 @@ def health():
         packet, stamp, age, fresh = _telemetry(tello)
         data.update(telemetry_timestamp=stamp, telemetry_age_s=age,
                     telemetry_fresh=fresh)
+        data['last_wire_send_age_s'] = time.monotonic() - _last_wire_send
+        last_keepalive = getattr(tello, '_last_keepalive_sent', None)
+        data['last_keepalive_age_s'] = None if last_keepalive is None else time.monotonic() - last_keepalive
+        # A stopped-motor reply plus fresh ground telemetry contradicts the
+        # cached takeoff flag. Low height alone can be an obstacle below us.
+        with _lock:
+            if (getattr(tello, '_motor_stop_reported', False) and fresh
+                    and packet.get('h') == 0
+                    and type(packet.get('tof')) is int and 0 <= packet['tof'] < TOF_MIN_CM
+                    and not _pending_commands and not _unknown_actions):
+                if _flying:
+                    _record('flight_state_reconciled', reason='motor_stop_and_ground_telemetry')
+                _flying, _height_cm = False, 0
+                tello.is_flying = False
+                data['flying'] = False
         temperatures = [packet.get(k) for k in ('templ', 'temph')]
         temperatures = [v for v in temperatures if type(v) in (int, float) and -20 <= v <= 150]
         if fresh and temperatures:
@@ -740,6 +757,8 @@ def _tello_class(timeout):
             if outcome is not None:
                 outcome.update(reply_received=True, reply=response, stage='response_received')
             self.last_received_command_timestamp = time.time()
+            if response.lower() == 'error motor stop':
+                self._motor_stop_reported = True
             return response
         def send_command_without_return(self, command):
             _wire_send(command, lambda value: wire.client_socket.sendto(value.encode('utf-8'), self.address))
@@ -817,13 +836,16 @@ def _keepalive_loop(tello, stop):
     响应队列，导致 land 第一次返回 ``error``（现场复现两次）。
     ``rc`` 是不需要响应的指令，既能重置 15 秒自动降落计时器，又不占响应队列。
     """
-    while not stop.wait(KEEPALIVE_INTERVAL_S):
+    # Poll separately from the idle threshold: two 8-second waits previously
+    # allowed almost 16 seconds between sends, beyond firmware's 15-second limit.
+    while not stop.wait(min(.5, KEEPALIVE_INTERVAL_S / 4)):
         with _lock: flying, last_send = _flying, _last_wire_send
         if not flying: continue
         if action_pending(): continue        # 有在途命令时不插队
         if time.monotonic() - last_send < KEEPALIVE_INTERVAL_S: continue
         try:
             tello.send_rc_control(0, 0, 0, 0)
+            tello._last_keepalive_sent = time.monotonic()
             _record('keepalive_sent', mode='rc_zero')
         except Exception as exc:
             _link_fault('keepalive: %s' % exc)

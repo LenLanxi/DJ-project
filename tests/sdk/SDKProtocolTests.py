@@ -13,6 +13,48 @@ from drone_sdk import _driver as drv, controller as ctl
 
 class SDKProtocolTests(SDKWireFixture):
 
+    def test_keepalive_worst_phase_stays_below_firmware_deadline(self):
+        clock = [0.0]
+        sends = []
+        drv._last_wire_send = .01
+        class Stop:
+            def wait(self, seconds):
+                clock[0] += seconds
+                return clock[0] > 30
+        def send(*args):
+            sends.append(clock[0])
+            drv._last_wire_send = clock[0]
+        with patch.object(drv.time, 'monotonic', side_effect=lambda: clock[0]), patch.object(self.tello, 'send_rc_control', side_effect=send):
+            drv._keepalive_loop(self.tello, Stop())
+        self.assertGreater(len(sends), 3)
+        times = [.01, *sends]
+        self.assertLessEqual(max(b-a for a,b in zip(times,times[1:])), 5)
+
+    def test_motor_stop_and_ground_state_allow_explicit_takeoff_again(self):
+        self.packet.update(h=0, tof=10)
+        self.assertEqual(ctl.get_status().flight_state, 'flying')  # Low ToF alone is not landing.
+        self.reply = b'error Motor stop'
+        self.assertFalse(ctl.rotate(self.grant, 90).ok)
+        self.assertEqual(ctl.get_status().flight_state, 'landed')
+        self.assertEqual(ctl.get_status().height_cm, 0)
+        self.reply = b'ok'
+        ctl.configure_takeoff(authorized=True, min_battery=30)
+        self.assertTrue(ctl.takeoff(self.grant).ok)
+        self.assertEqual(ctl.get_status().flight_state, 'flying')
+        self.assertFalse(self.tello._motor_stop_reported)
+
+    def test_motor_stop_without_fresh_ground_evidence_does_not_authorize_takeoff(self):
+        self.tello._motor_stop_reported = True
+        self.packet.update(h=0, tof=10)
+        self.packet['_received_monotonic'] -= 2
+        self.assertNotEqual(ctl.get_status().flight_state, 'landed')
+
+    def test_rc_acceptance_does_not_claim_measured_movement(self):
+        result = ctl.update_velocity(self.grant, 0, 0, 30, 0)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.status, 'accepted')
+        self.assertFalse(result.details['motion_verified'])
+
     def test01_actual_sdk_methods_send_and_accept_exact_ok(self):
         result = ctl.move_forward(self.grant, 20)
         self.assertTrue(result.ok, result)

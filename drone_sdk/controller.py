@@ -38,6 +38,11 @@ def operation_cancelled():
 def _advance():
     global _flight_state, _landing_deadline
     if not _driver.SIMULATED:
+        health = _driver.health()
+        if (_flight_state == 'flying' and not health['flying']
+                and health.get('telemetry_fresh') and health.get('height_source') == 'ground_telemetry'
+                and not _driver.action_pending() and not _driver.action_unknown()):
+            _flight_state = 'landed'
         if _flight_state == 'landed' and _driver.health()['flying']:
             _flight_state = 'flying'
         if _flight_state == 'unknown':
@@ -202,7 +207,9 @@ def update_velocity(grant, left_right, forward_back, up_down, yaw, *, cancelled=
         if _driver.set_velocity(channels, 'velocity_update', **options) is False:
             return CommandResult(False, 'failed', 'velocity_send_failed', False)
         _last_velocity_time = time.monotonic() if any(channels) else 0.
-        return CommandResult(True, 'accepted', '', False)
+        return CommandResult(True, 'accepted', '', False,
+                             details={'command_sent': True, 'motion_verified': False,
+                                      'meaning': '速度指令已发送；不证明已移动、上升或悬停，也不表示位移厘米数'})
 
 def _move(grant, action, param=None):
     global _flight_state, _active_action

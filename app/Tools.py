@@ -22,6 +22,7 @@ def validate_tool(name, arguments, max_program_bytes=PROGRAM_MAX_BYTES):
 
 
 PROGRAM_INSTRUCTIONS = '''需要工具执行时，根据请求编写完整Python，只调用以下drone接口。
+update_velocity返回accepted只表示速度指令已发送，不证明已上升/移动/悬停；RC值不是厘米每秒，不能用RC值乘时间宣称位移。必须有后续遥测证据才能报告实际运动完成。飞控回复Motor stop时先重新查询状态，不能改小角度或改发RC绕过停桨事实。
 沙箱已提供全局对象drone；每个调用必须带drone.前缀，例如state=drone.get_status()。不存在裸get_status()/takeoff()/start_follow()等函数，也不要import drone。
 支持变量、条件、循环、函数和time.sleep；程序只在无网络Docker中执行，不在宿主机执行。
 接口：get_status()、is_following()、get_frame()、describe(画面问题)、observe(目标文字)、takeoff()、land()、
