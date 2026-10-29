@@ -45,6 +45,6 @@ Source digest checking stays enabled. sdk_consolidated_pins.json is updated for 
 
 Passing T01-T43 only proves the assertions in those offline probes. T06-T08 check program admission; they do not execute Docker or a complete mission. No Docker executable, aircraft, microphone, or configured live provider is available here.
 
-Independent measured target distance, obstacle clearance and finding a user outside the camera view are not supplied by the current sensors/API. The code deliberately stops/refuses unsupported real arrival instead of claiming these requirements are implemented. A fresh marker-based recovery candidate exists upstream, but this change does not certify it as a mature production drone-follow system or establish physical yaw direction. Do not report full autonomous tent/user return acceptance from these tests.
+Independent measured target distance, obstacle clearance and finding a user outside the camera view are not supplied by the current sensors/API. The code deliberately stops/refuses unsupported real arrival instead of claiming these requirements are implemented.
 
 Still required: actual container isolation/cancellation cleanup, representative audio recordings and real earphone barge-in, domestic provider protocol/latency validation, UDP late/duplicate-response tests, independent distance/obstacle evidence, whole-mission feedback scenarios, and controlled physical tests. These are not replaced with mocked success.
