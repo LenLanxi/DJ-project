@@ -45,8 +45,6 @@ class EmergencyHotkeys:
     """One listener owns both the global chords and the F11/F12 shortcuts."""
 
     def __init__(self, on_trigger, cooldown=HOTKEY_COOLDOWN_S, emit=None):
-        if not callable(on_trigger):
-            raise TypeError('on_trigger must be callable')
         self._on_trigger = on_trigger
         self._emit = emit or _default_emit
         self.cooldown = cooldown

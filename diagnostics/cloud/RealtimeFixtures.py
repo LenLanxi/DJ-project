@@ -11,6 +11,24 @@ import wave
 import cv2
 import numpy as np
 
+FOLDER = Path(__file__).resolve().parents[2] / 'ScenarioAcceptance' / 'Evidence' / 'RealtimeComparison'
+
+
+def fixture(name, folder=FOLDER):
+    metadata = json.loads((folder / 'Fixtures.json').read_text(encoding='utf-8-sig'))['audio'][name]
+    pcm = (folder / (name + '.pcm')).read_bytes()
+    wav_path = folder / (name + '.wav')
+    with wave.open(str(wav_path), 'rb') as stream:
+        if (stream.getframerate(), stream.getnchannels(), stream.getsampwidth()) != (16000, 1, 2):
+            raise ValueError('shared_fixture_format_mismatch')
+        if stream.readframes(stream.getnframes()) != pcm:
+            raise ValueError('shared_pcm_wav_mismatch')
+    if (len(pcm) != metadata['samples'] * 2
+            or metadata['sha256'] not in (hashlib.sha256(pcm).hexdigest(), hashlib.sha256(wav_path.read_bytes()).hexdigest())):
+        raise ValueError('shared_fixture_hash_mismatch')
+    return pcm, metadata
+
+
 TEXTS = {
     'Status': '请查询模拟无人机的电量。不要操作飞机。',
     'Vision': '画面里的帐篷是什么颜色？只回答颜色。',

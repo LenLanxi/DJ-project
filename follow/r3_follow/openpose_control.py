@@ -11,12 +11,12 @@ The actual PID implementation is the unchanged simple-pid 2.0.1 pid.py.
 Necessary adaptations: an ArUco center/mean-side replaces the body keypoint/
 shoulder width; ratios are mapped to the original program's 640-pixel frame
 (its line 145); the RC cap is set per instance by the follow configuration
-(yaw_limit / forward_limit; the reviewed default is 20/30 RC, aircraft_A_ID0
+(horizontal_limit_rc / forward_limit_rc; the reviewed default is 20/30 RC, aircraft_A_ID0
 raises it to 50/40) instead of the upstream 100/50;
 opt-in throttle retains upstream P=.4, I=D=0 with a provisional +/-20 RC cap
 instead of upstream -80..100. Marker midheight replaces the body reference.
 This vertical addition is not flight calibrated and has no altitude telemetry.
-RC requests are divided by 100 for the existing R3 normalized request contract.
+Outputs use SDK axis order: lateral, forward, up, yaw, in RC channel units.
 There is no new off-axis depth gate or PID law. Frame-time bookkeeping and
 reset/shape protection surround the reused equations; no aircraft I/O is here.
 
@@ -62,7 +62,7 @@ from ._vendor.simple_pid import PID
 EQUIVALENT_FRAME_WIDTH = 640.0
 YAW_GAINS = (0.16, 0.0, 0.03)      # P 0.25→0.16（减饱和）+ 少量阻尼；见模块说明
 YAW_DERIVATIVE_MIN_DT = .02        # D 项不使用的短间隔（秒），防帧抖动放大
-YAW_DERIVATIVE_LIMIT = .10         # D 项最多贡献 10 RC，防止大幅跳变时反向打满
+YAW_DERIVATIVE_LIMIT = 10.         # D 项最多贡献 10 RC，防止大幅跳变时反向打满
 THROTTLE_GAINS = (0.4, 0.0, 0.0)
 VERTICAL_PROFILE = "openpose_throttle_marker_v1"
 PITCH_GAINS = (0.5, 0.01, 0.06)
@@ -76,30 +76,31 @@ PROFILE = "openpose_pid_marker_v2"
 
 
 class OpenPoseMarkerControl:
-    """New frames advance PID; repeated controller ticks reuse its last result."""
+    """Internal PID for validated FollowController observations and references.
+
+    New frames advance PID; repeated controller ticks reuse its last result.
+    """
 
     def __init__(self, config, *, max_dt=.5):
         # FollowConfig owns tuning/range validation once at the input boundary.
-        yaw_limit, forward_limit = config.yaw_limit, config.forward_limit
+        horizontal_limit_rc, forward_limit_rc = config.horizontal_limit_rc, config.forward_limit_rc
         tuning, steering_mode = config.pid_tuning, config.steering_mode
-        vertical_follow, vertical_limit = config.vertical_follow, .2
-        if type(max_dt) not in (int, float) or not math.isfinite(max_dt) or max_dt <= 0:
-            raise ValueError("max_dt must be finite and positive")
+        vertical_follow, vertical_limit = config.vertical_follow, 20.
         self._vertical_follow = vertical_follow
         self.vertical_limit = vertical_limit
         self._steering_mode = steering_mode
-        self.horizontal_limit = yaw_limit
+        self.horizontal_limit = horizontal_limit_rc
         self.tuning = tuning
         self.max_dt = max_dt
         self.depth_filter_tau = DEPTH_FILTER_TAU
         self.pitch_gains = (RESPONSIVE_PITCH_GAINS if tuning == "responsive_v1" else
                             PITCH_GAINS)
         self.yaw_pid = PID(*YAW_GAINS, setpoint=0, sample_time=None,
-                           output_limits=(-yaw_limit*100, yaw_limit*100))
+                           output_limits=(-horizontal_limit_rc, horizontal_limit_rc))
         self.pitch_pid = PID(*self.pitch_gains, setpoint=0, sample_time=None,
-                             output_limits=(-forward_limit*100, forward_limit*100))
+                             output_limits=(-forward_limit_rc, forward_limit_rc))
         self.throttle_pid = PID(*THROTTLE_GAINS, setpoint=0, sample_time=None,
-                                output_limits=(-vertical_limit*100, vertical_limit*100))
+                                output_limits=(-vertical_limit, vertical_limit))
         self.reset()
 
     @property
@@ -134,7 +135,7 @@ class OpenPoseMarkerControl:
         self.yaw_pid.reset()
         self.pitch_pid.reset()
         self.throttle_pid.reset()
-        self.vertical_request = 0.0
+        self._up = 0.0
         self._last_frame = None
         self._last_at = None
         self._pitch_at = None
@@ -142,7 +143,7 @@ class OpenPoseMarkerControl:
         self._reference_size = None
         self._pitch_output = None
         self.integral_paused = False
-        self._cached = (0.0, 0.0, 0.0)
+        self._cached = (0.0, 0.0, 0.0, 0.0)
         self.last_dt = None
         self.last_pitch_dt = None
         self.depth_update_reason = "reset"
@@ -158,36 +159,17 @@ class OpenPoseMarkerControl:
         self.last_pitch_dt = None
         self.integral_paused = False
         self.depth_update_reason = reason
-        self._cached = (self._cached[0], 0.0, self._cached[2])
+        self._cached = (self._cached[0], 0.0, self._cached[2], self._cached[3])
 
     def update(self, *, frame_id, acquired_at, center_x, image_width,
                size_ratio, reference_size, forward_allowed=True,
                center_y=None, image_height=None, depth_error=None,
                target_x_fraction=.5, target_y_fraction=.5):
-        if any(type(v) not in (int, float) or not math.isfinite(v) or not .15 <= v <= .85
-               for v in (target_x_fraction, target_y_fraction)):
-            raise ValueError('aim fractions must be within the central 70 percent of the image')
         self.target_x_fraction, self.target_y_fraction = target_x_fraction, target_y_fraction
-        values = (acquired_at, center_x, image_width, size_ratio, reference_size)
-        if (type(frame_id) is not int or frame_id < 0
-                or any(type(v) not in (int, float) or not math.isfinite(v) for v in values)
-                or image_width <= 0 or not 0 <= center_x < image_width
-                or not 0 < size_ratio <= 2 or not 0 < reference_size <= 2
-                or type(forward_allowed) is not bool):
-            self.reset()
-            self.reason = "invalid_input"
-            raise ValueError("PID requires finite, valid marker geometry and frame time")
         if depth_error is not None and (
                 type(depth_error) not in (int, float) or not math.isfinite(depth_error)):
             self.reset()
             raise ValueError("depth_error must be finite relative camera-axis depth error")
-        if self.vertical_follow and (
-                any(type(v) not in (int, float) or not math.isfinite(v)
-                    for v in (center_y, image_height))
-                or image_height <= 0 or not 0 <= center_y < image_height):
-            self.reset()
-            self.reason = "invalid_vertical_input"
-            raise ValueError("Vertical PID requires a valid current-frame center_y and height")
         # Never keep depth history/output while shape validity is lost, even
         # if an outer caller is checking the same frame again.
         if not forward_allowed:
@@ -246,9 +228,9 @@ class OpenPoseMarkerControl:
         # turn damping into a full-scale reverse request).
         self.yaw_pid(xoff, dt=max(dt, YAW_DERIVATIVE_MIN_DT))
         proportional, integral, derivative = self.yaw_pid.components
-        ceiling = YAW_DERIVATIVE_LIMIT*100
+        ceiling = YAW_DERIVATIVE_LIMIT
         derivative = max(-ceiling, min(ceiling, derivative))
-        limit = self.horizontal_limit*100
+        limit = self.horizontal_limit
         horizontal = int(-max(-limit, min(limit, proportional+integral+derivative)))
         if self.vertical_follow:
             # Upstream resizes to WIDTH=640 preserving aspect ratio. Use the
@@ -256,7 +238,7 @@ class OpenPoseMarkerControl:
             # this is image alignment, NOT an altitude measurement or limit.
             # With top-left image origin, a target above center requests UP.
             yoff = int((image_height*target_y_fraction - center_y) * EQUIVALENT_FRAME_WIDTH/image_width)
-            self.vertical_request = int(-self.throttle_pid(yoff, dt=dt))/100.0
+            self._up = int(-self.throttle_pid(yoff, dt=dt))
         pitch = 0
         if (forward_allowed
                 and abs(size_delta) <= DEPTH_REFERENCE_DEADBAND_PX):
@@ -303,44 +285,17 @@ class OpenPoseMarkerControl:
         self.last_dt = elapsed
         self.reason = "new_frame" if forward_allowed else "depth_geometry_blocked"
         right, yaw = self._route_horizontal(horizontal, (center_x/image_width-target_x_fraction)*2.)
-        self._cached = (right/100.0, pitch/100.0, yaw/100.0)
+        self._cached = (float(right), float(pitch), float(self._up), float(yaw))
         return self._cached
 
     def status(self):
-        return {"profile": PROFILE, "input_frame_width": EQUIVALENT_FRAME_WIDTH,
-                "parameter_set": self.tuning,
-                "steering_mode": self.steering_mode,
-                "horizontal_limit": self.horizontal_limit,
-                "horizontal_allocation": ("lateral_center_yaw_edge_shared_budget"
-                                           if self.steering_mode == "adaptive" else
-                                           "integer_half_lateral_remainder_yaw"
-                                           if self.steering_mode == "hybrid"
-                                           else self.steering_mode),
-                "horizontal_budget_unit": "sum of absolute RC numbers; not physical speed or thrust",
-                "yaw_gains": YAW_GAINS, "pitch_gains": self.pitch_gains,
-                "vertical": {"enabled": self.vertical_follow,
-                             "profile": VERTICAL_PROFILE,
-                             "gains": THROTTLE_GAINS, "limit": self.vertical_limit,
-                             "target_y_fraction": getattr(self, 'target_y_fraction', .5),
-                             "raw_normalized_request": self.vertical_request,
-                             "components": self.throttle_pid.components,
-                             "physical_tuning_verified": False,
-                             "altitude_limits_enforced": False},
-                "depth_filter_tau_s": self.depth_filter_tau,
-                "depth_reference_deadband_equivalent_px": (DEPTH_REFERENCE_DEADBAND_PX
-),
-                "depth_integral_paused": self.integral_paused,
-                "reference_size": self._reference_size,
-                "relative_depth_error": self.relative_depth_error,
-                "relative_depth_equivalent_span": RELATIVE_DEPTH_EQUIVALENT_SPAN,
-                "filtered_size_delta_equivalent_px": self._filtered_size_delta,
-                "yaw_components": self.yaw_pid.components,
-                "pitch_components": self.pitch_pid.components,
-                "last_frame_id": self._last_frame, "last_capture_at": self._last_at,
-                "last_dt": self.last_dt, "update_reason": self.reason,
-                "last_pitch_dt": self.last_pitch_dt,
-                "depth_update_reason": self.depth_update_reason,
-                "raw_normalized_request": self._cached,
-                "physical_tuning_verified": False,
-                "distance_unit": "apparent marker ratio, not metres",
-                "output_unit": "normalized RC request, not physical speed"}
+        return dict(request_rc=self._cached, frame_id=self._last_frame,
+                    captured_at=self._last_at, dt=self.last_dt, reason=self.reason,
+                    reference_size=self._reference_size,
+                    relative_depth_error=self.relative_depth_error,
+                    filtered_size_delta=self._filtered_size_delta,
+                    depth_integral_paused=self.integral_paused,
+                    depth_dt=self.last_pitch_dt, depth_reason=self.depth_update_reason,
+                    yaw_components=self.yaw_pid.components,
+                    pitch_components=self.pitch_pid.components,
+                    throttle_components=self.throttle_pid.components)

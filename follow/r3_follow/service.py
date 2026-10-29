@@ -3,7 +3,7 @@
 Vision runs separately from control. Backend control methods MUST be prompt;
 this service cannot interrupt a blocking backend or prove physical hovering.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import math
 from collections import deque
 import threading
@@ -25,8 +25,14 @@ class _Handoff:
 
 
 class FollowService:
+    """Own the SDK and internal tracker/controller contracts for one session.
+
+    Injected trackers use detect(..., processing_budget_ms=...) and preserve
+    the supplied frame ID and capture time.
+    """
+
     def __init__(self, device, *, config: FollowConfig, frame_provider=None, tracker=None, monotonic=time.perf_counter,
-                 wall_clock=time.time, recovery_window=30, log_directory=None,
+                 wall_clock=time.time, auto_recover=True, log_directory=None,
                  detection_budget_ms=120., console_notices=False, notice_sink=None, log_sink=None):
         self.device = device
         self.simulated = device.get_status().simulated
@@ -42,7 +48,7 @@ class FollowService:
         target_id = self.config.target_id
         vertical_follow = self.config.vertical_follow
         distance_mode = self.config.distance_mode
-        yaw_limit, forward_limit = self.config.yaw_limit, self.config.forward_limit
+        horizontal_limit_rc, forward_limit_rc = self.config.horizontal_limit_rc, self.config.forward_limit_rc
         pose_estimator = None
         if distance_mode == "pose":
             from .pose_depth import PoseDepth
@@ -61,15 +67,15 @@ class FollowService:
         # Same gradual request start as the desktop demo. Faults/loss/stop still
         # bypass the ramp and issue zero immediately; no old target prediction.
         self.controller = FollowController(config=self.config,
-                                           recovery_window=recovery_window,
+                                           auto_recover=auto_recover,
                                            require_geometry=True,
                                            pose_estimator=pose_estimator)
         # RC clamp is derived from the SAME limits the law uses, so raising the
         # budget in one place cannot be silently re-clamped here. Vertical is opt-in. Hard ceiling is the SDK's RC range.
-        self.rc_caps = (min(100, round(yaw_limit * 100)),
-                        min(100, round(self.controller.forward_limit * 100)),
+        self.rc_caps = (min(100, round(horizontal_limit_rc)),
+                        min(100, round(self.controller.forward_limit_rc)),
                         20 if vertical_follow else 0,
-                        min(100, round(self.controller.yaw_limit * 100)))
+                        min(100, round(self.controller.horizontal_limit_rc)))
         self.lock = threading.RLock()
         self.vision_lock = threading.Lock()
         self.shutdown = threading.Event()
@@ -127,10 +133,10 @@ class FollowService:
                 simulated=self.simulated,
                 mode="simulated_device" if self.simulated else "real_device",
                 hardware_verified=False, steering_mode=self.controller.steering_mode,
-                recovery_window=self.controller.recovery_window,
+                auto_recover=self.controller.auto_recover,
                 detection_budget_ms=self.detection_budget_ms,
-                yaw_limit=self.controller.yaw_limit,
-                forward_limit=self.controller.forward_limit,
+                horizontal_limit_rc=self.controller.horizontal_limit_rc,
+                forward_limit_rc=self.controller.forward_limit_rc,
                 rc_caps=list(self.rc_caps),
                 rc_caps_unit="percentage_of_max_rc_100_not_metres_per_second",
                 detection_budget_policy="cooperative_between_native_calls",
@@ -156,7 +162,7 @@ class FollowService:
 
     def _owns_control(self, status):
         return (self.grant is not None and status.control_owner == "follow"
-                and status.control_epoch == self.grant["control_epoch"])
+                and status.control_epoch == self.grant.control_epoch)
 
     def _height_fresh(self, status):
         stamp = status.height_timestamp
@@ -174,7 +180,7 @@ class FollowService:
             return CommandResult(False, "failed", "cleanup_pending")
         self.last_cleanup = self.clock()
         try:
-            result = self.device.release_control("follow", control_epoch=self.grant["control_epoch"])
+            result = self.device.release_control(self.grant)
             if result.ok or result.reason in ("obsolete_control", "no_control"):
                 self.grant = None
                 self.cleanup_unconfirmed = False
@@ -328,9 +334,8 @@ class FollowService:
                     self.vision_in_progress = dict(frame_id=packet.frame_id, acquired_at=acquired_at,
                         started_at=work_now, budget_ms=budget_ms, generation=generation)
                 detection_start = time.perf_counter()
-                options = {"processing_budget_ms": budget_ms} if isinstance(self.tracker, MarkerTracker) else {}
                 observation = self.tracker.detect(packet.frame, packet.frame_id,
-                                                  acquired_at, source="team2-simulation", **options)
+                    acquired_at, source="team2-simulation", processing_budget_ms=budget_ms)
                 detection_ms = (time.perf_counter() - detection_start) * 1000
                 with self.lock:
                     completed_at = self.clock()
@@ -350,9 +355,6 @@ class FollowService:
                         self._record("observation_rejected", reason="vision_result_expired", **self.last_vision)
                         self._fault("vision_result_expired", invalid_frame=True, state=State.STALE)
                         return False
-                    if (observation.frame_id != packet.frame_id
-                            or observation.acquired_at != acquired_at):
-                        raise ValueError("detector_changed_frame_identity_or_time")
                     self.last_frame_id, self.last_timestamp = packet.frame_id, packet.timestamp
                     if not self.controller.observe(observation):
                         previous = self.controller.observation
@@ -512,7 +514,7 @@ class FollowService:
             if not grant.ok:
                 self.controller.stop()
                 return CommandResult(False, "failed", grant.reason or "invalid_control_grant")
-            self.grant = {"control_epoch": grant.control_epoch, "command_epoch": grant.command_epoch}
+            self.grant = grant.grant
             self.cleanup_unconfirmed = False
             self.last_send = -math.inf
             self.last_regular_send = -math.inf
@@ -564,7 +566,7 @@ class FollowService:
             self._operation_source = None
             previous = self.controller
             self.controller = FollowController(config=self.config,
-                recovery_window=previous.recovery_window, require_geometry=True,
+                auto_recover=previous.auto_recover, require_geometry=True,
                 pose_estimator=previous.pose_estimator)
             self.frame_ready = False
             self.last_frame_id, self.last_timestamp = -1, None
@@ -664,10 +666,10 @@ class FollowService:
         self.vertical_guard_reason = "disabled" if not self.config.vertical_follow else "clear"
         if not self.config.vertical_follow:
             return channels
-        height = getattr(status, "height_cm", None)
+        height = status.height_cm
         fresh = self._height_fresh(status)
         up = channels[2]
-        if fresh is not True or type(height) not in (int, float) or not math.isfinite(height):
+        if not fresh:
             up, self.vertical_guard_reason = 0, "height_unknown_or_stale"
         elif up > 0 and height >= self.config.vertical_max_height_cm-20:
             up, self.vertical_guard_reason = 0, "upper_height_margin"
@@ -706,8 +708,7 @@ class FollowService:
                     self._fault("missing_lease")
                     return
                 # Preview conversion only; not a calibrated physical speed.
-                channels = (round(motion.right * 100), round(motion.forward * 100), round(motion.up * 100),
-                            round(motion.yaw * 100))
+                channels = tuple(round(value) for value in motion.channels)
                 channels = tuple(max(-cap, min(cap, value))
                                  for value, cap in zip(channels, self.rc_caps))
                 channels = self._guard_vertical(channels, status)
@@ -726,26 +727,27 @@ class FollowService:
                     # Safety braking may bypass the 10 Hz deadline. No other
                     # axis may increase or reverse during this early send.
                     channels = reductions
-                result = self.device.update_velocity("follow", *channels, **self.grant)
+                result = self.device.update_velocity(self.grant, *channels)
                 if not result.ok:
                     self._fault("velocity_rejected: " + result.reason)
                     return
                 self.last_send, self.last_channels = now, channels
                 if regular_due:
                     self.last_regular_send = now
+                snapshot = self._snapshot()
                 self._record("motion_request", channels=channels, status=result.status,
                              state=str(self.controller.state), reason=motion.reason,
                              reference_size=self.controller.reference_size,
                              observation_frame_id=self.controller.observation.frame_id,
                              observation_age_ms=(now-self.controller.observation.acquired_at)*1000,
-                             openpose_control=self.controller.status()["openpose_control"],
-                             depth_brake=self.controller.status()["depth_brake"],
-                             distance_guard=self.controller.distance_guard.status(),
-                             distance_measurement=self.controller.distance_status(),
+                             openpose_control=snapshot["algorithm"]["openpose_control"],
+                             depth_brake=snapshot["algorithm"]["depth_brake"],
+                             distance_guard=snapshot["distance_guard"],
+                             distance_measurement=snapshot["distance_measurement"],
                              vertical_guard_reason=self.vertical_guard_reason,
-                             height_cm=getattr(status, 'height_cm', None),
+                             height_cm=status.height_cm,
                              height_fresh=self._height_fresh(status),
-                             requested_up_rc=round(motion.up*100),
+                             requested_up_rc=round(motion.up),
                              reference_size_limit=self.config.reference_size_limit,
                              urgent_depth_stop=urgent_depth_stop)
             except Exception as exc:
@@ -753,7 +755,7 @@ class FollowService:
             finally:
                 self._publish_status()
 
-    def _presentation(self):
+    def _snapshot(self):
         """Read under lock, without I/O or recursive control calls."""
         now = self.clock()
         obs = self.controller.observation
@@ -767,8 +769,6 @@ class FollowService:
         state = str(self.controller.state)
         restart = (not active and not self.closed and state != "paused"
                    and bool(self.last_halt_reason))
-        remaining = (max(0., self.controller.recovery_window-(now-self.controller._loss_at))
-                     if state == "recovering_target" and self.controller._loss_at is not None else None)
         raw_age = None if self.last_received_acquired_at is None else now-self.last_received_acquired_at
         # During work, the input's actual monotonic acquired_at is authoritative.
         if self.vision_in_progress is not None:
@@ -790,14 +790,29 @@ class FollowService:
                      "lower_height_margin": "接近高度下限，下降暂停"}.get(self.vertical_guard_reason)
             if extra:
                 message += "；" + extra
-        return dict(target_visible=visible, observation_fresh=bool(fresh),
+        algorithm = self.controller.status()
+        return dict(observation=asdict(obs) if obs is not None else None,
+            state=state, following=bool(active and visible and state == "tracking"),
+            active=active, recovering=state == "recovering_target", closed=self.closed,
+            pending_resume=self.ticket is not None, cleanup_pending=pending_cleanup,
+            cleanup_unconfirmed=self.cleanup_unconfirmed, cleanup_confirmed=not pending_cleanup,
+            reference_size=self.controller.reference_size, last_reason=self.last_reason,
+            frame_ready=self.frame_ready, frame_id=self.last_frame_id,
+            recognition_running=any(t.name == "follow-vision" and t.is_alive() for t in self.workers),
+            background_running=any(t.is_alive() for t in self.workers),
+            instance_id=self.config.instance_id, target_id=self.config.target_id,
+            service_session_id=self.service_session_id, simulated=self.simulated,
+            last_start_failure=self._last_start_failure,
+            algorithm=algorithm, distance_guard=algorithm["distance_guard"],
+            log=self.session_log.status() if self.session_log else None,
+            target_visible=visible, observation_fresh=bool(fresh),
             observation_age_ms=None if age is None else age*1000,
             raw_frame_age_ms=None if raw_age is None else raw_age*1000,
             detection_in_progress=self.vision_in_progress is not None,
             detection_elapsed_ms=(None if self.vision_in_progress is None else
                                    max(0., (now-self.vision_in_progress["started_at"])*1000)),
             last_vision=dict(self.last_vision),
-            restart_required=restart, recovery_remaining_s=remaining,
+            restart_required=restart,
             last_halt_reason=self.last_halt_reason, last_halt_at=self.last_halt_at,
             requested_channels=self.last_channels if active and self.last_channels is not None else (0,0,0,0),
             physical_hover_confirmed=False, status_message=message,
@@ -808,7 +823,7 @@ class FollowService:
             status_notice_seq=self.notice_seq)
 
     def _publish_status(self):
-        presentation = self._presentation()
+        presentation = self._snapshot()
         key = (str(self.controller.state), presentation["status_message"])
         if key == self._notice_key:
             return
@@ -838,50 +853,9 @@ class FollowService:
         return self.status()["following"]
 
     def status(self):
+        """One dynamic snapshot; fixed tuning is available separately as config."""
         with self.lock:
-            return dict(state=str(self.controller.state),
-                        instance_id=self.config.instance_id,
-                        service_session_id=self.service_session_id,
-                        target_id=self.config.target_id,
-                        dictionary=self.config.dictionary,
-                        configured_control_profile=self.config.control_profile,
-                        configured_steering_mode=self.config.steering_mode,
-                        pid_tuning=self.config.pid_tuning,
-                        vertical_follow=self.config.vertical_follow,
-                        vertical_limit_rc=20 if self.config.vertical_follow else 0,
-                        vertical_target_y_fraction=self.controller.target_y_fraction,
-                        altitude_limits_enforced=True,
-                        altitude_limit_scope="request_guard_only_not_physical_height_guarantee",
-                        handoff_required=self.grant is not None,
-                        motion_unit="RC_channel_value_not_physical_velocity",
-                        actual_velocity_m_s=None,
-                        actual_velocity_source="not_measured",
-                        physical_distance_m=self.config.physical_distance_m,
-                        physical_distance_source="manual_note_not_estimated",
-                        following=(self.controller.state == State.TRACKING and self.grant is not None
-                                   and self._presentation()["observation_fresh"]),
-                        active=(self.grant is not None and not self.closed and
-                                self.controller.state in (State.TRACKING, State.RECOVERING)),
-                        recovering=self.controller.state == State.RECOVERING,
-                        cleanup_pending=(self.grant is not None and
-                                         self.controller.state not in (State.TRACKING, State.RECOVERING)),
-                        cleanup_unconfirmed=self.cleanup_unconfirmed,
-                        pending_resume=self.ticket is not None,
-                        reference_size=self.controller.reference_size,
-                        grant=dict(self.grant) if self.grant else None,
-                        cleanup_confirmed=self.grant is None and not self.cleanup_unconfirmed,
-                        recognition_running=any(t.is_alive() for t in self.workers),
-                        last_start_failure=self._last_start_failure,
-                        last_reason=self.last_reason, closed=self.closed,
-                        control_profile=self.controller.status()["control_profile"],
-                        steering=self.controller.status()["steering"],
-                        distance_guard=self.controller.distance_guard.status(),
-                        max_request_rate=self.controller.max_request_rate,
-                        simulated=self.simulated, hardware_verified=False,
-                        background_running=any(t.is_alive() for t in self.workers),
-                        log=self.session_log.status() if self.session_log else None,
-                        frame_ready=self.frame_ready,
-                        frame_id=self.last_frame_id, **self._presentation())
+            return self._snapshot()
 
     def start_background(self):
         with self.lock:
@@ -915,18 +889,16 @@ class FollowService:
         if wait:
             for worker in self.workers:
                 if worker is not threading.current_thread():
-                    worker.join(timeout=.25)
+                    worker.join(timeout=1.)
         if self.session_log is not None:
             self.session_log.close(wait=wait)
         if self.notifier is not None:
             self.notifier.close(wait=wait)
-        workers = list(self.workers)
-        if self.session_log is not None:
-            workers.append(self.session_log.worker)
-        if self.notifier is not None and self.notifier.worker is not None:
-            workers.append(self.notifier.worker)
-        if result.ok and any(worker.is_alive() for worker in workers):
-            return CommandResult(False, 'failed', 'follow_workers_still_running')
+        # Diagnostics may finish draining after control has stopped. They do
+        # not retain aircraft authority and must not prevent device cleanup.
+        pending = [worker.name for worker in self.workers if worker.is_alive()]
+        if result.ok and pending:
+            return CommandResult(False, 'failed', 'follow_workers_still_running: ' + ', '.join(pending))
         if result.ok:
             with self.lock:
                 self._operation_source = None

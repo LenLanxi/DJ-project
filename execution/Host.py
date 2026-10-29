@@ -11,10 +11,8 @@ LAND_CONFIRM_TIMEOUT_S = 25.
 
 
 class NavigationGuard:
-    """An immutable source-frame deadline follows this call to final UDP send."""
+    """Carry the timestamp validated by Host to the final UDP send deadline."""
     def __init__(self, event, timestamp, *, clock=time.monotonic, wall_clock=time.time):
-        if type(timestamp) not in (int,float) or not math.isfinite(timestamp):
-            raise ValueError('invalid_navigation_timestamp')
         self.event,self.timestamp = event,timestamp
         self.clock,self.wall_clock = clock,wall_clock
         self.deadline = clock()+max(0.,1.0-(wall_clock()-timestamp))
@@ -24,7 +22,7 @@ class NavigationGuard:
 
 
 async def interrupt_device(device, follow, land=False):
-    result = await asyncio.to_thread(device.priority_interrupt, bool(land))
+    result = asdict(await asyncio.to_thread(device.priority_interrupt, bool(land)))
     try:
         stopped = await asyncio.to_thread(follow.stop)
         if not stopped.ok:
@@ -37,16 +35,20 @@ async def interrupt_device(device, follow, land=False):
 
 
 class Host:
-    """Single-use program state. Its event is never cleared or replaced."""
-    def __init__(self, device, follow, vision=None, *, recovery=False):
+    """Validate sandbox RPC; trust the fixed Vision and SDK result contracts.
+
+    Single-use program state. Its event is never cleared or replaced.
+    """
+    def __init__(self, device, follow, vision=None, *, recovery=False, methods=None):
         self.device, self.follow, self.vision = device, follow, vision
         self.simulated = device.get_status().simulated
         self.recovery = recovery
+        self.methods = methods
         self.cancelled = threading.Event()
         self.control_lock = asyncio.Lock()
         self.acquired = False
         self.closed = self.cleanup_pending = False
-        self._control_request = None
+        self._control_request = self._action_request = None
         self.grant = self.ticket = None
         self.resume = True
         self.observation = None
@@ -71,8 +73,24 @@ class Host:
     async def _action(self, name, *args, grant=None, cleanup=False, operation=None):
         lease = self.grant if grant is None else grant
         cancelled = None if cleanup else operation if operation is not None else self.cancelled
-        return await asyncio.to_thread(self.device.action_with_grant, name, dict(lease),
-                                       *args, cancelled=cancelled)
+        request = asyncio.create_task(asyncio.to_thread(getattr(self.device, name), lease, *args, cancelled=cancelled))
+        if name in ('stop_motion', 'land'):
+            self._action_request = request
+            request.add_done_callback(lambda task: self._capture_action(task, lease))
+        result = await asyncio.shield(request) if name in ('stop_motion', 'land') else await request
+        if name in ('stop_motion', 'land'):
+            self._capture_action(request, lease)
+        return dict(asdict(result), grant=result.grant, simulated=self.simulated)
+
+    def _capture_action(self, task, lease):
+        """Keep only the grant returned by this action, including a late thread."""
+        try:
+            result = task.result()
+            if (result.grant is not None and self.grant == lease
+                    and result.grant.control_epoch == lease.control_epoch):
+                self.grant = result.grant
+        except BaseException:
+            pass
 
     async def _follow(self, fn, *args, **kwargs):
         return await asyncio.to_thread(fn, *args, cancelled=self.cancelled, **kwargs)
@@ -105,7 +123,7 @@ class Host:
         try:
             result = request.result()
             if result.ok:
-                self.grant = dict(control_epoch=result.control_epoch, command_epoch=result.command_epoch)
+                self.grant = result.grant
                 self.acquired = True
         except BaseException:
             pass  # The fixed device contract raises only before granting control.
@@ -149,6 +167,8 @@ class Host:
 
     async def dispatch(self, method, args, kwargs):
         self._current()
+        if self.methods is not None and method not in self.methods:
+            raise ValueError('RPC method not permitted in this session')
         if not isinstance(args, list) or not isinstance(kwargs, dict) or kwargs:
             raise ValueError('RPC accepts positional arguments only')
         if self.recovery and method not in ('get_status', 'is_following', 'land', 'stop_motion'):
@@ -179,14 +199,12 @@ class Host:
                 if stopped.get('ok') is not True:
                     self.resume = False
                     raise RuntimeError('navigation_hover_stop_unconfirmed')
-                if isinstance(stopped.get('grant'),dict): self.grant = dict(stopped['grant'])
+                if stopped.get('grant') is not None: self.grant = stopped['grant']
                 await asyncio.to_thread(self.vision.prepare_navigation, time.time(), self.cancelled)
                 self._current()
             result = await asyncio.to_thread(getattr(self.vision, method), args[0])
             self._current()
             if method == 'observe':
-                if not isinstance(result, dict) or type(result.get('visible')) is not bool:
-                    raise ValueError('invalid_navigation_observation')
                 if not result['visible'] or result.get('ambiguous') is True:
                     self.resume = False
                     result = dict(result,visible=False)
@@ -242,7 +260,7 @@ class Host:
             # Acquire a NEW lease before releasing model ownership to follow.
             await self.acquire()
             self._current()
-            released = await asyncio.to_thread(self.device.release_control, 'model', **self.grant, cancelled=self.cancelled)
+            released = await asyncio.to_thread(self.device.release_control, self.grant, cancelled=self.cancelled)
             if not released.ok:
                 raise RuntimeError('follow_handoff_release_failed: ' + released.reason)
             self.acquired = False
@@ -284,8 +302,8 @@ class Host:
         if not result.get('ok') or result.get('status') not in permitted:
             self.resume = False
             raise RuntimeError('SDK_action_failed: ' + str(result))
-        if isinstance(result.get('grant'), dict):
-            self.grant = dict(result['grant'])
+        if result.get('grant') is not None:
+            self.grant = result['grant']
         if method == 'land':
             await self._confirm_landed()
             result = dict(result, status='completed', is_blocking=True, landed_confirmed=True)
@@ -305,8 +323,8 @@ class Host:
 
     async def _superseded(self, grant):
         state = await asyncio.to_thread(self.device.get_status)
-        return (state.control_epoch != grant['control_epoch']
-                or state.command_epoch != grant['command_epoch']
+        return (state.control_epoch != grant.control_epoch
+                or state.command_epoch != grant.command_epoch
                 or state.control_owner != 'model')
 
     async def finish(self, success):
@@ -325,6 +343,9 @@ class Host:
                 self.cleanup_pending = False
 
     async def _finish_control(self, success):
+        if self._action_request is not None and not self._action_request.done():
+            self.cleanup = {'status': 'control_action_pending'}
+            raise RuntimeError('control_action_pending')
         if self._control_request is not None and not self._control_request.done():
             self.cancel()
             self.cleanup = {'status': 'control_acquire_pending'}
@@ -339,7 +360,7 @@ class Host:
         if not self.acquired:
             self.cleanup = {'status': 'no_control'}
             return
-        grant = dict(self.grant or {})
+        grant = self.grant
         ticket = self.ticket
         if await self._superseded(grant):
             self.acquired = False
@@ -347,6 +368,8 @@ class Host:
             return
         if not success or self.cancelled.is_set():
             stopped = await self._action('stop_motion', grant=grant, cleanup=True)
+            # Even a failed zero can advance this lease's command epoch.
+            grant = self.grant
             if not stopped.get('ok'):
                 if await self._superseded(grant):
                     self.acquired = False
@@ -354,9 +377,7 @@ class Host:
                     return
                 self.cleanup = {'status': 'stop_unconfirmed', 'result': stopped}
                 raise RuntimeError('cleanup_stop_failed: ' + str(stopped))
-            if isinstance(stopped.get('grant'), dict):
-                grant = self.grant = dict(stopped['grant'])
-        released = await asyncio.to_thread(self.device.release_control, 'model', **grant)
+        released = await asyncio.to_thread(self.device.release_control, grant)
         if not released.ok:
             if await self._superseded(grant):
                 self.acquired = False
@@ -376,8 +397,10 @@ class Host:
             if self.cancelled.is_set():
                 raise RuntimeError('program_cancelled')
             if not recovered.ok:
-                self.cleanup = {'status': 'follow_resume_failed', 'result': recovered}
-                raise RuntimeError('follow_resume_failed: ' + str(recovered))
+                self.cleanup = {'status': 'follow_resume_failed', 'reason': recovered.reason, 'result': recovered}
+                if self.follow_adjust_axis is not None or self.follow.cleanup_unconfirmed:
+                    raise RuntimeError('follow_resume_failed: ' + str(recovered))
+                return  # The action and control release succeeded; report resume separately.
             self.cleanup = {'status': 'follow_resumed'}
             if self.follow_adjust_axis is not None:
                 self.cleanup['reference_adjusted'] = self.follow_adjust_axis

@@ -39,10 +39,11 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class RTCProcess:
-    def __init__(self,log,env=None,*,web_port=0):
+    def __init__(self,log,env=None,*,node,web_port=0):
         if type(web_port) is not int or not 0 <= web_port <= 65535:
             raise ValueError('invalid_rtc_web_port')
         self.log=log
+        self.node=node
         self.web_port=web_port
         self.environment=None if env is None else dict(env)
         self.proc=None
@@ -68,8 +69,16 @@ class RTCProcess:
         if not isinstance(value,dict): raise RuntimeError('Invalid RTC service response')
         return value
 
+    async def publish_result(self, identity, call_id, result):
+        reply = {'ToolCallID': call_id, 'Content': json.dumps(result, ensure_ascii=False)}
+        response = await asyncio.to_thread(self.request, '/api/update',
+            {'sessionId': identity['sessionId'], 'command': 'function',
+             'message': json.dumps(reply, ensure_ascii=False)})
+        if response.get('ok') is not True:
+            raise RuntimeError('rtc_tool_result_unconfirmed')
+
     async def start(self,bridge,seconds,instructions,tools):
-        node=validate_environment(seconds,self.environment)
+        bridge.result_sink = self.publish_result
         self.deadline=time.time()+seconds
         env=dict(os.environ)
         if self.environment is not None:
@@ -78,11 +87,9 @@ class RTCProcess:
                  RTC_PORT=str(self.web_port),RTC_SESSION_SECONDS=str(seconds),
                  RTC_RUNTIME_DEADLINE_MS=str(int(self.deadline*1000)),
                  RTC_INSTRUCTIONS=instructions,RTC_TOOLS_JSON=json.dumps(tools,ensure_ascii=False))
-        if not env.get('RTC_VLM_API_KEY') and env.get('RTC_VLM_KEY'):
-            env['RTC_VLM_API_KEY']=env['RTC_VLM_KEY']
         self.output.parent.mkdir(parents=True,exist_ok=True)
         with self.output.open('ab') as output:
-            self.proc=await asyncio.create_subprocess_exec(node,'RTCService.js',cwd=ROOT/'web',
+            self.proc=await asyncio.create_subprocess_exec(self.node,'RTCService.js',cwd=ROOT/'web',
                 env=env,stdin=asyncio.subprocess.DEVNULL,stdout=output,stderr=output,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         deadline=time.monotonic()+10
@@ -108,7 +115,7 @@ class RTCProcess:
         raise RuntimeError('RTC本机服务启动超时；查看 '+str(self.output))
 
     async def wait(self):
-        """Observe the hidden process; session/heartbeat deadlines live in Node."""
+        """Observe the hidden process; the configured session deadline lives in Node."""
         code=await self.proc.wait()
         if code:
             raise RuntimeError('RTC本机服务异常退出：'+str(code))

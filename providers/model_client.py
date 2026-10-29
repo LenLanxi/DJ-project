@@ -12,8 +12,6 @@ def accounting_usage(value):
         return {}
     result = {}
     for key, count in value.items():
-        if not isinstance(key, str):
-            continue
         if type(count) in (int, float) and math.isfinite(count) and count >= 0:
             result[key] = count
         elif isinstance(count, dict):

@@ -42,8 +42,6 @@ def check_files(paths=None, *, image_size=None, camera_id=None, expected_ids=Non
             if c.target_id in targets:
                 item['errors'].append('多机配置重复绑定标记 ID：'+str(c.target_id))
             identities.add(c.instance_id);targets.add(c.target_id)
-            if c.control_profile != 'openpose_pid':
-                item['errors'].append('此配置没有启用本次 openpose_pid 跟随计算。')
             if c.distance_mode == 'pose':
                 pose = PoseDepth(c.camera_calibration,c.marker_side_m,camera_id=c.camera_id)
                 data = json.loads(Path(c.camera_calibration).read_text(encoding='utf-8-sig'))

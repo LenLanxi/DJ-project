@@ -18,10 +18,7 @@ def validate_follow_config(path=None):
     if not os.getenv('R3_FOLLOW_CONFIG'):
         raise ValueError('必须显式 --follow-config，禁止隐式退回旧控制器')
     from follow.r3_follow.config import load_config
-    config = load_config()
-    if config.control_profile != 'openpose_pid':
-        raise ValueError('正式入口只接受显式openpose_pid配置')
-    return config
+    return load_config()
 
 
 def validate_health(health, args):
@@ -59,7 +56,6 @@ class DeviceSession:
         from drone_sdk import _driver as drv, controller as ctl
         from follow.r3_follow.service import FollowService
         config = validate_follow_config(args.follow_config)
-        recovery_window = float(os.environ.get('R3_RECOVERY_WINDOW_S', '30'))
         self.device = ctl
         log({'event': 'follow_config', 'path': os.getenv('R3_FOLLOW_CONFIG'),
              'profile': config.control_profile, 'steering': config.steering_mode,
@@ -69,7 +65,7 @@ class DeviceSession:
         try:
             log({'event':'preflight_stage','stage':stage,'status':'start'})
             await asyncio.to_thread(drv.connect, args.address, timeout=drv.RESPONSE_TIMEOUT_S)
-            self.follow = FollowService(ctl, config=config, recovery_window=recovery_window,
+            self.follow = FollowService(ctl, config=config,
                                         log_sink=log, console_notices=True)
             log({'event':'preflight_stage','stage':stage,'status':'success','driver':drv.snapshot()})
             stage = 'video_start'

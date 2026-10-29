@@ -167,36 +167,23 @@ test('failed stop remains retryable and does not discard old session', async () 
   assert.notEqual(controller.create().sessionId, session.sessionId);
 });
 
-test('missing heartbeat revokes tools and stops bot without extending deadline', async () => {
+test('an idle client leaves the task available until its configured deadline', async () => {
   const { controller, session, advance, calls } = setup();
   await controller.start(session.sessionId);
   advance(8001); await controller.tick();
-  assert.equal(controller.status().status, 'stopped');
-  assert.equal(controller.status().stopReason, 'client_heartbeat_lost');
-  assert.equal(controller.status().acceptTools, false);
-  assert.equal(calls.at(-1).action, 'StopVoiceChat');
-  assert.equal(controller.heartbeat(session.sessionId).ok, false);
-});
-
-test('heartbeat cannot extend the configured session deadline', async () => {
-  const { controller, session, advance, config } = setup();
-  await controller.start(session.sessionId);
-  for (let elapsed = 0; elapsed < config.sessionMs; elapsed += 2000) {
-    advance(2000); controller.heartbeat(session.sessionId);
-  }
-  await controller.tick();
-  assert.equal(controller.status().status, 'stopped');
-  assert.equal(controller.status().stopReason, 'session_deadline');
+  assert.equal(controller.status().status, 'submitted');
+  assert.equal(controller.status().acceptTools, true);
+  assert.equal(calls.some(call => call.action === 'StopVoiceChat'), false);
 });
 
 test('automatic stop retries after unknown result instead of pretending success', async () => {
   let stops = 0;
-  const { controller, session, advance } = setup(action => {
+  const { controller, session, advance, config } = setup(action => {
     if (action === 'StopVoiceChat' && stops++ === 0) throw new Error('lost response');
     return success(action);
   });
   await controller.start(session.sessionId);
-  advance(8001); await controller.tick();
+  advance(config.sessionMs + 1); await controller.tick();
   assert.equal(controller.status().status, 'cleanup_pending');
   advance(2001); await controller.tick();
   assert.equal(controller.status().status, 'stopped');
@@ -243,15 +230,24 @@ test('official signer receives exact 2025-06-01 request without automatic retrie
   await invoke('StartVoiceChat', { AppId: config.appId });
   assert.equal(fetchCount, 1); assert.equal(captured[0].service, 'rtc');
   assert.equal(captured[0].request.region, 'cn-north-1');
-  await assert.rejects(invoke('DeleteApplication', {}), /unsupported/);
 });
 
 test('malformed upstream replies do not masquerade as success', async () => {
   class Signer { addAuthorization() {} }
-  for (const text of ['{}', 'not json', 'x'.repeat(65537)]) {
+  for (const text of ['not json', 'x'.repeat(65537)]) {
     const invoke = createOpenApiInvoker(loadConfig(ENV), async () => ({ ok: true, text: async () => text }), Signer);
     await assert.rejects(invoke('StopVoiceChat', {}));
   }
+  const invoke = createOpenApiInvoker(loadConfig(ENV), async () => ({ ok: true, text: async () => '{}' }), Signer);
+  const controller = new SessionController(loadConfig(ENV), invoke);
+  const session = controller.create();
+  const started = await controller.start(session.sessionId);
+  assert.equal(started.ok, false);
+  assert.equal(started.error, 'invalid_openapi_response');
+  assert.equal(controller.status().cleanupPending, true);
+  const stopped = await controller.stop(session.sessionId);
+  assert.equal(stopped.ok, false);
+  assert.equal(controller.status().cleanupPending, true);
 });
 
 test('installed official SDK signs requests without a network call', async () => {
@@ -398,21 +394,6 @@ test('audit events correlate cloud cleanup without recording any credentials or 
   for (const value of [session.token, ENV.RTC_APP_KEY, ENV.VOLCENGINE_ACCESS_KEY_ID,
     ENV.VOLCENGINE_SECRET_ACCESS_KEY, ENV.VOLC_S2S_TOKEN, ENV.RTC_VLM_API_KEY,
     ENV.RTC_BRIDGE_URL, ENV.RTC_BRIDGE_TOKEN]) assert.ok(!encoded.includes(value));
-});
-
-test('audit distinguishes heartbeat disconnection from an absolute session deadline', async () => {
-  for (const trigger of ['disconnect', 'deadline']) {
-    let now = Date.now(); const entries = [];
-    const controller = new SessionController(loadConfig(ENV), async action => success(action),
-      () => now, entry => entries.push(entry));
-    const session = controller.create(); await controller.start(session.sessionId);
-    now = trigger === 'disconnect' ? now + 8001 : session.expiresAt + 1;
-    await controller.tick(); await controller.tick();
-    const expected = trigger === 'disconnect' ? 'rtc_client_disconnected' : 'rtc_session_deadline';
-    assert.equal(entries.filter(entry => entry.event === expected).length, 1);
-    assert.equal(entries.filter(entry => entry.event === 'rtc_stop_requested').length, 1);
-    assert.equal(entries.at(-1).event, 'rtc_stop_confirmed');
-  }
 });
 
 test('closing an unstarted session does not fabricate a confirmed cloud StopVoiceChat', async () => {

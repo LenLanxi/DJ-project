@@ -1,7 +1,7 @@
 """Deterministic device fake using the production SDK contract."""
 import threading
 import time
-from drone_sdk.contract import FrameResult, StatusResult, CommandResult, ControlResult
+from drone_sdk.contract import FrameResult, StatusResult, CommandResult, ControlResult, ControlGrant
 
 
 class FakeDevice:
@@ -29,7 +29,7 @@ class FakeDevice:
 
     def get_status(self):
         return StatusResult(100, self.height_cm, self.connected,
-            'flying' if self.airborne else 'landed', self.lease['owner'] if self.lease else 'none',
+            'flying' if self.airborne else 'landed', self.lease.owner if self.lease else 'none',
             time.time(), control_epoch=self.epoch, command_epoch=self.epoch,
             velocity=self.velocity, simulated=self.simulated and self.height_fresh,
             height_timestamp=time.time() if self.height_fresh else None)
@@ -42,40 +42,34 @@ class FakeDevice:
     def request_control(self, owner, *, exclusive=False):
         with self.lock:
             if self.lease is not None:
-                return ControlResult(False, self.lease['owner'], 'busy')
+                return ControlResult(False, self.lease.owner, 'busy')
             self._zero('control_change')
             self.epoch += 1
-            self.lease = dict(owner=owner, control_epoch=self.epoch, command_epoch=self.epoch)
+            self.lease = ControlGrant(owner,self.epoch,self.epoch)
             self._record('grant', owner=owner, epoch=self.epoch)
-            return ControlResult(True, owner, control_epoch=self.epoch, command_epoch=self.epoch)
+            return ControlResult(True, owner, grant=self.lease)
 
-    def _owner(self, owner, control_epoch):
-        if isinstance(owner, dict):
-            return owner.get('owner', 'follow'), owner['control_epoch']
-        return owner, control_epoch
-
-    def stop_motion(self, owner, *, control_epoch=None):
-        owner, control_epoch = self._owner(owner, control_epoch)
-        if not self.lease or owner != self.lease['owner'] or control_epoch != self.epoch:
+    def stop_motion(self, grant, *, cancelled=None):
+        owner, control_epoch = grant.owner, grant.control_epoch
+        if not self.lease or owner != self.lease.owner or control_epoch != self.epoch:
             return CommandResult(False, 'failed', 'obsolete_control')
         self._zero('stop_motion')
         return CommandResult(True, 'completed')
 
-    def release_control(self, owner, *, control_epoch=None):
-        owner, control_epoch = self._owner(owner, control_epoch)
+    def release_control(self, grant, *, cancelled=None):
+        owner, control_epoch = grant.owner, grant.control_epoch
         with self.lock:
-            if not self.lease or owner != self.lease['owner'] or control_epoch != self.epoch:
+            if not self.lease or owner != self.lease.owner or control_epoch != self.epoch:
                 return ControlResult(False, reason='obsolete_control')
             self._zero('release')
             self.lease = None
             self._record('release', owner=owner)
             return ControlResult(True, 'none')
 
-    def update_velocity(self, owner, left_right, forward_back, up_down, yaw,
-                        *, control_epoch=None, command_epoch=None):
-        owner, control_epoch = self._owner(owner, control_epoch)
+    def update_velocity(self, grant, left_right, forward_back, up_down, yaw, *, cancelled=None):
+        owner, control_epoch, command_epoch = grant.owner, grant.control_epoch, grant.command_epoch
         with self.lock:
-            if not self.lease or owner != self.lease['owner'] or control_epoch != self.epoch:
+            if not self.lease or owner != self.lease.owner or control_epoch != self.epoch:
                 self._record('rejected_old_request')
                 return CommandResult(False, 'failed', 'obsolete_control')
             if command_epoch is not None and command_epoch != self.epoch:
@@ -88,7 +82,7 @@ class FakeDevice:
     def revoke_for_test(self, owner='model'):
         self._zero('revoke')
         self.epoch += 1
-        self.lease = dict(owner=owner, control_epoch=self.epoch, command_epoch=self.epoch)
+        self.lease = ControlGrant(owner,self.epoch,self.epoch)
         return self.lease
 
     def watchdog_step(self):

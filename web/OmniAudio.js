@@ -4,13 +4,13 @@
 (function (global) {
   'use strict';
   class StreamingResampler {
-    constructor(sourceRate, targetRate = 16000) {
-      if (!Number.isInteger(sourceRate) || sourceRate < 8000 || sourceRate > 192000 || targetRate !== 16000)
+    constructor(sourceRate) {
+      if (!Number.isInteger(sourceRate) || sourceRate < 8000 || sourceRate > 192000)
         throw new Error('Unsupported microphone sample rate');
-      this.ratio = sourceRate / targetRate;
+      this.ratio = sourceRate / 16000;
       this.index = -1; this.outputCount = 0; this.previous = 0; this.head = 0;
       this.coefficients = null;
-      if (sourceRate > targetRate) {
+      if (sourceRate > 16000) {
         const count = Math.min(255, Math.ceil(63 * sourceRate / 48000) | 1);
         const middle = (count - 1) / 2, cutoff = 7200 / sourceRate;
         this.coefficients = new Float64Array(count);

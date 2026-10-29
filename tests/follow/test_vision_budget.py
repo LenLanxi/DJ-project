@@ -66,25 +66,15 @@ class VisionBudgetTests(unittest.TestCase):
                 tracker.detect(synthetic_frame(), 1, 0, processing_budget_ms=value)
         tracker.detector.detectMarkers.assert_not_called()
 
-    def test_native_call_overrun_does_not_start_rescue_or_return_late_position(self):
+    def test_decoded_target_survives_optional_budget_overrun(self):
         tracker, clock = self.tracker()
         tracker.detector = self.decoder(clock, 435, self.selected())
         tracker.fallback_detector = Mock()
         observation = tracker.detect(synthetic_frame(), 7, 42.5, 'recorded')
-        self.assert_no_position(observation)
-        self.assertEqual(observation.reason, 'detection_budget_exceeded')
-        self.assertEqual((observation.frame_id, observation.acquired_at, observation.source),
-                         (7, 42.5, 'recorded'))
+        self.assertTrue(observation.found)
+        self.assertEqual((observation.frame_id, observation.acquired_at), (7,42.5))
+        self.assertTrue(tracker.last_diagnostics['processing_budget']['exceeded'])
         tracker.fallback_detector.detectMarkers.assert_not_called()
-        budget = tracker.last_diagnostics['processing_budget']
-        self.assertTrue(budget['exceeded'])
-        self.assertAlmostEqual(budget['elapsed_ms'], 435)
-        self.assertEqual(budget['exhausted_at'], 'default:after')
-        self.assertIn('cooperative', budget['policy'])
-        self.assertEqual(len(tracker.last_diagnostics['attempts']), 1)
-        self.assertEqual(tracker.last_diagnostics['detected_ids'], [])
-        self.assertNotIn('target_quality', tracker.last_diagnostics)
-        json.dumps(tracker.last_diagnostics)
 
     def test_budget_expiry_before_native_work_has_serializable_empty_attempts(self):
         times = iter((0., .150, .150))
@@ -114,33 +104,22 @@ class VisionBudgetTests(unittest.TestCase):
         tracker.fallback_detector.detectMarkers.assert_called_once()
         tracker.side_detector.detectMarkers.assert_not_called()
 
-    def test_duplicate_scan_expiry_cannot_return_easy_first_target(self):
+    def test_runtime_skips_optional_duplicate_rescue(self):
         tracker, clock = self.tracker(50)
         quads, ids, _ = self.selected()
-        # A separate unknown contour must be checked before the easy target
-        # is allowed to drive motion. It may hide a second copy of the same ID.
-        unknown = np.float32([[[400, 100], [480, 100], [480, 180], [400, 180]]])
-        tracker.detector = self.decoder(clock, 5, (quads, ids, [unknown]))
+        unknown = np.float32([[[400,100],[480,100],[480,180],[400,180]]])
+        tracker.detector = self.decoder(clock, 5, (quads,ids,[unknown]))
         tracker.motion_detector = Mock()
-        costs = iter((1, 60))  # Identity precheck finishes; the unknown ROI overruns.
-        def decode(image):
-            clock.advance(next(costs))
-            return [], None, []
-        tracker.motion_detector.detectMarkers.side_effect = decode
-        tracker.side_detector = Mock()
-        observation = tracker.detect(synthetic_frame(), 1, 0)
-        self.assert_no_position(observation)
-        self.assertEqual(observation.reason, 'detection_budget_exceeded')
-        self.assertEqual(tracker.last_diagnostics['processing_budget']['exhausted_at'],
-                         'duplicate_roi_cell:after')
-        tracker.side_detector.detectMarkers.assert_not_called()
+        self.assertTrue(tracker.detect(synthetic_frame(),1,0).found)
+        tracker.motion_detector.detectMarkers.assert_not_called()
 
-    def test_budget_can_be_reduced_to_frame_age_remaining_time(self):
-        tracker, clock = self.tracker(120)
-        tracker.detector = self.decoder(clock, 25, self.selected())
-        observation = tracker.detect(synthetic_frame(), 1, 0, processing_budget_ms=20)
-        self.assert_no_position(observation)
-        self.assertEqual(tracker.last_diagnostics['processing_budget']['limit_ms'], 20)
+    def test_decoded_duplicates_remain_ambiguous_in_runtime(self):
+        tracker, clock = self.tracker(20)
+        quad, _, _ = self.selected()
+        tracker.detector = self.decoder(clock,25, (quad+[quad[0]+100],np.int32([[0],[0]]),[]))
+        observation = tracker.detect(synthetic_frame(),1,0)
+        self.assertFalse(observation.found)
+        self.assertEqual(observation.reason,'ambiguous_duplicate_id')
 
     def test_each_frame_has_fresh_deadline_and_no_previous_position(self):
         tracker, clock = self.tracker(20)

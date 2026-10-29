@@ -72,7 +72,7 @@ class SideViewDetectionTests(unittest.TestCase):
 
     def test_decoded_side_view_still_blocks_depth_and_loss_stops_both_axes(self):
         tracker = MarkerTracker()
-        controller = FollowController(config=FollowConfig(steering_mode='lateral', max_request_rate=.8), recovery_window=3, require_geometry=True)
+        controller = FollowController(config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0), auto_recover=True, require_geometry=True)
         controller.observe(tracker.detect(self.reference(), 0, 0))
         self.assertTrue(controller.calibrate(0)[0])
         self.assertTrue(controller.start(0)[0])
@@ -94,7 +94,7 @@ class SideViewDetectionTests(unittest.TestCase):
 
     def test_side_view_cannot_be_used_as_distance_reference(self):
         tracker = MarkerTracker()
-        c = FollowController(config=FollowConfig(max_request_rate=None), require_geometry=True)
+        c = FollowController(config=FollowConfig(slew_rc_per_second=None), require_geometry=True)
         c.observe(tracker.detect(self.image(), 1, 0))
         self.assertFalse(c.calibrate(0)[0])
         self.assertIsNone(c.reference_size)

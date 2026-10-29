@@ -143,6 +143,17 @@ class R3IntegrationTests(unittest.IsolatedAsyncioTestCase):
         await self.gateway.finish(False)
         self.assertFalse(self.follow.is_following())
 
+    async def test_completed_action_does_not_fail_when_follow_cannot_resume(self):
+        await self.start()
+        self.feed.frozen = self.feed()
+        await wait_until(lambda: self.service.last_frame_id == self.feed.frozen.frame_id)
+        await self.gateway.dispatch('move_back', [20], {})
+        await self.gateway.finish(True)
+        self.assertEqual(self.gateway.cleanup['status'], 'follow_resume_failed')
+        self.assertFalse(self.gateway.cleanup_pending)
+        self.assertFalse(self.gateway.acquired)
+        self.assertFalse(self.follow.is_following())
+
     async def test_pre_action_frame_cannot_rebase_even_if_its_id_is_new(self):
         await self.start()
         original = self.service.controller.reference_size

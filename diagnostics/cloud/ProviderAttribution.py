@@ -23,7 +23,6 @@ import uuid
 import copy
 import shutil
 import wave
-from dataclasses import dataclass
 from urllib.parse import urlsplit, parse_qs, urlencode, urlunsplit
 
 from PIL import Image, ImageDraw, ImageFont
@@ -49,31 +48,8 @@ TOOLS = [{'type': 'function', 'function': {'name': 'get_status',
           'parameters': {'type': 'object', 'properties': {}, 'additionalProperties': False}}}]
 
 
-@dataclass(repr=False)
-class AttributionConfig:
-    api_key: str
-    workspace_id: str
-    url: str
-    model: str
-    voice: str = 'Tina'
-
-    def validate(self):
-        parsed=urlsplit(self.url)
-        if (self.model!='qwen3.8-omni-flash-realtime' or not self.api_key
-            or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9-]{0,62}',self.workspace_id)
-            or parsed.scheme!='wss' or parsed.hostname!=self.workspace_id+'.cn-beijing.maas.aliyuncs.com'
-            or parsed.port is not None or parsed.username or parsed.password or parsed.fragment
-            or parsed.path!='/api-ws/v1/realtime'
-            or parse_qs(parsed.query) not in ({},{'model':[self.model]})):
-            raise ValueError('invalid_exact_Alibaba_endpoint_or_model')
-        return urlunsplit((parsed.scheme,parsed.netloc,parsed.path,urlencode({'model':self.model}),''))
-
-
 def load_qwen(path):
-    value=json.loads(path.read_text(encoding='utf-8-sig'))
-    config=AttributionConfig(value['ApiKey'],value['WorkspaceId'],value['WebSocketUrl'],value['Model'])
-    config.validate()
-    return config
+    return AlibabaConfig.from_credentials(path)
 
 
 def digest(value):
@@ -472,7 +448,7 @@ async def qwen(case, config, *, phase='semantic'):
     try:
         request_budget()
         async with asyncio.timeout(30):
-            async with connect(config.validate(),additional_headers={'Authorization':'Bearer '+config.api_key},
+            async with connect(config.url,additional_headers={'Authorization':'Bearer '+config.api_key},
                                max_size=2000000,open_timeout=10,close_timeout=2) as ws:
                 if (await receive()).get('type')!='session.created':raise ValueError('session_created_missing')
                 update=session_update(config,SYSTEM,normalize_tools(TOOLS),mode='manual')

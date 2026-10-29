@@ -12,6 +12,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 from providers.RTCBridge import RTCBridge
+from providers.RTCRuntime import RTCProcess
 from app.Tools import RTC_INSTRUCTIONS, RTC_TOOLS
 from RTCFixture import Camera, Runtime
 
@@ -53,6 +54,7 @@ async function until(predicate){const deadline=Date.now()+5000;
  try{
  service.server.listen(0,'127.0.0.1');await once(service.server,'listening');
  const base='http://127.0.0.1:'+service.server.address().port;
+ console.log(base); await once(process.stdin,'data');
  client=new Client({sdk:{createEngine(){return engine;},destroyEngine(){}},canvas,
   fetch:(url,options)=>fetch(base+url,options),WebSocket});
  await client.connect('fixtureInput','fixtureOutput');
@@ -60,7 +62,7 @@ async function until(predicate){const deadline=Date.now()+5000;
  const identity=client.session;
  client.rtcMessage({type:'subv',value:{data:[{userId:identity.userId,
   roundId:1,paragraph:true,text:'check status',definite:true}]}});
- await until(()=>Number.isInteger(client.epoch));
+
  client.rtcMessage({type:'tool',value:{tool_calls:[{id:'contractCall',
   function:{name:'run_program',arguments:JSON.stringify({code:'print(drone.get_status())'})}}]}});
  await until(()=>replies.length===1);
@@ -73,7 +75,7 @@ async function until(predicate){const deadline=Date.now()+5000;
   function:{name:'run_program',arguments:JSON.stringify({code:'print(drone.get_status())'})}}]}});
  await until(()=>replies.length===2);
  assert.deepEqual(replies[1],replies[0]);
- assert.equal(client.pendingTools.size,0);
+
  await client.stop('contract complete');
  assert.deepEqual(actions,['StartVoiceChat','UpdateVoiceChat','UpdateVoiceChat','StopVoiceChat']);
  console.log(JSON.stringify({ok:true,actions,result,cloud:false,hardware:false}));
@@ -95,9 +97,12 @@ class RTCContractTests(unittest.IsolatedAsyncioTestCase):
             process = await asyncio.create_subprocess_exec(
                 'node', '-e', NODE, bridge.url,
                 json.dumps({'instructions':RTC_INSTRUCTIONS,'tools':RTC_TOOLS}), cwd=ROOT / 'web',
-                stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE)
-            out, err = await asyncio.wait_for(process.communicate(), 15)
+            service = RTCProcess.__new__(RTCProcess)
+            service.url = (await process.stdout.readline()).decode().strip()
+            bridge.result_sink = service.publish_result
+            out, err = await asyncio.wait_for(process.communicate(b'ready\n'), 15)
             self.assertEqual(process.returncode, 0, err.decode('utf-8', errors='replace'))
             result = json.loads(out.decode('utf-8'))
             self.assertTrue(result['ok'])

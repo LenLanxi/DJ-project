@@ -6,12 +6,20 @@ its captured grant even when a cancelled host worker finishes late.
 import asyncio
 import json
 import shutil
-from types import MappingProxyType
+from dataclasses import dataclass, field
 import uuid
 
 
 class SandboxUnavailable(RuntimeError): pass
 class ProgramCancelled(RuntimeError): pass
+
+
+@dataclass
+class SandboxOutcome:
+    """Evidence owned by one ProgramRun, including cancellation cleanup."""
+    result: dict = field(default_factory=dict)
+    cleanup: dict = field(default_factory=dict)
+    executing: bool = True
 
 
 class SandboxRunner:
@@ -22,7 +30,6 @@ class SandboxRunner:
             raise ValueError('invalid sandbox budget')
         self.image = image
         self.timeout, self.max_rpc = timeout, max_rpc
-        self.last_cleanup = MappingProxyType({})
 
     @staticmethod
     def command(image, name):
@@ -116,29 +123,27 @@ class SandboxRunner:
                 return []
             return ['container_remove_exit: ' + str(exit_code)]
 
-    async def retry_cleanup(self):
+    async def retry_cleanup(self, outcome):
         """Reconcile only this runner's previously unconfirmed container."""
-        name = self.last_cleanup.get('pending_container')
+        name = outcome.cleanup.get('pending_container')
         if name is None:
             return {'ok': True, 'status': 'no_pending_container'}
         try:
-            errors = await self._remove_container(name, self.last_cleanup['known_created'])
+            errors = await self._remove_container(name, outcome.cleanup['known_created'])
         except (OSError, TimeoutError, ProcessLookupError) as exc:
             errors = ['container_remove: ' + str(exc)]
-        self.last_cleanup = MappingProxyType({**self.last_cleanup,
+        outcome.cleanup = {**outcome.cleanup,
             'pending_container': name if errors else None,
-            'cleanup_errors': tuple(errors), 'confirmed': not errors})
+            'cleanup_errors': tuple(errors), 'confirmed': not errors}
         return {'ok': not errors, 'status': 'cleanup_pending' if errors else 'removed',
                 'container_name': name, 'pending_container': name if errors else None,
                 'cleanup_errors': errors}
 
-    async def run(self, code, execution):
+    async def run(self, code, execution, outcome):
         if not isinstance(code, str) or not code.strip() or len(code.encode()) > 60000:
-            return {'ok':False, 'status':'failed', 'reason':'invalid_program_size'}
-        recovered = await self.retry_cleanup()
-        if not recovered['ok']:
-            return {**recovered, 'ok': False, 'status': 'failed', 'reason': 'sandbox_cleanup_pending'}
-        program = asyncio.current_task()
+            outcome.result = {'ok':False, 'status':'failed', 'reason':'invalid_program_size'}
+            outcome.executing = False
+            return
         journal, debug = [], bytearray()
         response_bytes = 0
         name = 'companion-' + uuid.uuid4().hex
@@ -146,9 +151,10 @@ class SandboxRunner:
         spawn_task = None
         stderr_task = None
         result = {'ok':False, 'status':'failed'}
-        output_limit = container_attempted = known_created = False
+        container_attempted = known_created = False
         cleanup_errors = []
-        external_cancel = None
+        debug_warnings = []
+        debug_truncated = False
         try:
             async with asyncio.timeout(self.timeout):
                 await self.check()
@@ -163,17 +169,11 @@ class SandboxRunner:
                 process.stdin.write(json.dumps({'code':code}).encode() + b'\n')
                 await process.stdin.drain()
                 async def drain_errors():
-                    nonlocal output_limit
-                    count = 0
+                    nonlocal debug_truncated
                     while chunk := await process.stderr.read(4096):
-                        count += len(chunk)
+                        if len(debug) + len(chunk) > 16000:
+                            debug_truncated = True
                         debug.extend(chunk[:max(0, 16000-len(debug))])
-                        if count > 64000:
-                            output_limit = True
-                            execution.cancel()
-                            if not execution.closed and not program.cancelling():
-                                program.cancel()
-                            return
                 stderr_task = asyncio.create_task(drain_errors())
                 expected_id = 1
                 for _ in range(self.max_rpc + 1):
@@ -217,10 +217,6 @@ class SandboxRunner:
                         raise ValueError('host RPC response budget exhausted')
                     process.stdin.write(encoded_reply)
                     await process.stdin.drain()
-                else:
-                    result = {'ok':False, 'status':'failed', 'reason':'RPC budget exhausted'}
-                if result.get('ok') and any('error' in entry or isinstance(entry.get('result'), dict) and entry['result'].get('ok') is False for entry in journal):
-                    result = {'ok':False, 'status':'failed', 'reason':'one_or_more_interface_calls_failed'}
         except SandboxUnavailable as exc:
             result = {'ok':False, 'status':'unavailable', 'reason':str(exc)}
         except ProgramCancelled:
@@ -229,15 +225,14 @@ class SandboxRunner:
         except TimeoutError:
             execution.cancel()
             result = {'ok':False, 'status':'timeout', 'reason':'program_deadline_exceeded'}
-        except asyncio.CancelledError as exc:
-            external_cancel = exc
+        except asyncio.CancelledError:
             execution.cancel()
             result = {'ok':False, 'status':'cancelled', 'reason':'task_cancelled'}
             raise
         except Exception as exc:
             result = {'ok':False, 'status':'failed', 'reason':type(exc).__name__ + ': ' + str(exc)[:500]}
         finally:
-            execution.close_admission()
+            outcome.executing = False
             cleanup_finished = False
             try:
                 if process is None and spawn_task is not None:
@@ -264,43 +259,32 @@ class SandboxRunner:
                     except TimeoutError:
                         stderr_task.cancel()
                         await asyncio.gather(stderr_task, return_exceptions=True)
-                        cleanup_errors.append('debug_stream_incomplete')
+                        debug_warnings.append('debug_stream_incomplete')
                     except Exception as exc:
-                        cleanup_errors.append('debug_stream: ' + str(exc))
-                if output_limit:
-                    result = {'ok':False, 'status':'failed', 'reason':'sandbox_output_budget_exceeded'}
+                        debug_warnings.append('debug_stream: ' + str(exc))
                 if cleanup_errors:
                     result = {'ok':False, 'status':'failed', 'reason':'sandbox_cleanup_unconfirmed',
                               'failure_reason':result.get('reason'),
                               'cleanup_errors':cleanup_errors,
                               'pending_container':name if container_attempted else None}
                 cleanup_finished = True
-            except asyncio.CancelledError as exc:
-                external_cancel = exc
+            except asyncio.CancelledError:
                 execution.cancel()
                 raise
             finally:
                 if not cleanup_finished:
                     cleanup_errors.append('cleanup_interrupted')
-                # Task.cancel() preserves its exception contract, so its caller
-                # cannot receive the normal result. Retain cleanup evidence in
-                # both the runner and that exception, including the name needed
-                # to reconcile a create that may still finish after the deadline.
                 pending = name if container_attempted and cleanup_errors else None
-                self.last_cleanup = MappingProxyType({
-                    'container_name':name if container_attempted else None,
-                    'known_created':known_created,
-                    'pending_container':pending,
-                    'cleanup_errors':tuple(cleanup_errors),
-                    'confirmed':not cleanup_errors,
-                })
-                if external_cancel is not None:
-                    external_cancel.pending_container = pending
-                    external_cancel.cleanup_errors = tuple(cleanup_errors)
-                    external_cancel.program_result = {**result, 'simulated':execution.simulated,
-                        'journal':journal, 'debug':debug.decode(errors='replace')}
-        return {**result, 'simulated':execution.simulated, 'journal':journal,
-                'debug':debug.decode(errors='replace')}
+                outcome.cleanup = {
+                    'container_name': name if container_attempted else None,
+                    'known_created': known_created,
+                    'pending_container': pending,
+                    'cleanup_errors': tuple(cleanup_errors),
+                    'confirmed': not cleanup_errors,
+                }
+                outcome.result = {**result, 'simulated': execution.simulated,
+                    'journal': journal, 'debug': debug.decode(errors='replace'),
+                    'debug_truncated': debug_truncated, 'debug_warnings': debug_warnings}
 
     @staticmethod
     def evidence(value):

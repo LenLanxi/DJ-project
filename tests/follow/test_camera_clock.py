@@ -33,7 +33,7 @@ class Reader:
 
 
 class Detector:
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         return Observation(frame_id, acquired_at, source, 640, 480, 0,
                            True, 320, 240, .25,
                            corners=((240, 160), (400, 160),

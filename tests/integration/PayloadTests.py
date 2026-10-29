@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from ContainerFixture import Process
-from execution.sandbox_runner import SandboxRunner
+from execution.sandbox_runner import SandboxRunner, SandboxOutcome
 
 
 class PayloadTests(unittest.IsolatedAsyncioTestCase):
@@ -16,7 +16,9 @@ class PayloadTests(unittest.IsolatedAsyncioTestCase):
         requests.append({'type':'done','ok':True})
         proc=Process(requests)
         with patch.object(runner,'check',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[proc,Process()]):
-            return await runner.run('frame=drone.get_frame()', gateway),proc
+            outcome = SandboxOutcome()
+            await runner.run('frame=drone.get_frame()', gateway, outcome)
+            return outcome.result,proc
 
     async def test_worker_receives_image_but_journal_only_keeps_metadata(self):
         result,process=await self.run_channel({'frame_id':7,'timestamp':100.,'image_url':'data:image/jpeg;base64,testOnly'},1)

@@ -1,80 +1,48 @@
-"""Offline coverage of retained benchmark queries and explicit cloud opt-in."""
+"""Read-only diagnostics enforce capabilities at the actual Host boundary."""
 import asyncio
-import importlib
-from types import SimpleNamespace
-import unittest
-from unittest.mock import AsyncMock, Mock, patch
+import pytest
+from QueryProgram import QueryDevice, QUERY_METHODS
+from execution.Host import Host
 
-from QueryRunner import QueryOnlyRunner, status_query_only
-
-
-class QueryFilterTests(unittest.TestCase):
-    def test_status_queries_and_print_are_retained(self):
-        for code in ('drone.get_status()', 'print(drone.get_status())',
-                     'state = drone.get_status()\nprint(state)'):
-            with self.subTest(code=code):
-                self.assertTrue(status_query_only(code))
-
-    def test_actions_and_unrelated_calls_are_rejected(self):
-        for code in (None, '', 'print(80)', 'print(', 'drone.takeoff()',
-                     'drone.get_status(); drone.land()',
-                     'drone.get_status(unexpected=True)',
-                     'import os\nprint(drone.get_status())',
-                     'open("output.txt", "w"); drone.get_status()'):
-            with self.subTest(code=code):
-                self.assertFalse(status_query_only(code))
+def test_query_device_exposes_status_but_cannot_dispatch_motion():
+    async def exercise():
+        device=QueryDevice()
+        host=Host(device,device,methods=QUERY_METHODS)
+        status=await host.dispatch('get_status',[],{})
+        assert status['battery']==80 and status['simulated']
+        assert await host.dispatch('is_following',[],{}) is False
+        for method in ('takeoff','land','start_follow','observe','get_frame'):
+            with pytest.raises(ValueError): await host.dispatch(method,[],{})
+    asyncio.run(exercise())
 
 
-class QueryRunnerTests(unittest.IsolatedAsyncioTestCase):
-    async def test_default_returns_labelled_fixture_without_executing_code(self):
-        with patch('execution.sandbox_runner.SandboxRunner') as sandbox, patch('builtins.print') as printing:
-            runner = QueryOnlyRunner()
-            result = await runner.run('print(drone.get_status())')
-            rejected = await runner.run('drone.get_status(); drone.takeoff()')
-        sandbox.assert_not_called()
-        printing.assert_not_called()
-        self.assertTrue(result['ok'])
-        self.assertTrue(result['simulated'])
-        state = result['journal'][0]['result']
-        self.assertEqual(state['battery'], 73)
-        self.assertEqual(state['source'], 'test_fixture_not_a_real_drone')
-        self.assertFalse(rejected['ok'])
-        self.assertFalse(runner.container_rpc)
-        self.assertEqual([call['allowed_status_query'] for call in runner.calls], [True, False])
-
-    async def test_explicit_sandbox_delegates_queries_and_cancellation_only(self):
-        sandbox = SimpleNamespace()
-        runtime = SimpleNamespace(cancel=Mock(), interrupt=AsyncMock(return_value={'ok': True}),
-            run=AsyncMock(return_value={'ok': True, 'journal': [
-                {'method': 'get_status', 'result': {'battery': 80}}]}))
-        with patch('execution.sandbox_runner.SandboxRunner', return_value=sandbox) as constructor, \
-             patch('app.Runtime.UnifiedRuntime', return_value=runtime) as owner:
-            runner = QueryOnlyRunner(real_sandbox=True, timeout=8)
-        self.assertEqual(constructor.call_args.kwargs['timeout'], 8)
-        self.assertTrue(owner.call_args.args[0].get_status().simulated)
-        self.assertIs(owner.call_args.kwargs['runner'], sandbox)
-        await runner.run('drone.takeoff()')
-        runtime.run.assert_not_awaited()
-        result = await runner.run('print(drone.get_status())')
-        runtime.run.assert_awaited_once_with('print(drone.get_status())')
-        self.assertTrue(result['ok'])
-        self.assertTrue(runner.container_rpc)
-        self.assertEqual(await runner.interrupt(False), {'ok': True})
-        runtime.cancel.assert_called_once_with()
-        runtime.interrupt.assert_awaited_once_with(False)
-        self.assertEqual(runner.cancel_count, 1)
-        self.assertEqual(runner.interrupts, [False])
+def test_plan_generates_without_constructing_device(tmp_path, monkeypatch):
+    from app.Application import main
+    from unittest.mock import Mock
+    hardware=Mock(side_effect=AssertionError('plan must not open hardware'))
+    monkeypatch.setattr('app.Application.DeviceSession',hardware)
+    monkeypatch.setattr('providers.model_client.ModelClient',lambda **kw: type('Client',(),{'complete':lambda self,messages:'{"code":"print(1)"}'})())
+    assert main(['plan','--text','hello','--log-file',str(tmp_path/'Plan.jsonl')])==0
+    hardware.assert_not_called()
 
 
-
-class BenchmarkSafetyTests(unittest.IsolatedAsyncioTestCase):
-    async def test_retained_benchmarks_import_and_require_explicit_cloud_flag(self):
-        for name in ('AlibabaBenchmark', 'DoubaoBenchmark'):
-            with self.subTest(benchmark=name):
-                with patch('asyncio.create_subprocess_exec') as spawn:
-                    benchmark = importlib.import_module(name)
-                    with patch('pathlib.Path.read_text') as read:
-                        with self.assertRaises(ValueError):
-                            await benchmark.main(SimpleNamespace(real=False, credentials='Unused.json'))
-                spawn.assert_not_called()
-                read.assert_not_called()
+def test_rejected_program_finishes_cleanup_and_next_query_succeeds():
+    from app.Runtime import UnifiedRuntime
+    class Runner:
+        async def run(self, method, host, outcome):
+            try:
+                value=await host.dispatch(method,[],{})
+                outcome.result=dict(ok=True,journal=[dict(method=method,result=value)])
+            except ValueError as error:
+                outcome.result=dict(ok=False,status='failed',reason=str(error))
+    async def exercise():
+        device=QueryDevice()
+        runtime=UnifiedRuntime(device,device,runner=Runner(),methods=QUERY_METHODS)
+        rejected=await runtime.run('takeoff')
+        assert not rejected['ok']
+        assert rejected['follow_cleanup']['status']=='no_control'
+        assert 'follow_cleanup_error' not in rejected
+        assert (await runtime.retry_cleanup())['ok']
+        result=await runtime.run('get_status')
+        assert result['ok'] and result['journal'][0]['result']['battery']==80
+    asyncio.run(exercise())

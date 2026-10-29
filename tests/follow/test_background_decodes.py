@@ -34,7 +34,7 @@ class BackgroundDecodeTests(unittest.TestCase):
 
     def test_only_background_still_has_no_target_and_zero_request(self):
         tracker = MarkerTracker()
-        controller = FollowController(config=FollowConfig(max_request_rate=None), recovery_window=1.5)
+        controller = FollowController(config=FollowConfig(slew_rc_per_second=None), auto_recover=True)
         obs = tracker.detect(synthetic_frame(x=.7), 1, 0)
         controller.observe(obs)
         controller.calibrate(0)
@@ -50,7 +50,7 @@ class BackgroundDecodeTests(unittest.TestCase):
         for seq, t in enumerate((.4, .7, 1., 1.3, 1.61), 3):
             controller.observe(tracker.detect(synthetic_frame(visible=False), seq, t))
             self.assertEqual(controller.tick(t).right, 0)
-        self.assertEqual(controller.state, State.LOST)
+        self.assertEqual(controller.state, State.RECOVERING)
 
     def test_normal_other_marker_is_logged_but_not_followed(self):
         tracker = MarkerTracker()

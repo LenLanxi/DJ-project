@@ -64,26 +64,16 @@ class Session:
     async def run(self):
         args, log = self.args, self.log
         from providers.model_client import ModelClient
-        if args.image and (args.real_drone or args.program or not args.text or not args.plan_only):
-            raise ValueError('--image只用于--text --plan-only静态诊断，不能指导真机动作')
-        if args.plan_only:
-            if not args.text or args.real_drone:
-                raise ValueError('--plan-only需要--text且不能连接飞机')
-            client = ModelClient(on_usage=log)
-            result = await asyncio.to_thread(plan_program, client, args.text, args.image)
-            log({'event': 'plan_only', 'result': result, 'usage_source': 'model_request_end_by_request_id'})
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0
         if not args.real_drone:
-            raise ValueError('执行或语音必须显式--real-drone；无模拟模式。只生成程序用--text --plan-only')
+            raise ValueError('执行或语音必须显式--real-drone；无模拟模式。只生成程序使用plan --text')
         code = None
         if args.program:
             code = Path(args.program).read_text(encoding='utf-8-sig')
             if not code.strip() or len(code.encode()) > PROGRAM_MAX_BYTES:
                 raise ValueError('程序必须非空且不超过60KB')
         text_client = ModelClient(on_usage=log) if args.text else None
-        voice = not (args.program or args.text)
-        voice_route = voice_client = omni_service_class = None
+        voice = args.command == 'voice'
+        voice_route = voice_client = omni_service_class = rtc_node = None
         if voice:
             from providers.VoiceRoutes import load_voice_route
             voice_route = load_voice_route(args.voice_provider, alibaba_credentials=args.alibaba_credentials,
@@ -91,7 +81,7 @@ class Session:
             voice_client = voice_route.vision_client(log)
             if voice_route.provider == 'doubao':
                 from providers.RTCRuntime import validate_environment
-                validate_environment(args.max_session_seconds, voice_route.rtc_environment)
+                rtc_node = validate_environment(args.max_session_seconds, voice_route.rtc_environment)
             else:
                 from providers.OmniRuntime import OmniService
                 omni_service_class = OmniService
@@ -107,7 +97,9 @@ class Session:
             self.device = DeviceSession(args, log)
             device = await self.device.open()
             from navigation.vision import Vision
-            client = text_client or voice_client or (ModelClient(on_usage=log) if os.getenv('AI_CHAT_URL') or os.getenv('RTC_VLM_API_KEY') else None)
+            client = voice_client if voice else text_client
+            if client is None and args.vision:
+                client = ModelClient(on_usage=log)
             log({'event': 'vision_capability', 'configured': client is not None})
             self.runtime = UnifiedRuntime(device, self.device.follow, Vision(client, device), log,
                 runner=SandboxRunner(image=args.sandbox_image, timeout=args.program_timeout))
@@ -136,7 +128,7 @@ class Session:
                     self.bridge = RTCBridge(self.runtime, device, log, max_session_seconds=args.max_session_seconds)
                     await self.bridge.start()
                     log.secrets += (self.bridge.token,)
-                    self.service = RTCProcess(log, env=self.voice_route.rtc_environment, web_port=args.web_port)
+                    self.service = RTCProcess(log, env=self.voice_route.rtc_environment, node=rtc_node, web_port=args.web_port)
                     url = await self.service.start(self.bridge, args.max_session_seconds, RTC_INSTRUCTIONS, RTC_TOOLS)
                 print('[语音/%s] 请手动打开 %s，授权麦克风并明确选择蓝牙耳机输入和输出。' %
                       (self.voice_route.provider, url), flush=True)
@@ -202,37 +194,47 @@ class Session:
 
 def make_parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--real-drone', action='store_true', help='显式连接真实Tello；没有模拟模式')
-    parser.add_argument('--allow-real-takeoff', action='store_true', help='预检后允许模型请求起飞，默认禁止')
-    parser.add_argument('--address', default=None)
-    parser.add_argument('--follow-config', help='显式openpose_pid JSON配置')
-    parser.add_argument('--min-battery', type=int, default=30,
+    commands = parser.add_subparsers(dest='command', required=True)
+    plan = commands.add_parser('plan', help='只生成程序，不连接设备')
+    plan.add_argument('--text', required=True)
+    plan.add_argument('--image', help='静态图片，仅用于计划')
+    plan.add_argument('--log-file')
+    device = argparse.ArgumentParser(add_help=False)
+    device.add_argument('--real-drone', action='store_true', help='显式连接真实Tello；没有模拟模式')
+    device.add_argument('--allow-real-takeoff', action='store_true', help='预检后允许模型请求起飞，默认禁止')
+    device.add_argument('--address', default=None)
+    device.add_argument('--follow-config', help='显式openpose_pid JSON配置')
+    device.add_argument('--min-battery', type=int, default=30,
                         help='项目电量门限；0仅关闭百分比门限，仍要求有效遥测，不绕过飞控保护')
-    parser.add_argument('--temp-max', type=float, default=95)
-    parser.add_argument('--temp-warn', type=float, default=85)
-    parser.add_argument('--frame-timeout', type=float, default=10)
-    parser.add_argument('--landing-timeout', type=float, default=15)
-    parser.add_argument('--exit-action', choices=('land', 'hover'), default='land',
+    device.add_argument('--temp-max', type=float, default=95)
+    device.add_argument('--temp-warn', type=float, default=85)
+    device.add_argument('--frame-timeout', type=float, default=10)
+    device.add_argument('--landing-timeout', type=float, default=15)
+    device.add_argument('--exit-action', choices=('land', 'hover'), default='land',
                         help='结束/失败默认请求降落；hover只归零，需人工继续控制')
-    route = parser.add_mutually_exclusive_group()
-    route.add_argument('--program', help='诊断：执行UTF-8 Python文件，使用正式沙箱和网关')
-    route.add_argument('--text', help='诊断：真实模型理解文字、生成程序，走同一执行链')
-    parser.add_argument('--plan-only', action='store_true', help='只让真实模型生成程序，不连接或执行')
-    parser.add_argument('--image', help='仅--text --plan-only使用的PNG/JPEG')
-    parser.add_argument('--show-video', action='store_true', help='显示实时HUD；q只关显示，不结束任务')
-    parser.add_argument('--voice-provider', choices=('alibaba', 'doubao'), default='alibaba',
+    device.add_argument('--show-video', action='store_true', help='显示实时HUD；q只关显示，不结束任务')
+    device.add_argument('--program-timeout', type=float, default=90)
+    device.add_argument('--sandbox-image', default='companion-sandbox:0.4')
+    device.add_argument('--log-file', help='JSONL日志路径；不记录密钥、图片或音频')
+
+    device.set_defaults(program=None, text=None)
+    run = commands.add_parser('run', parents=[device], help='执行文件或根据文字生成后执行')
+    run.add_argument('--vision', action='store_true', help='文件程序启用环境配置的视觉客户端')
+    source = run.add_mutually_exclusive_group(required=True)
+    source.add_argument('--program', help='UTF-8 Python文件')
+    source.add_argument('--text', help='由真实模型生成程序并执行')
+    voice = commands.add_parser('voice', parents=[device], help='持续语音会话')
+    voice.set_defaults(vision=False)
+    voice.add_argument('--voice-provider', choices=('alibaba', 'doubao'), default='alibaba',
                         help='默认阿里云；豆包为启动前显式选择的备选，不在飞行中自动切换或重放')
-    parser.add_argument('--alibaba-credentials', default=os.getenv('ALIBABA_CREDENTIALS_FILE'),
+    voice.add_argument('--alibaba-credentials', default=os.getenv('ALIBABA_CREDENTIALS_FILE'),
                         help='服务端阿里云凭据JSON路径；也可设置ALIBABA_CREDENTIALS_FILE')
-    parser.add_argument('--doubao-credentials', default=os.getenv('DOUBAO_CREDENTIALS_FILE'),
+    voice.add_argument('--doubao-credentials', default=os.getenv('DOUBAO_CREDENTIALS_FILE'),
                         help='仅豆包备选路线使用；阿里路线不读取此文件')
-    parser.add_argument('--max-session-seconds', type=float, default=30000,
+    voice.add_argument('--max-session-seconds', type=float, default=30000,
                         help='会话默认30000秒，到期停止云端并退出')
-    parser.add_argument('--web-port', type=int, default=18848,
+    voice.add_argument('--web-port', type=int, default=18848,
                         help='两条语音路线的固定本机网页端口，默认18848；占用时失败，不自动换端口')
-    parser.add_argument('--program-timeout', type=float, default=90)
-    parser.add_argument('--sandbox-image', default='companion-sandbox:0.4')
-    parser.add_argument('--log-file', help='JSONL日志路径；不记录密钥、图片或音频')
     return parser
 
 
@@ -243,13 +245,15 @@ def main(argv=None):
             reconfigure(encoding='utf-8', errors='replace')
     parser = make_parser()
     args = parser.parse_args(argv)
-    if not 1 <= args.web_port <= 65535:
+    if args.command == 'voice' and not 1 <= args.web_port <= 65535:
         parser.error('--web-port必须在1到65535之间')
-    if not 0 <= args.min_battery <= 100:
+    if args.command != 'plan' and not 0 <= args.min_battery <= 100:
         parser.error('--min-battery必须在0到100之间；0关闭项目百分比门限')
-    if not 0 < args.temp_warn < args.temp_max <= 100:
+    if args.command != 'plan' and not 0 < args.temp_warn < args.temp_max <= 100:
         parser.error('温度阈值须满足0 < warn < max <= 100')
-    for name in ('max_session_seconds', 'program_timeout', 'frame_timeout', 'landing_timeout'):
+    limits = () if args.command == 'plan' else ('program_timeout', 'frame_timeout', 'landing_timeout')
+    if args.command == 'voice': limits += ('max_session_seconds',)
+    for name in limits:
         value = getattr(args, name)
         maximum = 30000 if name == 'max_session_seconds' else 900
         if not math.isfinite(value) or not 0 < value <= maximum:
@@ -257,9 +261,12 @@ def main(argv=None):
     log = SessionLog(args.log_file)
     print('[日志] ' + str(log.path.resolve()), flush=True)
     try:
-        log({'event': 'runtime_start', 'mode': 'program' if args.program else 'text' if args.text else 'voice',
-             'real_drone': args.real_drone, 'exit_action': args.exit_action,
-             'voice_provider': args.voice_provider if not (args.program or args.text) else None})
+        log({'event': 'runtime_start', 'mode': args.command})
+        if args.command == 'plan':
+            from providers.model_client import ModelClient
+            result = plan_program(ModelClient(on_usage=log), args.text, args.image)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         return asyncio.run(Session(args, log).run())
     except KeyboardInterrupt:
         print('已中断；请核对实际落地状态。', flush=True)

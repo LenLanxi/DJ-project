@@ -19,12 +19,11 @@ class AlibabaVisionClient:
     image_bounds = (640,480)
 
     def __init__(self, config, on_usage=None, *, connect=None, timeout_seconds=30, max_output_tokens=512):
-        config.validate()
         if not 0<timeout_seconds<=60 or type(max_output_tokens) is not int or not 1<=max_output_tokens<=2048:
             raise ValueError('invalid_alibaba_vision_limits')
         self.config,self.on_usage,self.connect=config,on_usage,connect
         self.timeout_seconds,self.max_output_tokens=timeout_seconds,max_output_tokens
-        self.model,self.url=config.model,config.validate()
+        self.model,self.url=config.model,config.url
         self.last_usage={};self._lock=threading.Lock()
 
     def describe_image(self, jpeg, question):
@@ -60,7 +59,7 @@ class AlibabaVisionClient:
         from websockets.asyncio.client import connect
         connector=self.connect or connect
         async with asyncio.timeout(timeout):
-            async with connector(self.config.validate(),additional_headers={'Authorization':'Bearer '+self.config.api_key},
+            async with connector(self.url,additional_headers={'Authorization':'Bearer '+self.config.api_key},
                                  open_timeout=8,close_timeout=1,max_size=2_000_000,max_queue=16,proxy=None) as ws:
                 async def send(event):
                     await ws.send(json.dumps(dict(event,event_id='Vision'+uuid.uuid4().hex),ensure_ascii=False,allow_nan=False))

@@ -21,17 +21,17 @@ from urllib.request import urlopen
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path[:0] = [str(ROOT), str(ROOT/'tests'/'helpers')]
+sys.path.insert(0,str(ROOT))
 from providers.AlibabaRealtime import AlibabaConfig, strict_json
 from AlibabaProbe import PcmActivity
-from AlibabaBenchmark import fixture, FOLDER
+from RealtimeFixtures import fixture, FOLDER
 from execution.sandbox_runner import SandboxRunner
 from app.Runtime import UnifiedRuntime
 from app.SessionLog import SessionLog
 from app.Tools import OMNI_INSTRUCTIONS, OMNI_TOOLS
 from providers.OmniRuntime import OmniService
 from drone_sdk.contract import FrameResult
-from Support import MockBackend
+from QueryProgram import QueryDevice, QUERY_METHODS
 
 
 class Audit:
@@ -74,64 +74,6 @@ class Audit:
                 evidence['arguments_parts'] = [retained[index:index+16000] for index in range(0,len(retained),16000)]
         else: evidence['arguments_format_invalid'] = True
         self(evidence)
-
-
-class QueryDevice(MockBackend):
-    """Synthetic observation fixture; it never connects or sends device commands."""
-    def __init__(self, picture):
-        super().__init__()
-        import cv2
-        self.picture = cv2.imread(str(picture))
-        if self.picture is None: raise ValueError('fixture_image_unreadable')
-        self.frame_id = 0
-        self.rejected_actions = []
-        self.interrupts = []
-
-    def get_frame(self):
-        self.frame_id += 1
-        return FrameResult(self.picture.copy(), self.frame_id, time.time(), False)
-
-    def request_control(self, owner, **kwargs):
-        self.rejected_actions.append('request_control')
-        raise RuntimeError('query_only_probe_cannot_acquire_motion_control')
-
-    def action_with_grant(self, name, grant, *args, cancelled=None):
-        self.rejected_actions.append(name)
-        raise RuntimeError('query_only_probe_rejects_all_motion')
-
-    def start_follow(self, **kwargs):
-        self.rejected_actions.append('start_follow')
-        raise RuntimeError('query_only_probe_rejects_all_motion')
-
-    def priority_interrupt(self, land=False):
-        # Application cleanup has no physical device to stop. This is not a
-        # model capability or evidence that an aircraft received a command.
-        self.interrupts.append(bool(land))
-        return {'ok': True, 'status': 'completed', 'simulated': True,
-                'reason': 'synthetic_fixture_has_no_motion_device',
-                'physical_stop_verified': False}
-
-
-class QueryRunner(SandboxRunner):
-    """Apply a query-only capability boundary to the real runtime's Host."""
-    def __init__(self, audit, **kwargs):
-        super().__init__(**kwargs)
-        self.audit = audit
-
-    async def run(self, code, execution):
-        dispatch = execution.dispatch
-        async def query_only(method, args, kwargs):
-            if method not in ('get_status', 'is_following'):
-                self.audit({'event': 'query_capability_rejected', 'method': method,
-                            'args': args, 'kwargs': kwargs,
-                            'reason': 'query_only_probe_capability_not_allowed'})
-                raise RuntimeError('query_only_probe_capability_not_allowed: ' + str(method))
-            return await dispatch(method, args, kwargs)
-        execution.dispatch = query_only
-        try:
-            return await super().run(code, execution)
-        finally:
-            execution.dispatch = dispatch
 
 
 class ObservedCloud:
@@ -385,8 +327,8 @@ async def attempt(config, output, *, real, seconds=60):
     audit = Audit(config.api_key)
     offline = OfflineCloud() if not real else None
     device = QueryDevice(FOLDER/'RedTent.jpg')
-    sandbox = QueryRunner(audit,timeout=10)
-    runtime = UnifiedRuntime(device,device,log=audit,runner=sandbox)
+    sandbox = SandboxRunner(timeout=10)
+    runtime = UnifiedRuntime(device,device,log=audit,runner=sandbox,methods=QUERY_METHODS)
     service = socket = receiver = heartbeat = None
     try:
         await sandbox.check()  # Fail locally before any API request.
@@ -470,12 +412,11 @@ async def attempt(config, output, *, real, seconds=60):
             result['production_failure'] = service.failure
         if offline: await offline.close()
         result['cleanup']['sandbox_not_running'] = not runtime.running
-        result['cleanup']['sandbox_last_cleanup'] = dict(sandbox.last_cleanup)
-        result['rejected_actions'] = device.rejected_actions
+        result['cleanup']['sandbox_last_cleanup'] = await runtime.retry_cleanup()
         result['cleanup']['synthetic_interrupts'] = device.interrupts
         result['cleanup']['physical_stop_verified'] = False
         result['usage'] = [event for event in audit.events if event.get('event') == 'model_usage']
-        result['ok'] = bool(result['ok'] and not result.get('error_type') and not device.rejected_actions
+        result['ok'] = bool(result['ok'] and not result.get('error_type')
             and all(result['cleanup'].get(key) is True for key in ('local_websocket_closed','production_service_closed',
                 'cloud_closed','stop_confirmed','http_thread_stopped','sandbox_not_running')))
         result['finished_at'] = datetime.now(timezone.utc).isoformat()

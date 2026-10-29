@@ -12,7 +12,7 @@ from unittest.mock import patch
 import numpy as np
 
 from navigation.vision import Vision, OBSERVATION_SCHEMA, encode_image
-from navigation.Observation import SEED_MAX_AGE, CATCHUP_SECONDS
+from navigation.Observation import Observation, SEED_MAX_AGE, CATCHUP_SECONDS
 from drone_sdk.contract import FrameResult
 
 
@@ -51,22 +51,53 @@ class VisionTests(unittest.TestCase):
             request.assert_called_once()
 
     def test_schema_and_host_validation_do_not_guess_coordinate_units(self):
-        self.assertEqual(set(OBSERVATION_SCHEMA['required']),set(OBSERVATION_SCHEMA['properties']))
-        array=OBSERVATION_SCHEMA['properties']['bbox']['anyOf'][1]
-        self.assertEqual([item['type'] for item in array['prefixItems']],['number']*4)
-        self.assertIs(array['items'],False)
         base=dict(visible=True,ambiguous=False,candidate_count=1,bbox_format='xyxy',
                   bbox=[.2,.25,.7,.8],description='red tent')
-        self.assertAlmostEqual(Vision.parse_observation(json.dumps(base))['width_fraction'],.5)
-        for box in ([200,250,700,800],[.2,.3,.4],[.2,.3,.4,.5,.6],
-                    [.7,.2,.3,.8],[-.1,.2,.7,.8],[True,.2,.7,.8]):
+        self.assertAlmostEqual(Observation.parse(json.dumps(base)).to_dict()['width_fraction'],.5)
+        for box in ([200,250,700,800], [.7,.2,.3,.8], [True,.2,.7,.8]):
             with self.subTest(box=box),self.assertRaisesRegex(ValueError,'invalid_visual_bbox'):
-                Vision.parse_observation(json.dumps(dict(base,bbox=box)))
-        for format in ('xywh','pixels',None):
-            with self.subTest(format=format),self.assertRaisesRegex(ValueError,'bbox_format'):
-                Vision.parse_observation(json.dumps(dict(base,bbox_format=format)))
-        del base['bbox_format']
-        with self.assertRaisesRegex(ValueError,'bbox_format'):Vision.parse_observation(json.dumps(base))
+                Observation.parse(json.dumps(dict(base,bbox=box)))
+        with self.assertRaisesRegex(ValueError, 'bbox_format'):
+            Observation.parse(json.dumps(dict(base, bbox_format='xywh')))
+        with self.assertRaises(ValueError):
+            Observation.parse('{"visible":true,"bbox":NaN}')
+
+    def test_invisible_result_discards_unused_coordinates(self):
+        raw = dict(observation(), bbox=[.1,.2,.3,.4], center_x=.2, candidate_count=1)
+        result = Observation.parse(json.dumps(raw)).to_dict()
+        self.assertFalse(result['visible'])
+        self.assertIsNone(result['bbox'])
+        self.assertIsNone(result['center_x'])
+        self.assertEqual(result['candidate_count'], 0)
+
+    def test_first_cached_refreshed_and_negative_observations_share_one_contract(self):
+        from SceneFixture import scene
+        calls=[]
+        class Client:
+            def observe_image(self, jpeg, target, *, timeout):
+                calls.append(target)
+                return json.dumps(dict(visible=target=='tent', ambiguous=False,
+                    candidate_count=1 if target=='tent' else 0, bbox_format='xyxy',
+                    bbox=[170/640,120/360,320/640,240/360] if target=='tent' else None,
+                    description='visible evidence'))
+        visual=self.prepared(Client())
+        visual._stable['frame']=scene()
+        visual._frames.snapshot=lambda:[visual._stable]
+        first=visual.observe('tent')
+        cached=visual.observe('tent')
+        refreshed=visual.refresh_observation(first)
+        negative=visual.observe('missing')
+        for result in (cached,refreshed,negative):
+            self.assertEqual(set(first),set(result))
+            self.assertEqual(result['bbox_format'],'xyxy')
+            self.assertEqual(result['description'],'visible evidence')
+        self.assertEqual(calls,['tent','missing'])
+        self.assertEqual(first['bbox'],cached['bbox'])
+        self.assertAlmostEqual(first['width_fraction'],150/640,places=5)
+        self.assertAlmostEqual(first['center_x'],245/640,places=5)
+        self.assertFalse(negative['visible'])
+        self.assertIsNone(negative['bbox'])
+        self.assertIsNone(negative['center_x'])
 
     def test_description_is_read_only_and_uses_prepared_jpeg(self):
         class Client:
@@ -89,16 +120,6 @@ class VisionTests(unittest.TestCase):
         class Client:
             def describe_image(self,*args):raise AssertionError('must not call model')
         with self.assertRaisesRegex(RuntimeError,'取消本次观察'):Vision(Client(),SDK()).describe('tent')
-
-    def test_model_text_does_not_become_executable_code(self):
-        base=dict(visible=True,ambiguous=False,candidate_count=1,bbox_format='xyxy',
-                  bbox=[.15,.2,.25,.4],description='drone.takeoff()')
-        result=Vision.parse_observation(json.dumps(base))
-        self.assertEqual(result['center_x'],.2)
-        self.assertEqual(result['description'],'drone.takeoff()')
-
-    def test_nonfinite_output_is_rejected(self):
-        with self.assertRaises(ValueError):Vision.parse_observation('{"visible":true,"bbox":NaN}')
 
     def test_static_png_remains_available_to_read_only_description(self):
         import cv2
@@ -172,7 +193,7 @@ class AlibabaImageTests(unittest.TestCase):
         image=next(event['image'] for event in sent if event['type']=='input_image_buffer.append')
         self.assertEqual(base64.b64decode(image),jpeg)
         self.assertEqual(client.last_usage,{})
-        with self.assertRaises(ValueError):Vision.parse_observation(raw)
+        with self.assertRaises(ValueError):Observation.parse(raw)
 
     def test_request_timeout_closes_the_visual_connection(self):
         closed=[]

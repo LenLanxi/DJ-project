@@ -1,4 +1,4 @@
-from follow.r3_follow.config import load_config
+from follow.r3_follow.config import load_config, FollowConfig
 import json
 from pathlib import Path
 import tempfile
@@ -14,6 +14,23 @@ from app.SessionLog import SessionLog as RuntimeLog
 
 
 class SessionLogTests(unittest.TestCase):
+    def test_slow_diagnostic_sink_does_not_fail_control_close(self):
+        entered, release = threading.Event(), threading.Event()
+        def slow_sink(record):
+            entered.set()
+            release.wait(3)
+        service = FollowService(FakeDevice(), config=FollowConfig(), tracker=GeometryDetector(),
+                                log_sink=slow_sink, console_notices=False)
+        try:
+            self.assertTrue(entered.wait(1))
+            result = service.close()
+            self.assertTrue(result.ok, result.reason)
+            self.assertTrue(service.session_log.worker.is_alive())
+        finally:
+            release.set()
+            service.session_log.worker.join(2)
+
+
     def test_session_identity_utf8_path_and_jsonl_footer(self):
         with tempfile.TemporaryDirectory(prefix="三组 日志 ") as directory:
             log = SessionLog(directory, {"version":"test", "hardware_verified":False})

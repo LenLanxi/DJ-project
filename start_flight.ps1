@@ -46,18 +46,19 @@ Write-Host ('Takeoff authorized: {0}; min battery: {1}%; exit action: {2}' -f $A
 Write-Host 'Emergency: Ctrl+Shift+Alt+A = stop; Ctrl+Shift+Alt+L = land; F12/F11 are alternatives.'
 Write-Host 'One process controls one Tello. Three ordinary Tellos do not become a swarm from three config files.'
 
-$runtimeArgs = @('-m', 'app.Application', '--follow-config', $configPath,
-    '--min-battery', "$MinBattery", '--max-session-seconds', "$MaxSessionSeconds", '--exit-action', $ExitAction,
-    '--web-port', "$WebPort")
+$mode = if ($PlanOnly) {'plan'} elseif ($Program -or $Text) {'run'} else {'voice'}
+$runtimeArgs = @('-m', 'app.Application', $mode)
+if (-not $PlanOnly) { $runtimeArgs += @('--follow-config', $configPath,
+    '--min-battery', "$MinBattery", '--exit-action', $ExitAction) }
 if (-not $PlanOnly) { $runtimeArgs += '--real-drone' }
 if ($AllowTakeoff) { $runtimeArgs += '--allow-real-takeoff' }
 if ($Address) { $runtimeArgs += @('--address', $Address) }
 if ($Program) { $runtimeArgs += @('--program', $Program) }
 if ($Text) { $runtimeArgs += @('--text', $Text) }
-if ($PlanOnly) { $runtimeArgs += '--plan-only' }
+
 if ($ShowVideo -and -not $PlanOnly) { $runtimeArgs += '--show-video' }
 if (-not $Text -and -not $Program) {
-    $runtimeArgs += @('--voice-provider', $VoiceProvider, '--alibaba-credentials', $AlibabaCredentials,
+    $runtimeArgs += @('--max-session-seconds', "$MaxSessionSeconds", '--web-port', "$WebPort", '--voice-provider', $VoiceProvider, '--alibaba-credentials', $AlibabaCredentials,
         '--doubao-credentials', $DoubaoCredentials)
     Write-Host ('Voice provider: {0}; explicit alternative: -VoiceProvider doubao; no mid-flight provider switch.' -f $VoiceProvider)
     Write-Host ('Local page: http://127.0.0.1:{0}; occupied ports cause an error instead of selecting another port.' -f $WebPort)

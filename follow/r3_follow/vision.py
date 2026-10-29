@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 from time import perf_counter
-from numbers import Integral, Real
+from numbers import Real
 from math import isfinite
 from .core import Observation
 
@@ -12,6 +12,8 @@ class _ProcessingBudgetExceeded(Exception):
 
 
 class MarkerTracker:
+    """Internal detector: preserve the supplied frame identity and capture time."""
+
     # The extra large-image pass only examines existing rejected quads. The
     # bounds cap additional decoder calls/pixels, not total detector latency.
     RESCUE_MAX_INPUT_PIXELS = 3840 * 2160
@@ -26,9 +28,7 @@ class MarkerTracker:
     RESCUE_MAX_PIXELS = 512 * 1024
 
     def __init__(self, target_id=0, *, processing_budget_ms=None, clock=perf_counter):
-        if (isinstance(target_id, (bool, np.bool_))
-                or not isinstance(target_id, Integral) or not 0 <= target_id < 50):
-            raise ValueError("target_id must be an integer from 0 to 49 for DICT_4X4_50")
+        # Internal target identity is validated by FollowConfig.
         self.target_id = int(target_id)
         self.processing_budget_ms = self._validate_budget(processing_budget_ms)
         if not callable(clock):
@@ -77,8 +77,8 @@ class MarkerTracker:
 
         The budget is COOPERATIVE: an OpenCV call already in progress cannot
         be interrupted. After it returns no further rescue is started if the
-        budget has expired. An incomplete identity/duplicate scan never
-        supplies a control position. None uses the constructor's budget;
+        budget has expired. A decoded current-frame target remains usable;
+        runtime skips exhaustive duplicate rescue scans. None uses the constructor's budget;
         constructing with None preserves exhaustive offline fixture checks.
         """
         self.last_diagnostics = {}
@@ -104,14 +104,16 @@ class MarkerTracker:
             budget["elapsed_ms"] = max(0., (self._clock()-started)*1000)
             if limit is not None and budget["elapsed_ms"] >= limit:
                 budget.update(exceeded=True, exhausted_at=stage)
-                raise _ProcessingBudgetExceeded
+                if not check_budget.target_found:
+                    raise _ProcessingBudgetExceeded
 
+        check_budget.target_found = False
         try:
-            result = self._detect(frame, frame_id, acquired_at, source, check_budget)
+            result = self._detect(frame, frame_id, acquired_at, source, check_budget, exhaustive_identity=limit is None)
             check_budget("observation_complete")
         except _ProcessingBudgetExceeded:
-            # Even an easy decoded target is unsafe to return when another
-            # candidate could not be checked. Never keep a previous position.
+            # No target was decoded within this frame's processing budget.
+            # Never substitute a position from a previous frame.
             self.last_diagnostics.pop("target_quality", None)
             self.last_diagnostics["detected_ids"] = []
             self.last_diagnostics["detected_markers"] = []
@@ -123,7 +125,7 @@ class MarkerTracker:
         self.last_diagnostics["detect_ms"] = max(0., (self._clock()-started)*1000)
         return result
 
-    def _detect(self, frame, frame_id, acquired_at, source, check_budget):
+    def _detect(self, frame, frame_id, acquired_at, source, check_budget, *, exhaustive_identity=True):
         started = perf_counter()
         check_budget("grayscale:before")
         height, width = frame.shape[:2]
@@ -156,6 +158,10 @@ class MarkerTracker:
                              "ids": [] if ids is None else [int(v) for v in ids.flatten()],
                              "rejected_candidates": len(rejected)})
             self.last_diagnostics["detector_method"] = name
+            # Preserve a successfully decoded current-frame target even if the
+            # non-interruptible decoder took longer than the rescue budget.
+            if ids is not None and self.target_id in ids.flatten():
+                check_budget.target_found = True
             check_budget(name+":after")
             if scale != 1 or offset != (0, 0):
                 shift = np.asarray(offset, dtype=np.float32)
@@ -349,7 +355,7 @@ class MarkerTracker:
             # per-call reuse only, never a result/position from an older frame.
             identity_check.update(reused_current_frame=True,
                 saved_decoder_calls=int(method != "downscaled_local_contrast"))
-        if (ids is not None and len(ids) == 1 and min(height, width) >= 240
+        if (exhaustive_identity and ids is not None and len(ids) == 1 and min(height, width) >= 240
                 and not half_contrast_checked):
             # A low-contrast copy may produce no rejected quad at all in the
             # successful pass. Check current-frame identity at the same half
@@ -382,9 +388,10 @@ class MarkerTracker:
                                  "rois": self.DUPLICATE_MAX_ROIS,
                                  "pixels": self.RESCUE_MAX_PIXELS,
                                  "input_pixels": self.RESCUE_MAX_INPUT_PIXELS},
-                     "scope": "current_frame_rejected_quads_only"}
+                     "scope": "current_frame_rejected_quads_only",
+                     "exhaustive": exhaustive_identity}
         self.last_diagnostics["duplicate_check"] = ambiguity
-        if ids is not None and len(ids) == 1 and method != "edge_quad_roi_exact":
+        if exhaustive_identity and ids is not None and len(ids) == 1 and method != "edge_quad_roi_exact":
             # The full-frame identity supplement cannot resolve every harder
             # copy. Continue checking unknown CURRENT-frame rejected quads;
             # an incomplete bounded scan still cannot supply a position.

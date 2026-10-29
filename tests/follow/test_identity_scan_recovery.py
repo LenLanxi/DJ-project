@@ -15,7 +15,7 @@ class Clock:
 
 
 class Detector:
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         reason, x = frame
         return Observation(frame_id, acquired_at, source, 640, 480, 0, not reason,
             x if not reason else None, 240 if not reason else None,
@@ -27,11 +27,11 @@ class Detector:
 class IdentityRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.clock=Clock(); self.port=FakeDevice(self.clock.mono)
-        self.service=FollowService(self.port, config=FollowConfig(control_profile='openpose_pid', max_request_rate=.8),
+        self.service=FollowService(self.port, config=FollowConfig(control_profile='openpose_pid', slew_rc_per_second=80.0),
                          tracker=Detector(),
                          monotonic=self.clock.mono,
                          wall_clock=self.clock.wall,
-                         recovery_window=3,
+                         auto_recover=True,
                          log_directory=False)
         self.addCleanup(self.service.close);self.seq=0
         self.frame()
@@ -62,17 +62,15 @@ class IdentityRecoveryTests(unittest.TestCase):
         for _ in range(20):self.service.capture_once();self.service.control_once()
         self.assert_waiting()
 
-    def test_mixed_incomplete_and_occluded_frames_cannot_extend_timeout(self):
+    def test_temporary_target_loss_keeps_waiting_until_fresh_target_returns(self):
         self.frame('ambiguous_scan_budget_exceeded')
-        began=self.service.controller._loss_at
         for i in range(14):
             self.frame(('not_found','ambiguous_scan_budget_exceeded','detection_budget_exceeded')[i%3],dt=.2)
-            self.assertEqual(began,self.service.controller._loss_at);self.assert_waiting()
+            self.assert_waiting()
         self.frame('ambiguous_scan_budget_exceeded',dt=.21)
-        self.assertFalse(self.service.status()['active'])
-        self.assertEqual(self.service.last_halt_reason,'recovery_timeout_requires_start')
+        self.assert_waiting()
         for _ in range(4):self.frame()
-        self.assertFalse(self.service.is_following());self.assertEqual(self.port.velocity,(0,0,0,0))
+        self.assertTrue(self.service.is_following())
 
     def test_confirmed_same_id_conflict_still_requires_restart(self):
         self.frame('ambiguous_scan_budget_exceeded');self.frame('ambiguous_duplicate_id')
@@ -104,13 +102,13 @@ class IdentityRecoveryTests(unittest.TestCase):
         for _ in range(4):self.frame()
         self.assertFalse(self.service.is_following());self.assertEqual(self.port.velocity,(0,5,0,0))
 
-    def test_zero_recovery_window_remains_an_explicit_no_auto_resume_policy(self):
-        self.service.controller.recovery_window=0
+    def test_auto_recovery_can_be_disabled(self):
+        self.service.controller.auto_recover=False
         self.frame('ambiguous_scan_budget_exceeded')
         self.assertFalse(self.service.status()['active'])
         self.assertIn('唯一性检查未完成',self.service.status()['status_message'])
 
-    def test_real_detector_small_clutter_continues_but_incomplete_scan_still_waits(self):
+    def test_runtime_target_survives_decorative_clutter(self):
         self.service._stop_tracking();self.service.tracker=MarkerTracker(processing_budget_ms=None)
         # Nine decorative squares produce >8 small ROIs, now checked in full.
         def image(clutter=False):
@@ -126,20 +124,9 @@ class IdentityRecoveryTests(unittest.TestCase):
         publish(image());self.assertTrue(self.service.calibrate_reference().ok)
         self.assertTrue(self.service._start_tracking().ok)
         publish(image(True));self.assertTrue(self.service.is_following())
-        completed=self.service.tracker.last_diagnostics['duplicate_check']
-        self.assertGreater(completed['roi_count'],8)
-        self.assertTrue(completed['scan_complete'])
+        self.assertFalse(self.service.tracker.last_diagnostics['duplicate_check']['exhaustive'])
         self.assertGreater(self.port.velocity[3],0)
-        # Force a genuinely incomplete scan; fail-closed recovery is unchanged.
-        self.service.tracker.DUPLICATE_MAX_ROIS=8
-        publish(image(True));self.assert_waiting()
-        event=[e for e in self.service.events() if e['event']=='observation'][-1]
-        self.assertEqual(event['reason'],'ambiguous_scan_budget_exceeded')
-        self.assertEqual(event['duplicate_check']['budget_reason'],'roi_count')
-        self.assertGreater(event['duplicate_check']['candidate_count'],8)
-        self.assertIsNone(event['center_x'])
-        for _ in range(4):publish(image())
-        self.assertTrue(self.service.is_following());self.assertGreater(self.port.velocity[3],0)
+
 
 
 if __name__=='__main__':unittest.main()

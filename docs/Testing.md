@@ -24,7 +24,7 @@
 
 pytest 只收集 `tests`；`tests/helpers` 提供显式设备/协议替身，`tests/fixtures` 保存固定输入，均不进入生产路径。直接运行 pytest 遵从 `RUN_DOCKER_TESTS`；要保证默认离线行为用 Check。实际容器测试带 docker 标记，但标记本身不授权执行。
 
-关键断言包括：旧任务不借新授权、取消前后最终发送检查、容器创建/删除确认、清理未确认只保留恢复能力、跟随 stop 与 close 不混淆，以及帧身份/时效不因重复读取而刷新。Runtime 测试显式注入 device/follow/vision/runner；脚本 runner 替身不声称实际执行了 Docker。重复适配层、示范和实现字段专用测试已经退役，其仍有价值的行为断言由当前边界测试覆盖。
+只保留能证明独立行为或竞争窗口的测试：授权失效与最终发送、取消/清理失败、真实容器隔离与回收、跟随 RC 轨迹、观察时效、云协议及媒体恢复。重复场景、状态字段镜像和测试替身自行实现的业务规则已退役；不按原测试数量补回。协议测试用记录调用/注入结果的简单替身，控制集成使用真实控制代码并替换设备 I/O，真实容器单独验证完整 Python。编排替身通过 `run(code, host, outcome)` 注入，直接调用真实 Host，不模拟另一套 Docker 字节进程。
 
 ## 显式诊断
 
@@ -45,11 +45,13 @@ uv run --frozen python diagnostics/follow/check_follow_config.py --help
 
 Ground/Video 保留 `--self-check` 与 `--props-removed`。FieldTakeoff、ContainerScenario 是需要注入 drone 的沙箱载荷，不直接当独立飞行脚本运行。云请求必须显式 `--real`；先核对凭据文件、输入、次数与账户状态，不把密钥写命令行、网页或证据。正式对照串行、同输入，保留失败与超时，调试样本不混进排名。相机/硬件实验由现场人员显式执行，不能由回归代为证明安全或成功。
 
+`RunRealtime` 与 `RouteSelection` 共用 `Trials.py` 的串行调度、started/finished 记录、恢复与清理门禁；凭据用 `--alibaba-credentials` / `--doubao-credentials` 或对应文件环境变量指定。状态程序由 `QueryProgram.py` 经真实 Runtime/Docker 执行，Host 只开放 get_status/is_following，不扫描 Python 写法，也不将固定回包伪装成程序已执行。独立的云协议固定回包探测继续用于协议与时序诊断。
+
 `providers/AlibabaRealtime.py` 保留生产共享协议；单轮基准在 `diagnostics/cloud/AlibabaProbe.py`，计时计算在 RealtimeMetrics。豆包原生 `web/NativeProbe.cpp` 不采集设备，与网页编解码/缓冲不同。腾讯与旧直连语音实现已退役，历史三路线数据不代表当前可重跑腾讯。
 
 ## 采集与证据解释
 
-新云采集默认位于 `ScenarioAcceptance/Evidence/Current/RealtimeComparison` 或 `Current/RouteSelection`，可用 `--output-folder` 改位置。历史输入、失败、HTML 与结论不覆盖；重算写到归档以外：
+新云采集默认位于 `ScenarioAcceptance/Evidence/Current/RealtimeComparison` 或 `Current/RouteSelection`，可用 `--output-folder` 改位置。RouteSelection 保留归档路径保护和清理确认，不再要求所有历史材料或源码指纹保持不变；旧报告中的指纹字段仍可读取。历史输入、失败、HTML 与结论不覆盖；重算写到归档以外：
 
 ```powershell
 uv run --frozen python diagnostics/cloud/CompareRealtime.py --folder ScenarioAcceptance/Evidence/RealtimeComparison --output ScenarioAcceptance/Evidence/Current/RealtimeSummary.json

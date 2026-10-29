@@ -1,22 +1,15 @@
 """Test-only current-runtime fixtures. No aircraft, API, camera or host exec.
 
-ContainerProcess supplies scripted RPC frames to the real SandboxRunner. This
-checks host protocol/coordination; it does not claim to execute Python in Docker.
+Use the real SDK and follow service; inject a Runner for program orchestration.
 """
 import asyncio
-from contextlib import contextmanager
-import json
 from pathlib import Path
-import sys
-import threading
 import time
-from unittest.mock import AsyncMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 from drone_sdk import controller as sdk, _driver as driver
 from drone_sdk.contract import FrameResult
 from app.Runtime import UnifiedRuntime
-from execution.sandbox_runner import SandboxRunner
 from follow.r3_follow.vision import synthetic_frame
 from follow.r3_follow.service import FollowService
 from follow.r3_follow.config import load_config
@@ -47,14 +40,12 @@ def reset(flying=False):
         follow.close(wait=True)
     _follows.clear()
     settle()
-    sdk.request_control('model', priority=True)
-    sdk.land('model', priority=True)
+    sdk.priority_interrupt(land=True)
     settle()
+    grant = sdk.request_control('model').grant
     if flying:
-        assert sdk.takeoff('model').ok
-    state = sdk.get_status()
-    if state.control_owner != 'none':
-        assert sdk.release_control(state.control_owner).ok
+        assert sdk.takeoff(grant).ok
+    assert sdk.release_control(grant).ok
     return make_follow()
 
 
@@ -72,59 +63,6 @@ class SyntheticFeed:
         if key not in self.cache:
             self.cache[key] = synthetic_frame(x=self.position, size=self.size, visible=self.visible)
         return FrameResult(self.cache[key], self.frame_id, time.time(), False)
-
-
-class ContainerProcess:
-    def __init__(self, calls):
-        self.calls = iter(calls)
-        self.queue = asyncio.Queue()
-        self.returncode = None
-        self.stdout = self
-        self.stderr = self.Errors()
-        self.stdin = self.Input(self)
-        self.index = 0
-    class Errors:
-        async def read(self, _n): return b''
-    class Input:
-        def __init__(self, parent): self.parent = parent
-        def write(self, raw):
-            message = json.loads(raw)
-            if 'error' in message:
-                self.parent.queue.put_nowait(json.dumps({'type':'done','ok':False,'error':message['error']}).encode()+b'\n')
-                return
-            self.parent.next()
-        async def drain(self): pass
-    def next(self):
-        item = next(self.calls, None)
-        if item is None:
-            message = {'type':'done','ok':True}
-        else:
-            method, args = item
-            self.index += 1
-            message = {'type':'rpc','id':self.index,'method':method,'args':list(args),'kwargs':{}}
-        self.queue.put_nowait(json.dumps(message).encode()+b'\n')
-    async def readline(self): return await self.queue.get()
-    def kill(self): self.returncode = -9
-    async def wait(self): return 0 if self.returncode is None else self.returncode
-
-
-class CompletedProcess:
-    returncode = 0
-    async def wait(self): return 0
-
-
-@contextmanager
-def container(calls):
-    process = ContainerProcess(calls)
-    async def create(*args, **kwargs):
-        if args[:2] == ('docker','run'):
-            return process
-        if args[:3] == ('docker','rm','-f'):
-            return CompletedProcess()
-        raise AssertionError('Unexpected subprocess: '+repr(args))
-    with patch.object(SandboxRunner, 'check', new=AsyncMock()), \
-         patch('execution.sandbox_runner.asyncio.create_subprocess_exec', side_effect=create):
-        yield process
 
 
 def runtime(log=None, device=None, follow=None, runner=None):

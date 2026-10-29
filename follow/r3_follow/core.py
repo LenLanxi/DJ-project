@@ -1,5 +1,5 @@
-"""Device-independent marker control. Requests are normalized RC channel values."""
-from dataclasses import dataclass
+"""Device-independent marker control. Requests use SDK axis order and RC channel values."""
+from dataclasses import dataclass, asdict
 from enum import StrEnum
 import math
 
@@ -52,8 +52,12 @@ class MotionRequest:
     right: float = 0.0
     forward: float = 0.0
     reason: str = ""
-    yaw: float = 0.0  # negative left, positive right
     up: float = 0.0  # positive = aircraft up
+    yaw: float = 0.0  # negative left, positive right
+
+    @property
+    def channels(self):
+        return self.right, self.forward, self.up, self.yaw
 
 
 def marker_shape(corners):
@@ -169,22 +173,20 @@ class ApparentSizeGuard:
 
 
 class FollowController:
-    def __init__(self, *, config, max_age=1.0, recovery_window=0.0,
+    def __init__(self, *, config, max_age=1.0, auto_recover=False,
                  require_geometry=False, pose_estimator=None):
         target_id, control_profile = config.target_id, config.control_profile
         steering_mode, vertical_follow = config.steering_mode, config.vertical_follow
         distance_mode, pid_tuning = config.distance_mode, config.pid_tuning
-        yaw_limit, forward_limit = config.yaw_limit, config.forward_limit
-        max_request_rate, reference_size_limit = config.max_request_rate, config.reference_size_limit
-        if not math.isfinite(max_age) or max_age <= 0:
+        horizontal_limit_rc, forward_limit_rc = config.horizontal_limit_rc, config.forward_limit_rc
+        slew_rc_per_second, reference_size_limit = config.slew_rc_per_second, config.reference_size_limit
+        if type(max_age) not in (int, float) or not math.isfinite(max_age) or max_age <= 0:
             raise ValueError("max_age must be finite and positive")
-        if not math.isfinite(recovery_window) or recovery_window < 0:
-            raise ValueError("recovery_window must be finite and nonnegative")
         if distance_mode == "pose" and pose_estimator is None:
             raise ValueError("pose mode requires calibrated pose_estimator")
         self.reference_size_limit = reference_size_limit
         self.target_id, self.max_age = target_id, max_age
-        self.recovery_window, self.max_request_rate = recovery_window, max_request_rate
+        self.auto_recover, self.slew_rc_per_second = auto_recover, slew_rc_per_second
         self.distance_mode, self.pose_estimator = distance_mode, pose_estimator
         self.pose, self.reference_depth_m, self._image_size = None, None, None
         self._steering_mode = steering_mode
@@ -192,14 +194,13 @@ class FollowController:
         self._openpose = OpenPoseMarkerControl(config, max_dt=max_age)
         # Dimensionless OFFLINE candidate, not an experimentally measured yaw
         # speed or a claim that this gain/limit is safe for physical flight.
-        self.yaw_limit = yaw_limit
-        self.forward_limit = forward_limit
-        self._depth_brake = DepthBrake(forward_limit, proportional_scale=(
-            self._openpose.pitch_gains[0]*128/100),
+        self.horizontal_limit_rc = horizontal_limit_rc
+        self.forward_limit_rc = forward_limit_rc
+        self._depth_brake = DepthBrake(forward_limit_rc, proportional_scale=(
+            self._openpose.pitch_gains[0]*128),
             braking_allowance=.40 if pid_tuning == 'responsive_v1' else .25)
         self._motion_at = None
         self._motion_values = (0.0, 0.0, 0.0, 0.0)
-        self._loss_at = None
         self._last_found = None
         self._recovery_anchor = None
         self._quick_recovery = False
@@ -322,7 +323,7 @@ class FollowController:
         return True
 
     def _clear_recovery(self):
-        self._loss_at = self._good_since = None
+        self._good_since = None
         self._good_count = 0
         self._recovery_anchor = None
         self._quick_recovery = False
@@ -427,21 +428,12 @@ class FollowController:
         return self._zero("stopped")
 
     def status(self):
-        return {"state": str(self.state), "target_id": self.target_id,
-                "reference_size": self.reference_size, "reference_size_limit": self.reference_size_limit,
-                "request": self.last_request,
-                "last_stop_reason": self.last_stop_reason,
-                "control_profile": OPENPOSE_PROFILE,
-                "openpose_control": self._openpose.status(),
-                "depth_brake": self._depth_brake.status(),
-                "vertical_follow": self._openpose.vertical_follow,
-                "distance_measurement": self.distance_status(),
-                "distance_guard": self.distance_guard.status(),
-                "steering": {"mode": self.steering_mode, "yaw_limit": self.yaw_limit,
-                             "forward_limit": self.forward_limit,
-                             "horizontal_limit": self.yaw_limit,
-                             "constructor_only": True, "physical_tuning_verified": False},
-                "max_request_rate": self.max_request_rate}
+        """Algorithm diagnostics included in the service's single snapshot."""
+        return dict(request=asdict(self.last_request),
+                    openpose_control=self._openpose.status(),
+                    depth_brake=self._depth_brake.status(),
+                    distance_guard=self.distance_guard.status(),
+                    distance_measurement=self.distance_status())
 
     def distance_status(self):
         pose_valid = bool(self.pose is not None and self.pose.valid)
@@ -464,10 +456,6 @@ class FollowController:
                 self._clear_recovery()
                 self.distance_guard.block(str(issue))
                 return self._zero(str(issue))
-            if now-self._loss_at >= self.recovery_window:
-                self.state = State.LOST
-                self._clear_recovery()
-                return self._zero("recovery_timeout_requires_start")
             confirmation = .05 if self._quick_recovery else .15
             if (issue is None and self._good_count >= 3 and self._good_since is not None
                     and self.observation.acquired_at-self._good_since >= confirmation-FRAME_TIME_EPSILON):
@@ -475,10 +463,9 @@ class FollowController:
                 self._clear_recovery()
             else:
                 return self._zero("waiting_for_stable_target")
-        elif (issue == State.LOST and self.recovery_window > 0
+        elif (issue == State.LOST and self.auto_recover
               and self.observation.reason in RECOVERABLE_MISS_REASONS):
             self.state = State.RECOVERING
-            self._loss_at = now
             self._recovery_anchor = self._last_found
             self._quick_recovery = False
             self._good_since, self._good_count = None, 0
@@ -504,7 +491,6 @@ class FollowController:
             forward_allowed=depth_status["forward_allowed"],
             center_y=obs.center_y, image_height=obs.height, depth_error=depth_error,
             target_x_fraction=self.target_x_fraction, target_y_fraction=self.target_y_fraction)
-        desired += (self._openpose.vertical_request,)
         if depth_status["forward_allowed"] and depth_error is not None:
             forward = self._depth_brake.limit(desired[1],frame_id=obs.frame_id,
                 captured_at=obs.acquired_at,now=now,error=depth_error)
@@ -523,11 +509,11 @@ class FollowController:
         if (self.distance_mode != 'apparent_pixels'
                 and self.last_request.forward*desired[1] < 0):
             # Zero-crossing is required even when acceleration smoothing is
-            # explicitly disabled (max_request_rate=None).
+            # explicitly disabled (slew_rc_per_second=None).
             desired = (desired[0],0.,desired[2],desired[3])
-        if self.max_request_rate is not None:
+        if self.slew_rc_per_second is not None:
             elapsed = 0 if self._motion_at is None else max(0, min(.1, now-self._motion_at))
-            step = self.max_request_rate * elapsed
+            step = self.slew_rc_per_second * elapsed
             def ramp(previous, target, index):
                 # No smoothing may prolong a stop or carry motion the wrong way.
                 if target == 0 or previous*target < 0:
@@ -548,5 +534,5 @@ class FollowController:
         else:
             reason = "current_observation"
         self.last_request = MotionRequest(self.state, right=desired[0], forward=desired[1],
-                                          reason=reason, yaw=desired[2], up=desired[3])
+                                          reason=reason, yaw=desired[3], up=desired[2])
         return self.last_request

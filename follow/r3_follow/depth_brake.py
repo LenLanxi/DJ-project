@@ -23,24 +23,16 @@ class DepthBrake:
     RESPONSE_ALLOWANCE = .25
     MAX_HORIZON = .75
     RATE_FILTER_TAU = .10
-    # Same proportional slope as marker_v2 relative depth: .5 * 128 / 100.
-    PROPORTIONAL_SCALE = .64
+    # Same proportional slope as marker_v2 relative depth: .5 * 128 RC per relative depth unit.
+    PROPORTIONAL_SCALE = 64.
 
-    def __init__(self, forward_limit=.3, *, proportional_scale=.64, braking_allowance=.25):
-        if (type(forward_limit) not in (int,float) or not math.isfinite(forward_limit)
-                or not 0 < forward_limit <= 1):
-            raise ValueError('forward_limit must be finite in (0,1]')
-        self.forward_limit = forward_limit
-        if (type(proportional_scale) not in (int, float)
-                or not math.isfinite(proportional_scale) or not 0 < proportional_scale <= 2):
-            raise ValueError('proportional_scale must be finite in (0,2]')
+    def __init__(self, forward_limit_rc=30., *, proportional_scale=64., braking_allowance=.25):
+        # Internal parameters come from validated FollowConfig and tuning constants.
+        self.forward_limit_rc = forward_limit_rc
         self.proportional_scale = proportional_scale
-        if (type(braking_allowance) not in (int, float)
-                or not math.isfinite(braking_allowance) or not .25 <= braking_allowance <= .75):
-            raise ValueError('braking_allowance must be finite in [.25,.75]')
         self.braking_allowance = braking_allowance
-        self.correction_limit = min(.20, forward_limit*.5)
-        self.reversal_threshold = min(.03,forward_limit*.25)
+        self.correction_limit = min(20., forward_limit_rc*.5)
+        self.reversal_threshold = min(3.,forward_limit_rc*.25)
         self.reset('initial')
 
     def reset(self, reason='reset'):
@@ -101,7 +93,7 @@ class DepthBrake:
         self.predicted_error = error + self.rate*self.horizon
         self.correction = max(-self.correction_limit,min(self.correction_limit,
             self.proportional_scale*self.rate*self.horizon))
-        self.output = max(-self.forward_limit,min(self.forward_limit,request+self.correction))
+        self.output = max(-self.forward_limit_rc,min(self.forward_limit_rc,request+self.correction))
         self.reason = ('approach_braking' if request*self.correction < 0
                        else 'depth_trend_response')
         return self._filter_reversal(self.output)
@@ -145,7 +137,7 @@ class DepthBrake:
                     horizon_s=self.horizon,predicted_relative_error=self.predicted_error,
                     raw_forward_request=self.raw_request,limited_forward_request=self.output,
                     correction=self.correction,correction_limit=self.correction_limit,
-                    reversal_threshold_rc=self.reversal_threshold*100,
+                    reversal_threshold_rc=self.reversal_threshold,
                     response_allowance_s=self.RESPONSE_ALLOWANCE,
                     braking_allowance_s=self.braking_allowance,
                     rate_filter_tau_s=self.RATE_FILTER_TAU,

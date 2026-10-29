@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT), str(ROOT / 'tests' / 'helpers')]
-from RuntimeFixture import container, reset as reset_sdk, runtime, sdk, settle
+from RuntimeFixture import reset as reset_sdk, runtime, sdk, settle
 
 PASSED, FAILED = [], []
 
@@ -15,18 +15,29 @@ def check(name, condition, detail=''):
 
 def reset(_unused=None): reset_sdk()
 
+class ScriptRunner:
+    def __init__(self, calls): self.calls=calls
+    async def run(self, code, host, outcome):
+        journal=[]
+        try:
+            for method,args in self.calls:
+                journal.append(dict(method=method,result=await host.dispatch(method,args,{})))
+            outcome.result=dict(ok=True,status='completed',journal=journal)
+        except Exception as error:
+            outcome.result=dict(ok=False,status='failed',reason=str(error),journal=journal)
+
 async def scenario():
-    app = runtime()
-    with container([('get_status', []), ('takeoff', []), ('move_forward',[30]), ('land', [])]):
-        result = await app.run('status=drone.get_status()\ndrone.takeoff()\ndrone.move_forward(30)\ndrone.land()')
-    check('current sandbox RPC gateway SDK chain', result['ok'], result)
-    check('all four requested interfaces returned evidence', len(result['journal']) == 4, result)
+    app=runtime(runner=ScriptRunner([('get_status',[]),('takeoff',[]),('move_forward',[30]),('land',[])]))
+    result=await app.run('scripted host exercise; Python execution is not tested here')
+    check('current Host SDK chain',result['ok'],result)
+    check('all four interfaces returned evidence',len(result['journal'])==4,result)
     settle()
-    check('simulated landing status confirmed separately', sdk.get_status().flight_state == 'landed')
-    with container([('start_follow', [])]):
-        no_frame = await app.run('drone.start_follow()')
-    check('follow cannot start without a frame source', not no_frame['ok'], no_frame)
-    check('failed startup leaves no owner', sdk.get_status().control_owner == 'none')
+    check('simulated landing confirmed',sdk.get_status().flight_state=='landed')
+    app=runtime(runner=ScriptRunner([('start_follow',[])]))
+    result=await app.run('scripted missing-frame exercise')
+    check('follow requires a frame source',not result['ok'],result)
+    check('failure leaves no owner',sdk.get_status().control_owner=='none')
+
 
 def main():
     PASSED.clear(); FAILED.clear()

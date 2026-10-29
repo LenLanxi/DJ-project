@@ -1,15 +1,9 @@
-"""Shared SDK control arbitration. Hardware is connected explicitly by runtime.
-
-Public owner arguments remain compatible. Reviewed callers additionally send
-control_epoch/command_epoch to reject stale same-owner tasks. Legacy callers
-without these fields do NOT gain ABA protection merely by upgrading the SDK.
-"""
+"""One mandatory control grant for every ordinary SDK action."""
 import contextvars
 from contextlib import contextmanager, nullcontext
-from dataclasses import asdict
 import threading
 import time
-from .contract import CommandResult, ControlResult, StatusResult, FrameResult
+from .contract import CommandResult, ControlGrant, ControlResult, StatusResult, FrameResult
 from . import _driver
 
 _velocity_lock = threading.RLock()
@@ -71,12 +65,12 @@ def _zero(reason):
     _last_velocity_time = 0. if ok is not False else time.monotonic()
     return ok
 
-def _check(owner, control_epoch=None, command_epoch=None, *, allow_landing=False):
+def _check(grant, *, allow_landing=False):
     if operation_cancelled(): return 'program_cancelled'
     _advance()
-    if _current_owner != owner or owner not in ('follow', 'model'): return 'no_control'
-    if control_epoch is not None and control_epoch != _control_epoch: return 'obsolete_control'
-    if command_epoch is not None and command_epoch != _command_epoch: return 'obsolete_command'
+    if _current_owner != grant.owner or grant.owner not in ('follow', 'model'): return 'no_control'
+    if grant.control_epoch != _control_epoch: return 'obsolete_control'
+    if grant.command_epoch != _command_epoch: return 'obsolete_command'
     if _flight_state == 'landing' and not allow_landing: return 'landing_in_progress'
     return ''
 
@@ -126,6 +120,15 @@ def _preserve_landing(owner, action):
     if not _driver.action_pending() and not _driver.health().get('landing_acknowledged'):
         _driver.interrupt('land')
 
+def _grant():
+    return ControlGrant(_current_owner, _control_epoch, _command_epoch)
+
+
+def _control_result(ok, reason=''):
+    return ControlResult(ok, _current_owner or 'none', reason,
+                         _grant() if ok and _current_owner is not None else None)
+
+
 def request_control(owner, *, priority=False, cancelled=None, exclusive=False):
     """Grant atomically; exclusive rejects even an existing same-name owner.
 
@@ -141,11 +144,11 @@ def request_control(owner, *, priority=False, cancelled=None, exclusive=False):
                   'command_channel_ambiguous' if not _driver.command_channel_clear() else
                   'action_result_pending' if _driver.action_pending() else
                   'busy' if _current_owner is not None and (exclusive or _current_owner != owner) else '')
-        if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
+        if reason: return _control_result(False, reason)
         if priority:
             if _flight_state == 'landing':
                 _preserve_landing(owner, 'request_control')
-                return ControlResult(True, owner, 'landing_preserved', _control_epoch, _command_epoch)
+                return _control_result(True, 'landing_preserved')
             # 保留通道：先作废在途动作的 token，再零速度接管，保证随后的 stop/land 一定能下发。
             _driver.record_priority_override('request_control', current_owner=_current_owner)
             _driver.cancel_pending('priority_takeover')
@@ -156,37 +159,37 @@ def request_control(owner, *, priority=False, cancelled=None, exclusive=False):
             _control_epoch += 1
             _current_owner = owner
             _zero('priority_takeover')
-            return ControlResult(True, owner, '', _control_epoch, _command_epoch)
+            return _control_result(True)
         # Each successful request grants a new lease, including same-name
         # callers. Identity is an authorization number, not the word model.
         _driver.cancel_pending('owner_granted')
         if _zero('owner_granted') is False:
-            return ControlResult(False, _current_owner or 'none', 'stop_send_failed', _control_epoch, _command_epoch)
+            return _control_result(False, 'stop_send_failed')
         _control_epoch += 1
         _command_epoch += 1
         _current_owner = owner
-        return ControlResult(True, owner, '', _control_epoch, _command_epoch)
+        return _control_result(True)
 
-def release_control(owner, *, control_epoch=None, command_epoch=None, cancelled=None):
+def release_control(grant, *, cancelled=None):
     global _current_owner, _control_epoch, _command_epoch, _active_action
     with operation_guard(cancelled) if cancelled is not None else nullcontext(), _velocity_lock:
-        reason = _check(owner, control_epoch, command_epoch, allow_landing=True)
+        reason = _check(grant, allow_landing=True)
         if not reason and _driver.action_pending(): reason = 'action_result_pending'
-        if reason: return ControlResult(False, _current_owner or 'none', reason, _control_epoch, _command_epoch)
+        if reason: return _control_result(False, reason)
         if _zero('owner_released') is False:
-            return ControlResult(False, _current_owner or 'none', 'stop_send_failed', _control_epoch, _command_epoch)
+            return _control_result(False, 'stop_send_failed')
         _driver.cancel_pending('owner_released')
         _current_owner = None
         _control_epoch += 1
         _command_epoch += 1
         _active_action = None
-        return ControlResult(True, 'none', '', _control_epoch, _command_epoch)
+        return _control_result(True)
 
-def update_velocity(owner, left_right, forward_back, up_down, yaw, *, control_epoch=None, command_epoch=None):
+def update_velocity(grant, left_right, forward_back, up_down, yaw, *, cancelled=None):
     global _last_velocity_time
     channels = (left_right, forward_back, up_down, yaw)
-    with _velocity_lock:
-        reason = _check(owner, control_epoch, command_epoch)
+    with operation_guard(cancelled) if cancelled is not None else nullcontext(), _velocity_lock:
+        reason = _check(grant)
         if not reason and any(channels) and not _driver.command_channel_clear():
             reason = 'command_channel_ambiguous'
         if not reason and not _driver.SIMULATED and not _driver.health().get('telemetry_fresh') and any(channels):
@@ -201,10 +204,10 @@ def update_velocity(owner, left_right, forward_back, up_down, yaw, *, control_ep
         _last_velocity_time = time.monotonic() if any(channels) else 0.
         return CommandResult(True, 'accepted', '', False)
 
-def _mock_move(owner, action, param=None, *, control_epoch=None, command_epoch=None):
+def _move(grant, action, param=None):
     global _flight_state, _active_action
     with _velocity_lock:
-        reason = _check(owner, control_epoch, command_epoch)
+        reason = _check(grant)
         if not reason and not _driver.command_channel_clear(): reason = 'command_channel_ambiguous'
         if not reason and _active_action is not None: reason = 'action_busy'
         if not reason and _driver.action_pending(): reason = 'action_result_pending'
@@ -255,7 +258,7 @@ def configure_takeoff(*, authorized=False, min_battery=30):
     if type(min_battery) is not int or not 0 <= min_battery <= 100: raise ValueError('invalid_battery_limit')
     _takeoff_authorized, _min_battery = bool(authorized), min_battery
 
-def takeoff(owner, **grant):
+def takeoff(grant, *, cancelled=None):
     if not _driver.SIMULATED:
         h = _driver.health(); battery = h['battery']
         if (not _takeoff_authorized or type(battery) is not int
@@ -264,14 +267,16 @@ def takeoff(owner, **grant):
                 or type(h.get('temperature_c')) not in (int, float)
                 or h['temperature_c'] >= 95):
             return CommandResult(False, 'failed', 'takeoff_gate_rejected')
-    return _mock_move(owner, 'takeoff', **grant)
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'takeoff')
 
-def land(owner, *, control_epoch=None, command_epoch=None, priority=False):
+def _land(grant, *, priority=False):
     """priority=True：越过 action_result_pending / 代次校验，保证降落指令必达。"""
     global _flight_state, _landing_deadline, _command_epoch, _control_epoch, _active_action, _current_owner
     with _velocity_lock:
+        owner = grant.owner
         reason = ('invalid_owner' if owner not in ('model', 'follow') else
-                  '' if priority else _check(owner, control_epoch, command_epoch, allow_landing=True))
+                  '' if priority else _check(grant, allow_landing=True))
         if reason: return CommandResult(False, 'failed', reason, False)
         if priority:
             _driver.record_priority_override('land', current_owner=_current_owner)
@@ -288,8 +293,8 @@ def land(owner, *, control_epoch=None, command_epoch=None, priority=False):
             _command_epoch += 1
             _active_action = None
             if _zero('land_already_grounded') is False:
-                return CommandResult(False, 'failed', 'stop_send_failed', False)
-            return CommandResult(True, 'completed', 'already_landed', False)
+                return CommandResult(False, 'failed', 'stop_send_failed', False, _grant())
+            return CommandResult(True, 'completed', 'already_landed', False, _grant())
         if _flight_state != 'landing':
             _command_epoch += 1
             _active_action = None
@@ -300,59 +305,74 @@ def land(owner, *, control_epoch=None, command_epoch=None, priority=False):
                 _landing_deadline = time.monotonic() + _landing_delay
         elif priority:
             _driver.interrupt('land')
-        return CommandResult(True, 'accepted', '', False)
+        return CommandResult(True, 'accepted', '', False, _grant())
 
-def stop_motion(owner, *, control_epoch=None, command_epoch=None, priority=False):
+def _stop_motion(grant, *, priority=False):
     """priority=True：越过 action_result_pending / 代次校验，保证急停指令必达。"""
     global _command_epoch, _control_epoch, _active_action, _current_owner
     with _velocity_lock:
         if priority:
             _advance()
+        owner = grant.owner
         reason = ('invalid_owner' if owner not in ('model', 'follow') else
-                  '' if priority else _check(owner, control_epoch, command_epoch))
+                  '' if priority else _check(grant))
         if reason: return CommandResult(False, 'failed', reason, False)
         if priority:
             if _flight_state == 'landing':
                 _preserve_landing(owner, 'stop_motion')
-                return CommandResult(True, 'accepted', 'landing_preserved', False)
+                return CommandResult(True, 'accepted', 'landing_preserved', False, _grant())
             _driver.record_priority_override('stop_motion', current_owner=_current_owner)
             _control_epoch += 1
             _current_owner = owner
         _driver.cancel_pending('stop_motion')
         _command_epoch += 1
         _active_action = None
-        if _zero('stop_motion') is False: return CommandResult(False,'failed','stop_send_failed',False)
-        return CommandResult(True, 'accepted', '', False)
+        if _zero('stop_motion') is False: return CommandResult(False,'failed','stop_send_failed',False, _grant())
+        return CommandResult(True, 'accepted', '', False, _grant())
 
-def move_forward(owner, cm, **grant): return _mock_move(owner, 'forward', cm, **grant)
-def move_back(owner, cm, **grant): return _mock_move(owner, 'back', cm, **grant)
-def move_left(owner, cm, **grant): return _mock_move(owner, 'left', cm, **grant)
-def move_right(owner, cm, **grant): return _mock_move(owner, 'right', cm, **grant)
-def move_up(owner, cm, **grant): return _mock_move(owner, 'up', cm, **grant)
-def move_down(owner, cm, **grant): return _mock_move(owner, 'down', cm, **grant)
-def rotate(owner, degrees, **grant): return _mock_move(owner, 'rotate', degrees, **grant)
+def land(grant, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _land(grant)
+
+
+def stop_motion(grant, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _stop_motion(grant)
+
+
+def move_forward(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'forward', cm)
+
+def move_back(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'back', cm)
+
+def move_left(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'left', cm)
+
+def move_right(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'right', cm)
+
+def move_up(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'up', cm)
+
+def move_down(grant, cm, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'down', cm)
+
+def rotate(grant, degrees, *, cancelled=None):
+    with operation_guard(cancelled) if cancelled is not None else nullcontext():
+        return _move(grant, 'rotate', degrees)
 
 def priority_interrupt(land=False):
-    """Trusted interruption and its new grant are one atomic device operation."""
+    """Revoke ordinary grants and send a priority stop/land atomically."""
     with _velocity_lock:
-        result = asdict(globals()['land' if land else 'stop_motion']('model', priority=True))
-        state = get_status()
-        result['grant'] = dict(control_epoch=state.control_epoch, command_epoch=state.command_epoch)
-        return result
+        return (_land if land else _stop_motion)(_grant_for_priority(), priority=True)
 
 
-def action_with_grant(name, grant, *args, cancelled=None):
-    """Execute with the caller's captured grant; never borrow a newer owner.
-
-    Stop and land advance the command epoch. Return that updated grant under
-    the same device lock so callers never need to inspect controller locks.
-    Blocking moves deliberately run without holding that lock.
-    """
-    with operation_guard(cancelled), _velocity_lock if name in ('stop_motion', 'land') else nullcontext():
-        result = asdict(globals()[name]('model', *args, **grant))
-        result['simulated'] = _driver.SIMULATED
-        if result['ok'] and name in ('stop_motion', 'land'):
-            state = get_status()
-            if state.control_epoch == grant['control_epoch']:
-                result['grant'] = dict(control_epoch=state.control_epoch, command_epoch=state.command_epoch)
-        return result
+def _grant_for_priority():
+    return ControlGrant('model', _control_epoch, _command_epoch)

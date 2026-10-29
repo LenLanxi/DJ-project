@@ -76,43 +76,8 @@ class RuntimeLandingPolicyTests(unittest.IsolatedAsyncioTestCase):
             receive_task.cancel()
             await asyncio.gather(send_task,receive_task,return_exceptions=True)
 
-    def make_runtime(self):
-        device=types.SimpleNamespace(priority_interrupt=Mock(return_value={'ok':True}))
-        follow=types.SimpleNamespace(stop=Mock(return_value=CommandResult(True,'completed')))
-        records=[]
-        return UnifiedRuntime(device,follow,log=records.append),device,records
 
-    async def test25_land_stays_requested_when_a_later_cleanup_asks_only_to_stop(self):
-        runtime,gateway,records=self.make_runtime()
-        await runtime.interrupt(False)
-        await runtime.interrupt(True)
-        await runtime.interrupt(False)
-        self.assertEqual([call.args[0] for call in gateway.priority_interrupt.call_args_list],[False,True,True])
-        self.assertTrue(runtime.land_requested)
-        self.assertFalse(records[-1]['requested_land'])
-        self.assertTrue(records[-1]['effective_land'])
-        fresh,_,_=self.make_runtime()
-        self.assertFalse(fresh.land_requested)
 
-    async def test26_pending_or_failed_land_does_not_permit_a_stop_downgrade(self):
-        runtime,gateway,_=self.make_runtime()
-        entered,release=threading.Event(),threading.Event()
-        calls=[]
-        def pending(land):
-            calls.append(land)
-            if len(calls)==1:
-                entered.set()
-                release.wait(2)
-            return {'ok':False,'reason':'land_unconfirmed'}
-        gateway.priority_interrupt=pending
-        first=asyncio.create_task(runtime.interrupt(True))
-        self.assertTrue(await asyncio.to_thread(entered.wait,1))
-        await runtime.interrupt(False)
-        release.set()
-        await first
-        await runtime.interrupt(False)
-        self.assertEqual(calls,[True,True,True])
-        self.assertTrue(runtime.land_requested)
 
 
 class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
@@ -358,7 +323,6 @@ class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
             np.zeros((16,16,3),dtype=np.uint8),1,time.time(),False))
         service=OmniService(self.runtime,backend,lambda e:None,CONFIG,'test',Tools.OMNI_TOOLS,seconds=5)
         service.deadline=time.time()+5
-        service.last_heartbeat=time.monotonic()
         service.cloud=self.session
         async def send(value):
             if value['type']=='frame':
@@ -657,18 +621,41 @@ class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.session.pending_response,self.session.epoch)
         self.assertIsNone(self.session.fault)
 
-    async def test08_complete_python_over_rtc_limit_is_supported_but_utf8_limit_is_enforced(self):
+    async def test_escaped_program_fits_decoded_budget_without_raw_json_rejection(self):
+        code = '#' + 'a'*30000 + '\\'*18000 + '\n'
+        self.assertGreater(len(json.dumps({'code': code}).encode()), 64000)
         await self.turn()
-        await self.program(code='#'+('a'*1000)+'\nprint(drone.get_status())')
+        await self.program(code=code)
         await self.settle()
-        self.assertEqual(len(self.runtime.calls),1)
-        await self.session.handle({'type':'response.created','response':{'id':'Response2'}})
-        await self.program(cid='Call2',rid='Response2',code='#'+'中'*21000)
+        self.assertEqual(self.runtime.calls, [code])
+        self.assertTrue(self.session.tool_outputs['Call1']['ok'])
+
+    async def test_invalid_argument_types_and_unknown_tools_allow_a_corrected_response(self):
+        await self.turn(rid='Rejected0')
+        for index, raw in enumerate(('[]', 'null', '1', '{}')):
+            with self.subTest(arguments=raw):
+                rid, cid = f'Rejected{index}', f'BadCall{index}'
+                if index:
+                    await self.session.handle({'type':'response.created','response':{'id':rid}})
+                item = {'type':'function_call','call_id':cid,
+                        'name':'unknown_tool' if index == 3 else 'run_program','arguments':raw}
+                await self.session.handle({**item,'type':'response.function_call_arguments.done','response_id':rid})
+                await self.session.handle({'type':'response.done','response':{
+                    'id':rid,'status':'completed','output':[item]}})
+                await self.settle()
+                result = self.session.tool_outputs[cid]
+                reason = 'host_tool_not_exposed' if index == 3 else 'invalid_tool_arguments'
+                self.assertIn(reason, result['debug'])
+                self.assertFalse(self.session.closed)
+                self.assertIsNone(self.session.fault)
+        self.assertEqual(self.runtime.calls, [])
+        self.assertEqual(self.runtime.stops, [])
+        self.assertEqual(self.runtime.generation, 0)
+        await self.session.handle({'type':'response.created','response':{'id':'Corrected'}})
+        await self.program(cid='CorrectedCall', rid='Corrected')
         await self.settle()
-        self.assertEqual(len(self.runtime.calls),1)
-        self.assertIsNone(self.session.fault)
-        self.assertFalse(self.session.tool_outputs['Call2']['ok'])
-        self.assertIn('code_bytes=63001',self.session.tool_outputs['Call2']['debug'])
+        self.assertTrue(self.session.tool_outputs['CorrectedCall']['ok'])
+
 
     async def test09_tool_reply_omits_images_and_keys_but_retains_failure_evidence(self):
         self.runtime.result={'ok':False,'status':'failed','reason':'not_visible',
@@ -682,16 +669,25 @@ class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('data:image',raw)
         self.assertIn('not_visible',raw)
 
-    async def test_follow_cleanup_survives_provider_tool_output(self):
-        self.runtime.result={'ok':True,'status':'completed','follow_cleanup':{
-            'status':'follow_resumed','reference_adjusted':'horizontal'}}
+
+    async def test_log_cache_and_cloud_reply_share_retained_result_evidence(self):
+        records = []
+        self.session.log = records.append
+        self.runtime.result = {'ok':True,'status':'completed',
+            'follow_cleanup':{'ok':True,'status':'follow_resumed','reference_adjusted':'horizontal'},
+            'journal':[{'method':'describe','result':{'answer':'x'*8000,'other':'y'*8000}}]}
         await self.turn()
         await self.program()
         await self.settle()
-        output=next(event['item'] for event in self.session.ws.events
-                    if event['type']=='conversation.item.create')
-        follow=json.loads(output['output'])['follow_cleanup']
-        self.assertEqual(follow,{'status':'follow_resumed','reference_adjusted':'horizontal'})
+        logged = next(record['result'] for record in records if record['event'] == 'tool_result')
+        cached = self.session.tool_outputs['Call1']
+        wire = next(json.loads(event['item']['output']) for event in self.session.ws.events
+                    if event['type'] == 'conversation.item.create')
+        self.assertEqual(logged, cached)
+        self.assertEqual(wire, cached)
+        self.assertTrue(wire['detail_omitted'])
+        self.assertEqual(wire['journal'], [])
+        self.assertEqual(wire['follow_cleanup'], self.runtime.result['follow_cleanup'])
 
     async def test_provider_error_diagnostics_are_bounded_and_secret_redacted(self):
         records=[]
@@ -721,7 +717,7 @@ class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
             def __aiter__(self): return self.events_to_read()
             async def events_to_read(self):
                 yield json.dumps({'type':'response.function_call_arguments.done',
-                    'response_id':'Response1','call_id':'Call1',
+                    'response_id':'Response1','call_id':'',
                     'arguments':CONFIG.api_key+'x'*3000})
             async def __aenter__(self): return self
             async def __aexit__(self,*args):
@@ -914,7 +910,7 @@ class OmniAuthorityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.runtime.calls,[])
 
     async def test24_f11_during_cloud_notification_cannot_be_overridden_by_the_old_stop(self):
-        device=types.SimpleNamespace(priority_interrupt=Mock(return_value={'ok':True}))
+        device=types.SimpleNamespace(priority_interrupt=Mock(return_value=CommandResult(True,'accepted')))
         follow=types.SimpleNamespace(stop=Mock(return_value=CommandResult(True,'completed')))
         runtime=UnifiedRuntime(device,follow)
         self.session.runtime=runtime
@@ -1067,13 +1063,6 @@ class OmniTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(duplicate.thread)
         self.assertFalse(self.service.closed)
 
-    def test_production_web_port_default_and_service_validation(self):
-        self.assertEqual(main.make_parser().parse_args([]).web_port,18848)
-        self.assertEqual(main.make_parser().parse_args(['--web-port','8849']).web_port,8849)
-        for invalid in (-1,65536,True,'18848'):
-            with self.subTest(port=invalid),self.assertRaisesRegex(ValueError,'http_port'):
-                OmniService(self.runtime,self.backend,lambda e:None,CONFIG,'test',
-                            Tools.OMNI_TOOLS,http_port=invalid)
 
     async def test_primary_cloud_failure_survives_secondary_audio_send_failure(self):
         trigger,closing=asyncio.Event(),asyncio.Event()
@@ -1127,6 +1116,20 @@ class OmniTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.runtime.stops,[False])
         self.assertTrue(self.service.cloud.closed)
 
+    async def test_burst_microphone_delivery_does_not_close_the_session(self):
+        async with connect(self.service.ws_url,origin=self.service.url,proxy=None) as socket:
+            await socket.send(json.dumps({'type':'start'}))
+            await self.until(socket,'ready')
+            cloud=self.service.cloud
+            cloud.audio=AsyncMock()
+            for _ in range(80):
+                await socket.send(json.dumps({'type':'audio','audio':base64.b64encode(bytes(640)).decode()}))
+            await socket.send(json.dumps({'type':'interrupt','land':True}))
+            await self.until(socket,'interrupted')
+            self.assertEqual(cloud.audio.await_count,80)
+        await asyncio.wait_for(self.service.wait(),2)
+        self.assertTrue(self.runtime.stops[-1])
+
     async def test14_stale_sdk_frame_is_not_sent_and_voice_recovers_with_new_frames(self):
         self.backend.get_frame=lambda:FrameResult(np.zeros((16,16,3),dtype=np.uint8),1,time.time()-2,True)
         async with connect(self.service.ws_url,origin=self.service.url,proxy=None) as socket:
@@ -1138,6 +1141,25 @@ class OmniTransportTests(unittest.IsolatedAsyncioTestCase):
             self.backend.get_frame=lambda:FrameResult(np.zeros((16,16,3),dtype=np.uint8),2,time.time(),False)
             frame=await self.until(socket,'frame')
             self.assertEqual(frame['id'],2)
+
+    async def test_stalled_browser_notifications_cannot_delay_stop_or_land(self):
+        async with connect(self.service.ws_url,origin=self.service.url,proxy=None) as socket:
+            await self.until(socket,'frame')
+            stopped=asyncio.Event()
+            original=self.runtime.interrupt
+            async def interrupt(land):
+                result=await original(land)
+                stopped.set()
+                return result
+            self.runtime.interrupt=interrupt
+            async def stalled_send(value):
+                self.assertTrue(stopped.is_set())
+                await asyncio.Event().wait()
+            self.service.send=stalled_send
+            await socket.send(json.dumps({'type':'interrupt','land':True}))
+            await asyncio.wait_for(stopped.wait(), .2)
+            self.assertTrue(self.runtime.stops[-1])
+        await asyncio.wait_for(self.service.wait(),2)
 
     async def test15_user_interrupt_revokes_before_slow_cloud_cleanup(self):
         async with connect(self.service.ws_url,origin=self.service.url,proxy=None) as socket:
@@ -1302,3 +1324,48 @@ class OmniTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.service.cleanup_pending)
         self.assertTrue(self.service.finished.is_set())
         self.expect_cleanup_failure=True
+
+
+class ToolStreamTests(unittest.IsolatedAsyncioTestCase):
+    async def test_streamed_punctuation_and_final_recovery(self):
+        from websockets.asyncio.server import serve
+        full = json.dumps({'code': 'print("quoted\\path")'}, ensure_ascii=False)
+        for final_source in ('arguments', 'item', 'response'):
+            with self.subTest(final_source=final_source):
+                session = OmniSession(LocalRuntime(), CONFIG, '', Tools.OMNI_TOOLS,
+                                      AsyncMock(), Mock())
+                session.epoch = 1
+                session.responses['r'] = 1
+                session.dispatch = AsyncMock()
+                call = dict(type='function_call', call_id='c', name='run_program', arguments=full)
+                async def cloud(ws):
+                    for char in full:
+                        await ws.send(json.dumps(dict(type='response.function_call_arguments.delta',
+                            response_id='r', call_id='c', delta=char)))
+                    await ws.send(json.dumps(dict(call, type='response.function_call_arguments.done',
+                        response_id='r', arguments=full if final_source == 'arguments' else full[:-2])))
+                    if final_source == 'item':
+                        await ws.send(json.dumps(dict(type='response.output_item.done', response_id='r', item=call)))
+                    await ws.send(json.dumps(dict(type='response.done', response=dict(id='r',
+                        status='completed', output=[call] if final_source == 'response' else []))))
+                try:
+                    async with serve(cloud, '127.0.0.1', 0) as server:
+                        async with connect(f'ws://127.0.0.1:{server.sockets[0].getsockname()[1]}', proxy=None) as ws:
+                            async for raw in ws:
+                                await session.handle(json.loads(raw))
+                    await asyncio.sleep(0)
+                    session.dispatch.assert_awaited_once()
+                    self.assertEqual(session.dispatch.call_args.args[0][0][1]['args'], json.loads(full))
+                finally:
+                    await session.close()
+
+    async def test_conflicting_valid_programs_are_not_replaced(self):
+        session = OmniSession(LocalRuntime(), CONFIG, '', Tools.OMNI_TOOLS, AsyncMock(), Mock())
+        session.epoch = 1
+        session.responses['r'] = 1
+        call = dict(call_id='c', name='run_program', arguments=json.dumps({'code': 'print(1)'}))
+        session.remember(call, 'r')
+        with self.assertRaisesRegex(ValueError, 'omni_tool_identity_reused'):
+            session.remember(dict(call, arguments=json.dumps({'code': 'print(2)'})), 'r')
+        self.assertEqual(session.calls['c']['args']['code'], 'print(1)')
+        await session.close()

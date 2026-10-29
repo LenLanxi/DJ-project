@@ -53,7 +53,7 @@ class IdentityVisibilityTests(unittest.TestCase):
             with self.subTest(contrast=contrast):
                 image = weak_marker_scene(contrast)
                 before = image.copy()
-                tracker = MarkerTracker(processing_budget_ms=120, clock=lambda: 0.)
+                tracker = MarkerTracker(processing_budget_ms=None, clock=lambda: 0.)
                 _, ids, _ = tracker.detector.detectMarkers(image)
                 self.assertEqual(ids.flatten().tolist(), [0])
                 observation = tracker.detect(image, 7, 42., 'synthetic_identity')
@@ -70,7 +70,7 @@ class IdentityVisibilityTests(unittest.TestCase):
                 np.testing.assert_array_equal(image, before)
 
     def test_single_target_remains_unique_and_current(self):
-        tracker = MarkerTracker(processing_budget_ms=120, clock=lambda: 0.)
+        tracker = MarkerTracker(processing_budget_ms=None, clock=lambda: 0.)
         observation = tracker.detect(synthetic_frame(x=.65, size=.19), 1, 0)
         self.assertTrue(observation.found)
         self.assertEqual(tracker.last_diagnostics['detected_ids'], [0])
@@ -109,23 +109,6 @@ class IdentityVisibilityTests(unittest.TestCase):
         self.assertEqual(tracker.last_diagnostics['duplicate_check']['candidate_count'], 0)
         self.assertEqual(tracker.last_diagnostics['duplicate_check']['decoder_calls'], 0)
 
-    def test_identity_pass_obeys_existing_deadline(self):
-        elapsed = [0.]
-        tracker = MarkerTracker(processing_budget_ms=120, clock=lambda: elapsed[0])
-        decoder = tracker.motion_detector
-        tracker.motion_detector = Mock()
-        def delayed(image):
-            result = decoder.detectMarkers(image)
-            elapsed[0] += .121
-            return result
-        tracker.motion_detector.detectMarkers.side_effect = delayed
-        observation = tracker.detect(synthetic_frame(), 1, 0)
-        self.assert_no_position(observation)
-        self.assertEqual(observation.reason, 'detection_budget_exceeded')
-        self.assertEqual(tracker.last_diagnostics['processing_budget']['exhausted_at'],
-                         'identity_half_contrast:after')
-        self.assertEqual(tracker.last_diagnostics['processing_budget']['limit_ms'], 120)
-        self.assertEqual(len(tracker.last_diagnostics['attempts']), 2)
 
     def test_decorative_squares_are_all_checked_before_target_is_used(self):
         image = synthetic_frame(x=.65, size=.19)

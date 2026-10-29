@@ -31,7 +31,9 @@ docker build -t companion-sandbox:0.4 execution/sandbox
 - [Testing](docs/Testing.md)：针对性验证、真实容器、显式云/硬件诊断及证据范围。
 - [Flight](docs/Flight.md)：现场操作、耳机恢复、停止与退出。
 
-本次简化把会话组装放在 `app`，一次程序的宿主能力集中在 `execution/Host.py`，跟随资源由 `FollowService` 持有，图像统一使用 SDK `FrameResult`。旧适配层、重复诊断和对应实现细节测试已退役；两家模型/endpoint 与手动选择音频设备的方式保留。
+应用有 `plan`（只生成程序）、`run`（执行文件或文字任务）、`voice`（持续语音）三个入口，使用 `uv run --frozen python -m app.Application <入口> --help` 查看各自参数。现场启动器默认选择 `voice`；`-Program` / `-Text` 选择 `run`，`-Text ... -PlanOnly` 选择 `plan`。
+
+`app` 组装会话并管理一次程序的收尾；`execution/Host.py` 提供受限能力；SDK 用 `ControlGrant` 授权动作。跟随只发布一份动态状态快照，四轴内部统一为 RC 单位。导航观察统一字段与 xyxy 坐标。豆包浏览器负责媒体与事件转发，Python 负责轮次、工具执行及直接向 Node 回传结果。
 
 ## 当前限制
 

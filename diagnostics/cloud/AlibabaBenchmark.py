@@ -15,28 +15,12 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / 'tests' / 'helpers'))
 from providers.AlibabaRealtime import AlibabaConfig
 from AlibabaProbe import AlibabaRealtime
 from RealtimeMetrics import exact_acknowledgement
 
-FOLDER = ROOT / 'ScenarioAcceptance' / 'Evidence' / 'RealtimeComparison'
+from RealtimeFixtures import FOLDER, fixture
 SPEECH_INSTRUCTIONS = '你正在进行实时语音交互的软件测试。只根据本轮用户实际说的话，用中文简短回答。不主动发起问候，不执行设备动作，不输出推理过程。'
-
-
-def fixture(name, folder=FOLDER):
-    metadata = json.loads((folder / 'Fixtures.json').read_text(encoding='utf-8-sig'))['audio'][name]
-    pcm = (folder / (name + '.pcm')).read_bytes()
-    wav_path = folder / (name + '.wav')
-    with wave.open(str(wav_path), 'rb') as stream:
-        if (stream.getframerate(), stream.getnchannels(), stream.getsampwidth()) != (16000, 1, 2):
-            raise ValueError('shared_fixture_format_mismatch')
-        if stream.readframes(stream.getnframes()) != pcm:
-            raise ValueError('shared_pcm_wav_mismatch')
-    if (len(pcm) != metadata['samples'] * 2
-            or metadata['sha256'] not in (hashlib.sha256(pcm).hexdigest(), hashlib.sha256(wav_path.read_bytes()).hexdigest())):
-        raise ValueError('shared_fixture_hash_mismatch')
-    return pcm, metadata
 
 
 def latency(metrics):
@@ -128,18 +112,16 @@ async def sample(config, task, *, mode, image_name=None, phase='development', ti
     elif task == 'vision':
         instructions = '观察本轮实际收到的图片，回答用户的问题。只回答图片中帐篷的颜色，不要猜测或补充解释。'
     else:
-        from QueryRunner import QueryOnlyRunner
-        runner = QueryOnlyRunner(real_sandbox=True, timeout=8)
+        from QueryProgram import QueryProgram
+        runner = QueryProgram(timeout=8)
         await runner.sandbox.check()  # Fail locally before spending API quota.
         tools = [{'type': 'function', 'name': 'run_program',
                   'description': '查询明确标记simulated的测试设备状态。禁止起飞、移动、旋转、跟随或降落。',
-                  'parameters': {'type': 'object', 'properties': {'code': {'type': 'string', 'maxLength': 600}},
+                  'parameters': {'type': 'object', 'properties': {'code': {'type': 'string', 'maxLength': 60000}},
                                  'required': ['code'], 'additionalProperties': False}}]
         instructions = ('你参加实时接口测试，连接的是simulated测试设备。用户查询电量时必须调用run_program，'
                         'code为print(drone.get_status())。根据实际工具结果简短报告模拟电量，不得猜测，不得执行动作。')
     async def dispatch(name, arguments, call_id):
-        if name != 'run_program' or runner is None:
-            raise ValueError('query_only_dispatcher')
         return await runner.run(arguments['code'])
     adapter = AlibabaRealtime(config, instructions=instructions, tools=tools,
                               tool_handler=dispatch if runner else None)

@@ -8,7 +8,7 @@ from follow.r3_follow import FollowService
 
 class Detector:
     reason = 'detection_budget_exceeded'
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         found = not self.reason
         return Observation(frame_id, acquired_at, source, 640, 480, 0, found,
             320 if found else None, 240 if found else None, .25 if found else None,

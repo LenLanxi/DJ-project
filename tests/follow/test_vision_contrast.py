@@ -38,7 +38,7 @@ class VisionContrastTests(unittest.TestCase):
         self.assertNotIn('target_quality',tracker.last_diagnostics)
 
     def test_loss_after_contrast_decode_still_zeros_control(self):
-        tracker=MarkerTracker();c=FollowController(config=FollowConfig(max_request_rate=None), recovery_window=3)
+        tracker=MarkerTracker();c=FollowController(config=FollowConfig(slew_rc_per_second=None), auto_recover=True)
         first=tracker.detect(self.image(),1,0);c.observe(first);c.calibrate(0);c.start(0)
         next_obs=tracker.detect(np.full_like(self.image(),235),2,.1)
         c.observe(next_obs);r=c.tick(.1)

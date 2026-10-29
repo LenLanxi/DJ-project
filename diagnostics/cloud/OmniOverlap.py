@@ -18,8 +18,10 @@ import traceback
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 from providers.AlibabaRealtime import AlibabaConfig
-from AlibabaBenchmark import fixture, FOLDER
-from OmniLive import Audit, QueryDevice, QueryRunner, observed_connector
+from RealtimeFixtures import fixture, FOLDER
+from OmniLive import Audit, QueryDevice, observed_connector
+from QueryProgram import QUERY_METHODS
+from execution.sandbox_runner import SandboxRunner
 from providers.OmniSession import OmniSession
 from app.Runtime import UnifiedRuntime
 from app.Tools import OMNI_INSTRUCTIONS, OMNI_TOOLS
@@ -51,8 +53,8 @@ class DelayedQueryDevice(QueryDevice):
 async def run(config,output):
     audit=Audit(config.api_key)
     device=DelayedQueryDevice()
-    sandbox=QueryRunner(audit,timeout=45)
-    runtime=UnifiedRuntime(device,device,log=audit,runner=sandbox)
+    sandbox=SandboxRunner(timeout=45)
+    runtime=UnifiedRuntime(device,device,log=audit,runner=sandbox,methods=QUERY_METHODS)
     session=None
     cloud=feeder=None
     pcm,metadata=fixture('Status')
@@ -135,7 +137,7 @@ async def run(config,output):
             and programs[1]['result'].get('ok') is True
             and result['synthetic_interrupts'] and not any(result['synthetic_interrupts'])
             and ('80' in replies.get(2,'') or '八十' in replies.get(2,''))
-            and audio_bytes.get(2,0)>0 and not device.rejected_actions)
+            and audio_bytes.get(2,0)>0)
     except Exception as exc:
         result.update(error_type=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())
     finally:
@@ -154,10 +156,10 @@ async def run(config,output):
             try: await asyncio.wait_for(cloud,3)
             except Exception as exc: result['cleanup']['cloud_exit_error']=type(exc).__name__
         result['cleanup']['sandbox_not_running']=not runtime.running
-        result['cleanup']['sandbox']=dict(sandbox.last_cleanup)
+        result['cleanup']['sandbox']=await runtime.retry_cleanup()
         result['cleanup']['fake_old_worker_released']=device.release_old.is_set()
         result['ok']=bool(result['ok'] and result['cleanup'].get('session_closed')
-            and result['cleanup']['sandbox_not_running'] and sandbox.last_cleanup.get('confirmed') is True
+            and result['cleanup']['sandbox_not_running'] and result['cleanup']['sandbox']['ok'] is True
             and 'cloud_exit_error' not in result['cleanup'])
         persist()
     print(json.dumps({key:result.get(key) for key in

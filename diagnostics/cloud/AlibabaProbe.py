@@ -102,7 +102,7 @@ class AlibabaRealtime:
                        silence_ms=800, image_interval_seconds=None) -> dict:
         if self._active_task is not None:
             raise AlibabaError('turn_already_running')
-        url = self.config.validate()
+        url = self.config.url
         if (not isinstance(pcm16, bytes) or not pcm16 or len(pcm16) % 2 or sample_rate != 16000
                 or not 0 < max_audio_seconds <= 30 or len(pcm16) / 32000 > max_audio_seconds
                 or not 0 < timeout_seconds <= 60 or type(realtime_pacing) is not bool):

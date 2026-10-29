@@ -1,12 +1,11 @@
 """Structured observations can be consumed by sandbox Python branches/loops."""
 import base64
-import json
 import math
 import time
 import threading
 from collections import deque
 from pathlib import Path
-from navigation.Observation import OBSERVATION_SCHEMA, SEED_MAX_AGE, CATCHUP_SECONDS
+from navigation.Observation import OBSERVATION_SCHEMA, SEED_MAX_AGE, CATCHUP_SECONDS, Observation
 
 
 def encode_image(frame, bounds=None):
@@ -47,6 +46,7 @@ class NavigationFrames:
                     previous = self.frames[-1] if self.frames else None
                     if previous is not None:
                         if identity < previous['frame_id'] or identity == previous['frame_id'] and stamp != previous['timestamp'] or identity > previous['frame_id'] and stamp <= previous['timestamp']:
+                            self.stopped.set()  # A new source invalidates existing target seeds.
                             raise ValueError('navigation_source_identity_changed')
                         repeated = identity == previous['frame_id']
                     else: repeated = False
@@ -62,9 +62,6 @@ class NavigationFrames:
                 with self.lock:
                     if not self.stopped.is_set(): self.frames.append(value)
                     self.error = None
-            except ValueError as exc:
-                with self.lock: self.error = str(exc)
-                self.stopped.set()  # Structural source faults cannot revive this seed.
             except Exception as exc:
                 with self.lock: self.error = type(exc).__name__+': '+str(exc)[:150]
             self.stopped.wait(.1)
@@ -81,21 +78,21 @@ class Vision:
     def __init__(self,client,backend,test_image=None):
         self.client,self.backend=client,backend
         self.test_image=test_image
-        self._frames = self._tracker = self._stable = self._target = None
+        self._frames = self._tracker = self._stable = self._target = self._observation = None
         self._generation = 0
         self._lock = threading.RLock()
     def close(self):
         with self._lock:
             self._generation += 1
             if self._frames is not None: self._frames.close()
-            self._frames = self._tracker = self._stable = self._target = None
+            self._frames = self._tracker = self._stable = self._target = self._observation = None
     reset = close
     def _context(self):
         with self._lock:
             if self._frames is None or self._frames.stopped.is_set():
                 if self.backend is None: raise RuntimeError('navigation_source_frame_expired')
                 self._generation += 1
-                self._tracker = self._stable = self._target = None
+                self._tracker = self._stable = self._target = self._observation = None
                 self._frames = NavigationFrames(self.backend)
             return self._frames,self._generation
     def _current(self, frames, generation):
@@ -165,46 +162,15 @@ class Vision:
     def describe(self,question):
         """Read-only answers can tolerate inference delay, never authorize motion."""
         if self.client is None: raise RuntimeError('未配置视觉模型API')
-        if not isinstance(question,str) or not 0 < len(question) <= 2000:
-            raise ValueError('视觉问题须为1至2000字')
         frame,jpeg=self._capture()
         answer=self.client.describe_image(jpeg,question)
         if not isinstance(answer,str) or not answer.strip() or len(answer)>12000:
             raise ValueError('视觉回答格式无效')
         return {'answer':answer,'age_seconds':max(0,time.time()-frame['timestamp']),
                 'read_only':True,**frame}
-    @staticmethod
-    def parse_observation(raw):
-        if not isinstance(raw,str) or len(raw.encode('utf-8')) > 16000: raise ValueError('invalid_visual_response_size')
-        def nonfinite(_): raise ValueError('nonfinite_visual_result')
-        obs = json.loads(raw,parse_constant=nonfinite)
-        if not isinstance(obs,dict) or type(obs.get('visible')) is not bool or type(obs.get('ambiguous')) is not bool:
-            raise ValueError('视觉返回格式无效')
-        if obs.get('bbox_format') != 'xyxy':
-            raise ValueError('invalid_visual_bbox_format')
-        if not isinstance(obs.get('description'),str) or 'bbox' not in obs:
-            raise ValueError('invalid_visual_required_fields')
-        count = obs.get('candidate_count')
-        if type(count) is not int or not 0 <= count <= 100: raise ValueError('invalid_visual_candidate_count')
-        if obs['ambiguous'] or count > 1:
-            return {'visible':False,'ambiguous':True,'candidate_count':count,'bbox':None,
-                    'center_x':None,'width_fraction':None,'description':'目标不唯一，不能自行选择'}
-        box = obs.get('bbox')
-        if not obs['visible']:
-            if box is not None or any(obs.get(k) is not None for k in ('center_x','width_fraction')):
-                raise ValueError('invisible_coordinates_must_be_null')
-            return {'visible':False,'ambiguous':False,'candidate_count':count,'bbox':None,
-                    'center_x':None,'width_fraction':None,'description':str(obs.get('description',''))[:500]}
-        if count != 1 or not isinstance(box,list) or len(box)!=4 or any(type(v) not in (int,float) or not math.isfinite(v) for v in box):
-            raise ValueError('invalid_visual_bbox')
-        left,top,right,bottom = box
-        if not 0 <= left < right <= 1 or not 0 <= top < bottom <= 1: raise ValueError('invalid_visual_bbox')
-        return {'visible':True,'ambiguous':False,'candidate_count':1,'bbox':box,'center_x':(left+right)/2,
-                'width_fraction':right-left,'description':str(obs.get('description',''))[:500]}
     def _advance(self, frames, generation):
         self._current(frames,generation)
         tracker = self._tracker
-        if tracker is None: raise RuntimeError('navigation_target_not_seeded')
         current = tracker.current(require_fresh=False)
         age = time.time()-current['target_tracking']['semantic_timestamp']
         deadline = time.monotonic()+min(CATCHUP_SECONDS,max(0.,SEED_MAX_AGE-age))
@@ -220,8 +186,7 @@ class Vision:
             if time.monotonic() >= deadline: raise RuntimeError('navigation_tracker_catchup_deadline')
             self._current(frames,generation)
         self._current(frames,generation)
-        x,y,width,height = result['bbox']
-        return dict(result,bbox=[x,y,x+width,y+height],bbox_format='xyxy')
+        return self._observation.tracked(result).to_dict()
     def refresh_observation(self, observation):
         with self._lock:
             frames,generation = self._frames,self._generation
@@ -230,10 +195,9 @@ class Vision:
             if expected is None: raise RuntimeError('navigation_tracking_identity_missing')
             result = self._advance(frames,generation)
             if result['target_tracking']['track_id'] != expected: raise RuntimeError('navigation_tracking_identity_changed')
-            return dict(result,description=observation.get('description',''),ambiguous=False,candidate_count=1)
+            return result
     def observe(self,target):
         if self.client is None: raise RuntimeError('未配置用于结构化观察的视觉模型API')
-        if not isinstance(target,str) or not 0 < len(target) <= 2000: raise ValueError('invalid_visual_target')
         frames,generation = self._context()
         if self._stable is None: self.prepare_navigation(time.time(),threading.Event())
         with self._lock:
@@ -250,17 +214,16 @@ class Vision:
         raw = self.client.observe_image(jpeg,target,timeout=timeout)
         if not 0 <= time.time()-packet['timestamp'] <= SEED_MAX_AGE-CATCHUP_SECONDS:
             raise RuntimeError('navigation_semantic_request_expired')
-        obs=self.parse_observation(raw)
+        obs = Observation.parse(raw, **{key:packet[key] for key in
+            ('source','simulated','frame_id','timestamp')}, fresh=True)
         with self._lock:
             self._current(frames,generation)
-            if not obs['visible']:
+            self._observation = obs
+            if not obs.visible:
                 self._tracker = None; self._target = target
-                return dict(obs,**{key:packet[key] for key in ('source','simulated','frame_id','timestamp')})
+                return obs.to_dict()
             from navigation.TargetTracker import TargetTracker
             tracker = TargetTracker()
-            left,top,right,bottom = obs['bbox']
-            # Cloud/public bbox is xyxy; the independent tracker takes xywh.
-            tracker.seed(packet,[left,top,right-left,bottom-top],require_fresh=False)
+            tracker.seed(packet, obs.bbox, require_fresh=False)
             self._tracker,self._target = tracker,target
-            result = self._advance(frames,generation)
-            return dict(result,description=obs['description'],ambiguous=False,candidate_count=1)
+            return self._advance(frames,generation)

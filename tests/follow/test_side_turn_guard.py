@@ -33,7 +33,7 @@ def observation(seq, t, corners=None, found=True):
 
 class ShapeGuardTests(unittest.TestCase):
     def ready(self, **options):
-        c = FollowController(config=FollowConfig(steering_mode='lateral', yaw_limit=.3, max_request_rate=None), require_geometry=True, **options)
+        c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None), require_geometry=True, **options)
         c.observe(observation(0, 0))
         self.assertTrue(c.calibrate(0)[0])
         self.assertTrue(c.start(0)[0])
@@ -59,7 +59,7 @@ class ShapeGuardTests(unittest.TestCase):
         for roll in (15, 45, 90, 179):
             c = self.ready()
             c.observe(observation(1, .1, rectangle(70, 70, roll=roll)))
-            self.assertAlmostEqual(c.tick(.1).forward, .23)
+            self.assertAlmostEqual(c.tick(.1).forward, 23.)
 
     def test_diagonal_shear_is_rejected_even_with_similar_edge_lengths(self):
         c = self.ready()
@@ -80,12 +80,12 @@ class ShapeGuardTests(unittest.TestCase):
         for seq, x in enumerate((160, 480), 1):
             c.observe(observation(seq, seq*.1, rectangle(50, 100, x=x)))
             request = c.tick(seq*.1)
-            self.assertAlmostEqual(request.right, -.3 if x < 320 else .3)
+            self.assertAlmostEqual(request.right, -30. if x < 320 else 30.)
             self.assertEqual(request.forward, 0)
 
     def test_existing_forward_and_backward_requests_drop_without_ramp_delay(self):
         for side in (40, 160):
-            c = self.ready(max_request_rate=.8)
+            c = self.ready(slew_rc_per_second=80.0)
             for seq in range(1, 6):
                 c.observe(observation(seq, seq*.1, rectangle(side, side, x=480)))
                 c.tick(seq*.1)
@@ -107,7 +107,7 @@ class ShapeGuardTests(unittest.TestCase):
         self.assertAlmostEqual(c.reference_size, 80/640)
 
     def test_missing_geometry_is_not_a_valid_camera_reference(self):
-        c = FollowController(config=FollowConfig(steering_mode='lateral', yaw_limit=.3, max_request_rate=None), require_geometry=True)
+        c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None), require_geometry=True)
         c.observe(replace(observation(0, 0), corners=()))
         self.assertFalse(c.calibrate(0)[0])
         self.assertFalse(c.start(0)[0])
@@ -119,12 +119,12 @@ class ShapeGuardTests(unittest.TestCase):
         self.assertEqual(c.distance_guard.reason, "geometry_missing_or_invalid")
 
     def test_scalar_math_simulation_remains_explicitly_available(self):
-        c = FollowController(config=FollowConfig(steering_mode='lateral', yaw_limit=.3, max_request_rate=None))
+        c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None))
         c.observe(replace(observation(0, 0), corners=()))
         self.assertTrue(c.calibrate(0)[0])
         self.assertTrue(c.start(0)[0])
         c.observe(replace(observation(1, .1, rectangle(70, 70)), corners=()))
-        self.assertAlmostEqual(c.tick(.1).forward, .23)
+        self.assertAlmostEqual(c.tick(.1).forward, 23.)
         c.observe(observation(2, .2, rectangle(50, 100)))
         c.tick(.2)
         c.observe(replace(observation(3, .3, rectangle(70, 70)), corners=()))
@@ -142,7 +142,7 @@ class ShapeGuardTests(unittest.TestCase):
             self.assertIsNone(marker_shape(points))
 
     def test_reentry_requires_three_new_frames_and_time_not_repeated_ticks(self):
-        c = self.ready(max_request_rate=.8)
+        c = self.ready(slew_rc_per_second=80.0)
         c.observe(observation(1, .1, rectangle(50, 100)))
         c.tick(.1)
         good = observation(2, .2, rectangle(60, 60))
@@ -153,7 +153,7 @@ class ShapeGuardTests(unittest.TestCase):
         c.observe(observation(3, .4, rectangle(60, 60)))
         self.assertEqual(c.tick(.4).forward, 0)  # only two new frames
         c.observe(observation(4, .5, rectangle(60, 60)))
-        self.assertAlmostEqual(c.tick(.5).forward, .08)  # from zero, not old request
+        self.assertAlmostEqual(c.tick(.5).forward, 8.)  # from zero, not old request
 
     def test_fast_frames_do_not_bypass_stable_duration(self):
         c = self.ready()
@@ -200,7 +200,7 @@ class ShapeGuardTests(unittest.TestCase):
 
     def test_side_turn_guard_does_not_mask_loss_or_stale_frame(self):
         for failure in ("loss", "stale"):
-            c = self.ready(recovery_window=3)
+            c = self.ready(auto_recover=True)
             c.observe(observation(1, .1, rectangle(50, 100, x=480)))
             c.tick(.1)
             if failure == "loss":
@@ -212,7 +212,7 @@ class ShapeGuardTests(unittest.TestCase):
 
 
 class GeometryTracker:
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         return replace(frame, frame_id=frame_id, acquired_at=acquired_at, source=source)
 
 
@@ -220,7 +220,7 @@ class ServiceShapeTests(unittest.TestCase):
     def setUp(self):
         self.t, self.seq = 10., 0
         self.port = FakeDevice(lambda: self.t)
-        self.service = FollowService(self.port, config=FollowConfig(steering_mode='lateral', yaw_limit=.3, max_request_rate=.8),
+        self.service = FollowService(self.port, config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=80.0),
                            tracker=GeometryTracker(),
                            monotonic=lambda: self.t,
                            wall_clock=lambda: 1800000000 + self.t,

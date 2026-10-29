@@ -11,7 +11,7 @@ from follow.r3_follow.vision import MarkerTracker, synthetic_frame
 
 class RecoveryTests(unittest.TestCase):
     def setUp(self):
-        self.c = FollowController(config=FollowConfig(steering_mode='lateral', yaw_limit=.3, max_request_rate=None), recovery_window=.6)
+        self.c = FollowController(config=FollowConfig(steering_mode='lateral', horizontal_limit_rc=30.0, slew_rc_per_second=None), auto_recover=True)
         self.detector = MarkerTracker()
         self.seq = 0
         self.frame(0)
@@ -54,11 +54,13 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.c.state, State.RECOVERING)
         self.assertGreater(self.frame(.38).right, 0)
 
-    def test_timeout_stays_latched_after_target_returns(self):
+    def test_long_loss_recovers_after_stable_target_returns(self):
         self.lose()
         for t in (.3, .5, .71): self.zero(self.frame(t, visible=False))
-        self.assertEqual(self.c.state, State.LOST)
-        for t in (.8, .9, 1.0): self.zero(self.frame(t))
+        self.assertEqual(self.c.state, State.RECOVERING)
+        self.zero(self.frame(.8))
+        self.zero(self.frame(.9))
+        self.assertGreater(self.frame(1.0).right,0)
 
     def test_stop_during_recovery_cancels_restart(self):
         self.lose()
@@ -105,14 +107,16 @@ class RecoveryTests(unittest.TestCase):
         self.zero(self.frame(1.15))
         self.assertEqual(self.c.state, State.STALE)
 
-    def test_another_loss_resets_confirmation_without_extending_deadline(self):
+    def test_another_loss_resets_confirmation_until_stable_target(self):
         self.lose()
         self.frame(.2)
         self.frame(.3, visible=False)
         self.zero(self.frame(.4))
         self.zero(self.frame(.5))
         self.zero(self.frame(.71))
-        self.assertEqual(self.c.state, State.LOST)
+        self.assertEqual(self.c.state, State.RECOVERING)
+        self.zero(self.frame(.81))
+        self.assertGreater(self.frame(.91).right,0)
 
     def test_invalid_data_cancels_recovery(self):
         self.lose()

@@ -25,22 +25,20 @@ class TargetTrackingError(RuntimeError):
 
 
 class TargetTracker:
+    """Internal tracker for bounded NavigationFrames packets with increasing IDs."""
+
     def __init__(self, *, clock=time.time, max_source_age=1.0,
-                  max_semantic_age=SEED_MAX_AGE, max_gap=.3, max_updates=100,
-                 max_dimension=960):
+                  max_semantic_age=SEED_MAX_AGE, max_gap=.3, max_updates=100):
         for value, maximum in ((max_source_age,1.0),(max_semantic_age,8.),(max_gap,.3)):
             if type(value) not in (int,float) or not math.isfinite(value) or not 0 < value <= maximum:
                 raise ValueError('invalid_target_tracker_time_budget')
         if type(max_updates) is not int or not 1 <= max_updates <= 160:
             raise ValueError('invalid_target_tracker_sample_budget')
-        if type(max_dimension) is not int or not 320 <= max_dimension <= 960:
-            raise ValueError('invalid_target_tracker_resolution_budget')
         self.clock=clock
         self.max_source_age=float(max_source_age)
         self.max_semantic_age=float(max_semantic_age)
         self.max_gap=float(max_gap)
         self.max_updates=max_updates
-        self.max_dimension=max_dimension
         self.alive=False
         self.failure='target_not_seeded'
 
@@ -50,29 +48,15 @@ class TargetTracker:
         raise TargetTrackingError(code)
 
     def _packet(self, packet):
-        if not isinstance(packet,dict):self._fail('invalid_target_packet')
-        fid,stamp=packet.get('frame_id'),packet.get('timestamp')
-        if type(fid) is not int or fid < 0:self._fail('invalid_target_frame_identity')
-        if type(stamp) not in (int,float) or not math.isfinite(stamp):
-            self._fail('invalid_target_frame_timestamp')
-        age=self.clock()-stamp
-        if packet.get('stale') or not 0 <= age <= self.max_semantic_age:
+        # NavigationFrames supplies validated identities and a fixed SDK source.
+        age=self.clock()-packet['timestamp']
+        if not 0 <= age <= self.max_semantic_age:
             self._fail('target_source_frame_expired')
-        source=packet.get('source','sdk_camera')
-        if not isinstance(source,str) or not source or len(source)>128:
-            self._fail('invalid_target_source')
-        frame=packet.get('frame')
-        if (not isinstance(frame,np.ndarray) or frame.dtype!=np.uint8
-                or frame.ndim!=3 or frame.shape[2]!=3
-                or min(frame.shape[:2])<48 or frame.shape[0]*frame.shape[1]>8_500_000):
+        frame=packet['frame']
+        if min(frame.shape[:2])<48:
             self._fail('invalid_target_image')
-        h,w=frame.shape[:2]
-        scale=min(1.,self.max_dimension/max(h,w))
-        if scale<1:frame=cv2.resize(frame,(round(w*scale),round(h*scale)),interpolation=cv2.INTER_AREA)
-        else:frame=frame.copy()
         gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-        identity={k:packet[k] for k in ('frame_id','timestamp','source','simulated') if k in packet}
-        identity.setdefault('source',source)
+        identity={k:packet[k] for k in ('frame_id','timestamp','source','simulated')}
         return frame,gray,identity
 
     def _bounds(self, quad, shape):
@@ -129,12 +113,12 @@ class TargetTracker:
         if (not isinstance(bbox,(list,tuple)) or len(bbox)!=4
                 or any(type(v) not in (int,float) or not math.isfinite(v) for v in bbox)):
             self._fail('invalid_target_bbox')
-        x,y,w,h=map(float,bbox)
-        if min(x,y)<0 or min(w,h)<=0 or x+w>1 or y+h>1:
+        left,top,right,bottom=map(float,bbox)
+        if not (0 <= left < right <= 1 and 0 <= top < bottom <= 1):
             self._fail('invalid_target_bbox')
         height,width=gray.shape
-        quad=np.array([[x*width,y*height],[(x+w)*width,y*height],
-                       [(x+w)*width,(y+h)*height],[x*width,(y+h)*height]],dtype=np.float32)
+        quad=np.array([[left*width,top*height],[right*width,top*height],
+                       [right*width,bottom*height],[left*width,bottom*height]],dtype=np.float32)
         box=self._bounds(quad,gray.shape)
         second=self._unique(gray,box)
         mask=np.zeros_like(gray)
@@ -212,15 +196,8 @@ class TargetTracker:
 
     def _update(self, packet, *, require_fresh):
         frame,gray,identity=self._packet(packet)
-        if identity['source']!=self.identity['source'] or identity.get('simulated')!=self.identity.get('simulated'):
-            self._fail('target_source_changed')
         if gray.shape!=self.gray.shape:self._fail('target_resolution_changed')
         fid,stamp=identity['frame_id'],identity['timestamp']
-        if fid==self.identity['frame_id']:
-            if stamp!=self.identity['timestamp']:self._fail('target_duplicate_timestamp_changed')
-            if not np.array_equal(gray,self.gray):self._fail('target_duplicate_content_changed')
-            return self.current(require_fresh=require_fresh)
-        if fid<self.identity['frame_id']:self._fail('target_frame_identity_reversed')
         gap=stamp-self.identity['timestamp']
         if not 0 < gap <= self.max_gap+1e-6:self._fail('target_frame_gap')
         if self.clock()-self.seed_identity['timestamp']>self.max_semantic_age:
@@ -281,9 +258,8 @@ class TargetTracker:
         if require_fresh and not fresh:self._fail('target_current_frame_expired')
         x,y,w,h=self._bounds(self.quad,self.gray.shape)
         height,width=self.gray.shape
-        bbox=[x/width,y/height,w/width,h/height]
-        return {**self.identity,'bbox':bbox,'visible':True,'center_x':(x+w/2)/width,
-            'width_fraction':w/width,'fresh':fresh,
+        bbox=[x/width,y/height,(x+w)/width,(y+h)/height]
+        return {**self.identity,'bbox':bbox,'fresh':fresh,
             'target_tracking':{'track_id':self.track_id,'seed_frame_id':self.seed_identity['frame_id'],
                 'semantic_timestamp':self.seed_identity['timestamp'],'quality':dict(self.quality),
                 'updates':self.updates,'source_age_seconds':age,'semantic_age_seconds':semantic_age,

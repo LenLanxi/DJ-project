@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { Client, decodeTLV, toolReply, explicitDevice } = require('../../web/RTCClient');
+const { Client, decodeTLV, explicitDevice } = require('../../web/RTCClient');
 function encodeTLV(type, payload) {
   const data = Buffer.from(JSON.stringify(payload)), raw = Buffer.alloc(8 + data.length);
   raw.write(type, 0, 4); raw.writeUInt32BE(data.length, 4); data.copy(raw, 8);
@@ -80,15 +80,6 @@ const capturedUserSubtitles = [
   { text: '请只回答一句话，测试收到。', sequence: 11, definite: true, paragraph: true, roundId: 1 }
 ];
 
-test('reference adjustment feedback requires confirmed follow cleanup', () => {
-  const accepted = toolReply('id', { ok: true, status: 'completed',
-    journal: [{ method: 'adjust_follow_reference', result: { ok: true, status: 'accepted' } }] });
-  assert.equal(JSON.parse(accepted.Content).follow_reference_adjusted, undefined);
-  const applied = toolReply('id', { ok: true, status: 'completed',
-    follow_cleanup: { status: 'follow_resumed', reference_adjusted: 'depth' } });
-  assert.equal(JSON.parse(applied.Content).follow_cleanup.reference_adjusted, 'depth');
-});
-
 test('TLV Unicode round trip uses exact big endian length', () => {
   const raw = encodeTLV('tool', { text: '前进然后旋转', tool_calls: [call()] });
   assert.equal(new DataView(raw).getUint32(4, false), raw.byteLength - 8);
@@ -135,242 +126,12 @@ test('unavailable video disables old publication and fresh frames restore it wit
   try{
     await value.bridgeMessage({type:'invalid_frame'});
     assert.equal(value.active,true);assert.equal(value.track.enabled,false);
-    value.forwardCalls([call()]);assert.equal(sent.at(-1).type,'tool');
+    value.rtcMessage({type:'tool',value:{tool_calls:[call()]}});assert.equal(sent.at(-1).type,'cloud_event');
     await value.renderFrame({id:1,timestamp:Date.now()/1000,jpeg:'fixture'});
     assert.equal(value.track.enabled,true);assert.equal(value.track.frames,1);
     value.clearFrame();assert.equal(value.track.enabled,false);
   }finally{globalThis.Image=previous;}
 });
-test('tool without completed user turn is rejected rather than queued for later', () => {
-  const { value, sent } = client();
-  assert.throws(() => value.rtcMessage({ type: 'tool', value: { tool_calls: [call()] } }), /有效用户轮次/);
-  assert.equal(value.pendingCalls.length, 0);
-  assert.equal(sent.length, 0);
-});
-test('partial speech does not authorize a program', () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: false, text: '起', definite: false }));
-  assert.equal(sent.length, 0);
-  assert.equal(value.epoch, null);
-});
-test('completed human subtitle sends identity and waits for the exact host turn acknowledgement', async () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: true, text: '起飞', definite: true }));
-  assert.equal(sent[0].type, 'user_turn');
-  assert.equal(sent[0].completed, true);
-  assert.equal(sent[0].taskId, identity.taskId);
-  assert.equal(value.epoch, null);
-  value.rtcMessage({ type: 'tool', value: { tool_calls: [call()] } });
-  assert.equal(sent.length, 1);
-  await value.bridgeMessage({ type: 'turn', epoch: 4, id: '1' });
-  assert.equal(sent[1].type, 'tool');
-  assert.equal(sent[1].epoch, 4);
-  assert.equal(sent[1].botId, identity.botId);
-});
-test('mismatched turn acknowledgement never relabels a queued tool', async () => {
-  const { value, sent } = client();
-  value.pendingTurn = 'expected';
-  value.pendingCalls.push([call()]);
-  await assert.rejects(value.bridgeMessage({ type: 'turn', epoch: 5, id: 'old' }), /不匹配/);
-  assert.equal(sent.length, 0);
-});
-test('duplicate tools before turn acknowledgement wait for the same exact grant', async () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: true, text: '查询状态', definite: true }));
-  const event = { type: 'tool', value: { tool_calls: [call()] } };
-  value.rtcMessage(event); value.rtcMessage(event);
-  assert.equal(sent.filter(message => message.type === 'tool').length, 0);
-  await value.bridgeMessage({ type: 'turn', epoch: 4, id: '1' });
-  const tools = sent.filter(message => message.type === 'tool');
-  assert.equal(tools.length, 2);
-  assert.equal(tools.every(message => message.epoch === 4), true);
-  assert.equal(value.pendingTools.size, 1);
-  assert.equal(value.pendingCalls.length, 0);
-});
-
-test('duplicate tool events reach the host and share one pending reply', async () => {
-  const { value, sent } = client(); value.epoch = 2;
-  const replies = [];
-  value.engine = {};
-  value.post = async (_path, body) => replies.push(JSON.parse(body.message));
-  value.forwardCalls([call()]); value.forwardCalls([call()]);
-  assert.equal(sent.length, 2, 'the host decides whether this call can execute');
-  assert.equal(value.pendingTools.size, 1);
-  const result = { type: 'tool_result', id: 'call1', epoch: 2,
-    result: { ok: true, status: 'completed' } };
-  await value.bridgeMessage(result);
-  await value.bridgeMessage(result);
-  assert.equal(replies.length, 1, 'one pending cloud call receives one result');
-  assert.equal(value.pendingTools.size, 0);
-});
-
-test('completed call replay is forwarded and consumes the host cached result', async () => {
-  const { value, sent } = client(); value.epoch = 2;
-  const replies = [];
-  value.engine = {};
-  value.post = async (_path, body) => replies.push(JSON.parse(body.message));
-  const result = { type: 'tool_result', id: 'call1', epoch: 2,
-    result: { ok: true, status: 'completed' } };
-  value.forwardCalls([call()]);
-  await value.bridgeMessage(result);
-  value.forwardCalls([call()]);
-  assert.equal(sent.length, 2);
-  assert.equal(value.pendingTools.size, 1);
-  await value.bridgeMessage(result);
-  assert.equal(value.pendingTools.size, 0, 'a completed replay must not leave an unanswered pending call');
-  assert.equal(replies.length, 2);
-  assert.deepEqual(replies[1], replies[0]);
-});
-
-test('changed tool payload reaches host rejection and session cleanup clears pending replies', async () => {
-  const { value, sent } = client(); value.epoch = 2;
-  value.forwardCalls([call()]);
-  value.forwardCalls([call('call1', 'drone.takeoff()')]);
-  assert.equal(sent.length, 2);
-  assert.equal(value.pendingTools.size, 1);
-  assert.equal(JSON.parse(sent[1].calls[0].function.arguments).code, 'drone.takeoff()');
-  await assert.rejects(value.bridgeMessage({ type: 'error', reason: 'tool_id_reused_with_different_payload' }),
-    /tool_id_reused_with_different_payload/);
-  await value.stop('host rejected changed payload');
-  assert.equal(value.pendingTools.size, 0);
-});
-test('new speech while the old model is still planning interrupts before any tool arrives', () => {
-  const { value, sent } = client();
-  value.turnOpen = true; value.completedRounds.add('1'); value.epoch = 2;
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: false, text: '停', definite: false }));
-  assert.equal(sent[0].type, 'interrupt');
-  assert.equal(value.epoch, null);
-});
-
-test('real cloud boolean paragraph ends a round instead of becoming its identity', () => {
-  const { value, sent } = client();
-  for (const item of capturedUserSubtitles) value.rtcMessage(subtitle({ ...item, userId: identity.userId }));
-  assert.equal(sent.length, 1);
-  assert.equal(sent[0].type, 'user_turn');
-  assert.equal(sent[0].id, '1');
-  assert.equal(sent[0].text, '请只回答一句话，测试收到。');
-});
-
-test('a completed clause with paragraph false does not authorize a program', () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, definite: true,
-    paragraph: false, text: '起飞以后，' }));
-  assert.equal(sent.length, 0);
-  assert.equal(value.pendingTurn, null);
-  assert.equal(value.epoch, null);
-  assert.throws(() => value.rtcMessage({ type: 'tool', value: { tool_calls: [call()] } }), /有效用户轮次/);
-});
-
-test('two different completed rounds both using paragraph true are submitted once each', async () => {
-  const { value, sent } = client();
-  const final = roundId => subtitle({ userId: identity.userId, roundId, paragraph: true,
-    definite: true, text: '查询状态' });
-  value.rtcMessage(final(1)); value.rtcMessage(final(1));
-  await value.bridgeMessage({ type: 'turn', epoch: 4, id: '1' });
-  value.rtcMessage({ type: 'conv', value: { Stage: { Code: 5 } } });
-  value.rtcMessage(final(2)); value.rtcMessage(final(2));
-  assert.deepEqual(sent.filter(item => item.type === 'user_turn').map(item => item.id), ['1', '2']);
-  assert.equal(value.pendingTurn, '2');
-  assert.equal(value.epoch, null);
-});
-
-test('empty quick-subtitle ending uses the same-round cumulative text and only grants once', () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 8, paragraph: false,
-    definite: false, text: '查询电量' }));
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 8, paragraph: false,
-    definite: true, text: '查询当前电量' }));
-  const ending = subtitle({ userId: identity.userId, roundId: 8, paragraph: true, definite: true, text: '' });
-  value.rtcMessage(ending); value.rtcMessage(ending);
-  assert.equal(sent.length, 1);
-  assert.equal(sent[0].id, '8');
-  assert.equal(sent[0].text, '查询当前电量');
-});
-
-test('missing negative boolean string and fractional round IDs never authorize', () => {
-  for (const roundId of [undefined, null, -1, true, false, '1', 1.5, Infinity]) {
-    const { value, sent } = client();
-    value.rtcMessage(subtitle({ userId: identity.userId, roundId, paragraph: true,
-      definite: true, text: '起飞' }));
-    assert.equal(sent.length, 0);
-    assert.equal(value.pendingTurn, null);
-  }
-});
-
-test('numeric paragraph fixture cannot silently regain the old invented identity semantics', () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: 1,
-    definite: true, text: '起飞' }));
-  assert.equal(sent.length, 0);
-});
-
-test('a new round empty ending cannot borrow the prior round text', () => {
-  const { value, sent } = client();
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: false,
-    definite: false, text: '起飞' }));
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: true,
-    definite: true, text: '' }));
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 1, paragraph: true,
-    definite: true, text: '起飞' }));
-  assert.equal(sent.length, 0);
-});
-
-test('new round partial revokes immediately and its final cannot restore the old session grant', () => {
-  const { value, sent } = client();
-  value.turnOpen = true; value.completedRounds.add('1'); value.epoch = 2;
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: false,
-    definite: false, text: '停' }));
-  value.rtcMessage(subtitle({ userId: identity.userId, roundId: 2, paragraph: true,
-    definite: true, text: '停止' }));
-  assert.deepEqual(sent, [{ type: 'interrupt', land: false, source: 'user_speech_during_turn' }]);
-  assert.equal(value.epoch, null);
-  assert.equal(value.pendingTurn, null);
-});
-test('cloud interruption state reaches local cancellation before final subtitles', () => {
-  const { value, sent } = client(); value.epoch = 2;
-  value.rtcMessage({ type: 'conv', value: { Stage: { Code: 4 } } });
-  assert.equal(sent[0].type, 'interrupt');
-  assert.equal(value.epoch, null);
-});
-test('oversized and malformed programs reach host validation without disconnecting voice', async () => {
-  const { value, sent } = client(); value.epoch = 2;
-  value.forwardCalls([call('short', 'for _ in range(2):\n print(drone.get_status())')]);
-  assert.equal(sent.length, 1);
-  value.forwardCalls([call('long', '中'.repeat(201))]);
-  const malformed = call('malformed'); malformed.function.arguments = '{"code":';
-  value.forwardCalls([malformed]);
-  assert.equal(sent.length, 3);
-  const replies = [];
-  value.engine = {};
-  value.post = async (_path, body) => replies.push(JSON.parse(body.message));
-  await value.bridgeMessage({ type: 'tool_result', id: 'long', epoch: 2,
-    result: { ok: false, status: 'failed', reason: 'invalid_program_arguments: max=60000' } });
-  assert.equal(JSON.parse(replies[0].Content).ok, false);
-  assert.equal(value.active, true);
-  value.forwardCalls([call('corrected', 'print(drone.get_status())')]);
-  assert.equal(sent.at(-1).calls[0].id, 'corrected');
-});
-test('server tool reply preserves observation and completion evidence beyond one KiB', () => {
-  const reply = toolReply('tool1', { ok: true, status: 'completed', reason: '说明'.repeat(200), journal: [
-    { method: 'describe', result: { ok: true, status: 'completed', visible: true, center_x: .4,
-      width_fraction: .2, age_seconds: 1.5, answer: '一顶红色帐篷'.repeat(100), description: '看见红色'.repeat(100) } }
-  ] });
-  assert.ok(Buffer.byteLength(JSON.stringify(reply)) > 1000);
-  const result = JSON.parse(reply.Content);
-  assert.equal(result.ok, true);
-  assert.equal(result.journal[0].result.status, 'completed');
-  assert.equal(result.journal[0].result.visible, true);
-  assert.ok(result.journal[0].result.answer.length > 0);
-  assert.equal(result.journal[0].result.age_seconds, 1.5);
-});
-test('interrupt invalidates local turn synchronously before network acknowledgement', async () => {
-  const { value, sent } = client(); value.epoch = 8; value.pendingTurn = 'pending';
-  await value.interrupt(true);
-  assert.equal(value.epoch, null);
-  assert.equal(value.pendingTurn, null);
-  assert.deepEqual(sent[0], { type: 'interrupt', land: true, source: 'operator' });
-});
-
 test('client failure preserves its reason before closing the control socket', async () => {
   const { value, sent } = client();
   await value.stop('RTC错误：fixture_error');
@@ -378,48 +139,6 @@ test('client failure preserves its reason before closing the control socket', as
   assert.equal(sent[0].reason, 'RTC错误：fixture_error');
   assert.equal(sent[0].land, false);
 });
-test('late tool result cannot be returned to the cloud after local interruption', async () => {
-  const { value } = client();
-  value.epoch = 3; value.pendingTools.add('call1');
-  let replies = 0;
-  value.engine = {};
-  value.post = async () => { replies += 1; };
-  await value.interrupt(false);
-  await value.bridgeMessage({ type: 'tool_result', id: 'call1', epoch: 3, result: { ok: true } });
-  assert.equal(replies, 0);
-  assert.equal(value.pendingTools.size, 0);
-});
-test('pending identifier alone cannot authorize a mismatched epoch result', async () => {
-  const { value } = client();
-  value.epoch = 4; value.pendingTools.add('call1');
-  let replies = 0;
-  value.engine = {};
-  value.post = async () => { replies += 1; };
-  await value.bridgeMessage({ type: 'tool_result', id: 'call1', epoch: 3, result: { ok: true } });
-  assert.equal(replies, 0);
-});
-test('settled old tool reply cannot report execution into a newer connection', async () => {
-  const { value } = client(); value.epoch = 2;
-  const messages = [];
-  value.onMessage = message => messages.push(message);
-  let release;
-  value.engine = {};
-  value.post = path => path === '/api/update' ? new Promise(resolve => { release = resolve; }) : Promise.resolve({ok:true});
-  value.forwardCalls([call()]);
-  const replying = value.bridgeMessage({ type: 'tool_result', id: 'call1', epoch: 2,
-    result: { ok: true, status: 'completed' } });
-  await value.stop('replace connection');
-  messages.length = 0;
-  value.active = true;
-  value.session = { ...identity, sessionId: 'session2' };
-  value.engine = {};
-  value.epoch = 2;
-  value.pendingTools.add('call1');
-  release(); await replying;
-  assert.deepEqual(messages, []);
-  assert.equal(value.pendingTools.size, 1, 'the new connection keeps its own pending call');
-});
-
 test('slow cloud stop cannot keep local capture and RTC room alive', async () => {
   const { value } = client();
   value.requestTimeoutMs = 20;
@@ -437,20 +156,23 @@ test('slow cloud stop cannot keep local capture and RTC room alive', async () =>
   await stopping;
   assert.equal(value.active, false);
 });
-test('simulated source flag survives compact tool feedback', () => {
-  const value = JSON.parse(toolReply('id', { ok: true, status: 'completed', simulated: true }).Content);
-  assert.equal(value.simulated, true);
+test('supplier events are forwarded in order without a browser authorization handshake', () => {
+  const {value,sent}=client();
+  const events=[subtitle({userId:identity.userId,roundId:1,text:'query',paragraph:true,definite:true}),
+    {type:'tool',value:{tool_calls:[call()]}}];
+  for(const event of events)value.rtcMessage(event);
+  assert.deepEqual(sent.map(x=>x.event),events);
+  assert.ok(sent.every(x=>x.type==='cloud_event' && x.sessionId===identity.sessionId));
 });
-test('Chinese program branch evidence survives the server reply without another truncation', () => {
-  const reply = toolReply('tool1', { ok: true, status: 'completed', simulated: true,
-    debug: 'stage_status=failed：没有找到红色帐篷，已停止，旋转与恢复跟随未执行。'.repeat(20),
-    journal: [{ method: 'stop_motion', result: { ok: true, status: 'completed' } }] });
-  const result = JSON.parse(reply.Content);
-  assert.equal(result.ok, true, 'the program did exit normally; do not fabricate its exit status');
-  assert.equal(result.journal[0].result.status, 'completed');
-  assert.match(result.debug, /stage_status=failed/);
-  assert.equal(result.truncated, undefined);
+
+test('tool results are display only and do not route cloud updates through the browser',async()=>{
+  const {value}=client();let displayed='';
+  value.post=async()=>assert.fail('tool result must use server transport');
+  value.onMessage=text=>displayed=text;
+  await value.bridgeMessage({type:'tool_result',id:'call',result:{ok:true,status:'completed'}});
+  assert.match(displayed,/completed/);
 });
+
 test('joining publishes only the external drone canvas and explicit headset devices', async () => {
   const calls = [];
   const track = { requestFrame() { calls.push('requestFrame'); }, stop() { calls.push('trackStop'); } };
@@ -613,7 +335,7 @@ test('only the expected bot join clears waiting and late HTTP cannot overwrite c
   value.onState = state => states.push(state);
   value.installEvents();
   value.showSubmittedState();
-  assert.match(states.at(-1), /最多30秒/);
+  assert.match(states.at(-1), /等待模型入房/);
   handlers.onUserJoined({ userInfo: { userId: 'unrelated' } });
   assert.equal(value.botJoined, false);
   handlers.onUserJoined({ userInfo: { userId: identity.botId } });
@@ -628,4 +350,19 @@ test('only the expected bot join clears waiting and late HTTP cannot overwrite c
   value.botJoined = false;
   handlers.onUserJoined({ userInfo: { userId: identity.botId } });
   assert.equal(value.botJoined, false);
+});
+
+
+test('transient SDK events and malformed supplier packets preserve the session', () => {
+  const { value } = client(); const handlers = {}, states = [];
+  value.engine = { on(name, callback) { handlers[name] = callback; } };
+  value.onState = state => states.push(state);
+  value.fail = () => assert.fail('recoverable event must not end session');
+  value.installEvents();
+  handlers.onError({errorCode: 1});
+  handlers.onConnectionStateChanged({state: 4});
+  handlers.onUserLeave({userId: identity.botId});
+  handlers.onRoomBinaryMessageReceived({userId: identity.botId, message: new ArrayBuffer(3)});
+  assert.equal(states.length, 4);
+  assert.equal(value.active, true);
 });

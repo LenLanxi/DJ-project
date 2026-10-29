@@ -17,13 +17,13 @@ class FrameRejectionTests(unittest.TestCase):
                 port = FakeDevice(mono)
 
                 class Detector:
-                    def detect(self, frame, frame_id, acquired_at, source):
+                    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
                         return Observation(frame_id, acquired_at, source, 640, 480, 0,
                             True, frame, 240, .25,
                             corners=((frame-80, 160), (frame+80, 160),
                                      (frame+80, 320), (frame-80, 320)))
 
-                service = FollowService(port, config=FollowConfig(steering_mode='lateral', max_request_rate=.8),
+                service = FollowService(port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
                               tracker=Detector(),
                               monotonic=mono,
                               wall_clock=wall,

@@ -10,10 +10,11 @@ import json
 import time
 import traceback
 import uuid
+from websockets.exceptions import ConnectionClosedOK
 
 from providers.AlibabaRealtime import normalize_tools, session_update, strict_json
 from app.Results import tool_result
-from app.Tools import execute_tool, validate_tool
+from app.Tools import validate_tool
 
 MAX_RESPONSE_TOKENS = 2048
 INVALID_RESPONSE_GRACE_SECONDS = 8
@@ -283,9 +284,13 @@ class OmniSession:
             if not self.current_response(event.get('response_id')):
                 return
             if kind == 'response.audio.delta':
-                pcm = base64.b64decode(event.get('delta',''), validate=True)
-                if len(pcm) % 2 or len(pcm) > 24000*2*2:
-                    raise ValueError('omni_invalid_audio_output')
+                try:
+                    pcm = base64.b64decode(event.get('delta',''), validate=True)
+                    if len(pcm) % 2:
+                        raise ValueError('omni_invalid_audio_output')
+                except (ValueError, TypeError):
+                    self.log({'event':'omni_audio_chunk_skipped','response_id':event.get('response_id')})
+                    return
                 if pcm: await self.send_client({'type':'audio','audio':base64.b64encode(pcm).decode()})
             else:
                 text = event.get('delta')
@@ -295,6 +300,10 @@ class OmniSession:
                     await self.send_client({'type':'reply_text','text':text[:8000]})
         elif kind == 'response.function_call_arguments.done':
             self.remember(event, event.get('response_id'))
+        elif kind == 'response.output_item.done':
+            item = event.get('item', {})
+            if item.get('type') == 'function_call':
+                self.remember(item, event.get('response_id'))
         elif kind == 'response.done':
             response = event.get('response', {})
             rid = response.get('id')
@@ -368,7 +377,8 @@ class OmniSession:
         # A provider that never finishes must still trigger existing fail-safe
         # cleanup, rather than leave the aircraft waiting indefinitely.
         await asyncio.sleep(INVALID_RESPONSE_GRACE_SECONDS)
-        if not self.closed and epoch == self.epoch and self.current_response(rid):
+        if (not self.closed and epoch == self.epoch and self.current_response(rid)
+                and rid in self.invalid_responses):
             self.log({'event':'omni_response_end_missing','response_id':rid,'epoch':epoch})
             raise TimeoutError('omni_invalid_response_end_timeout')
 
@@ -384,7 +394,6 @@ class OmniSession:
                 return
             result = {'ok':False,'status':'failed','reason':reason,
                       'debug':call.get('argument_error') or 'Response incomplete; no tool in this response was executed.'}
-            self.log({'event':'tool_result','transport':'alibaba','epoch':epoch,'id':cid,'result':result})
             await self.publish_tool(cid,result)
         if self.closed or epoch != self.epoch or not self.authority_current():
             return
@@ -403,8 +412,7 @@ class OmniSession:
     def remember(self, event, rid):
         if not self.current_response(rid): return
         cid, name, raw = event.get('call_id'), event.get('name'), event.get('arguments')
-        schemas = {t['function']['name']:t['function']['parameters'] for t in self.tools}
-        if not isinstance(cid,str) or not 0 < len(cid) <= 256 or name not in schemas or not isinstance(raw,str) or len(raw.encode()) > 64000:
+        if not isinstance(cid,str) or not 0 < len(cid) <= 256 or not isinstance(raw,str):
             raise ValueError('omni_invalid_tool_request')
         argument_error = None
         try:
@@ -416,11 +424,21 @@ class OmniSession:
         signature = hashlib.sha256(json.dumps([name,raw if argument_error else args],sort_keys=True,
                                    ensure_ascii=False,allow_nan=False).encode('utf-8')).digest()
         if cid in self.calls:
-            if self.calls[cid]['signature'] != signature or self.calls[cid]['response_id'] != rid:
+            previous = self.calls[cid]
+            if previous['response_id'] != rid or previous['name'] != name:
                 raise ValueError('omni_tool_identity_reused')
-            return
+            if previous['signature'] == signature:
+                return
+            # Only an invalid, unexecuted candidate may be replaced by a
+            # complete final payload. Never choose between two valid programs.
+            if previous['scheduled'] or not previous['argument_error'] or argument_error:
+                raise ValueError('omni_tool_identity_reused')
+            self.log({'event':'omni_tool_arguments_recovered','response_id':rid,'call_id':cid})
         self.calls[cid] = dict(name=name,args=args,response_id=rid,signature=signature,scheduled=False,
                                argument_error=argument_error)
+        if not argument_error and not any(c['argument_error'] for c in self.calls.values()
+                                          if c['response_id'] == rid):
+            self.invalid_responses.discard(rid)
         if argument_error:
             self.log({'event':'omni_tool_arguments_rejected','response_id':rid,'call_id':cid,
                       'name':name,'error':argument_error,'argument_bytes':len(raw.encode()),
@@ -479,10 +497,6 @@ class OmniSession:
             if self.runtime.running:
                 self.blocked_reason = 'previous_program_still_running'
                 return {'ok':False,'reason':self.blocked_reason}
-            cleanup = getattr(getattr(self.runtime,'runner',None),'last_cleanup',{})
-            if cleanup and (cleanup.get('confirmed') is not True or cleanup.get('follow_cleanup_error')):
-                self.blocked_reason = 'previous_cleanup_unconfirmed'
-                return {'ok':False,'reason':self.blocked_reason}
             if land is not None: self.blocked_reason = None
         if epoch != self.epoch or self.closed:
             return {'ok':False,'status':'cancelled','reason':'superseded_input'}
@@ -495,6 +509,7 @@ class OmniSession:
     async def publish_tool(self, cid, result):
         if self.closed or cid in self.tool_outputs: return
         safe = tool_result(result,secrets=(self.config.api_key,))
+        self.log({'event':'tool_result','transport':'alibaba','epoch':self.epoch,'id':cid,'result':safe})
         self.tool_outputs[cid] = None  # Reserve the ID while the cloud send is pending.
         call = self.calls.get(cid)
         if call is not None:
@@ -521,15 +536,11 @@ class OmniSession:
                 if result.get('ok') is True:
                     generation = self.last_runtime_generation
                     execution_generation = generation
-                    result = await execute_tool(self.runtime, name, args, expected_generation=generation)
-            else:
-                raise ValueError('omni_tool_not_exposed')
-            safe = tool_result(result, secrets=(self.config.api_key,))
-            self.log({'event':'tool_result','transport':'alibaba','epoch':epoch,'id':cid,'result':safe})
+                    result = await self.runtime.run(args['code'], expected_generation=generation)
             if (execution_generation is not None
                     and execution_generation != getattr(self.runtime,'generation',0)):
-                safe = {'ok':False,'status':'cancelled','reason':'superseded_input'}
-            await self.publish_tool(cid,safe)
+                result = {'ok':False,'status':'cancelled','reason':'superseded_input'}
+            await self.publish_tool(cid,result)
         if not self.closed and epoch == self.epoch and self.authority_current():
             await self.request_response(epoch)
 
@@ -537,7 +548,7 @@ class OmniSession:
         from websockets.asyncio.client import connect
         self.fault = None
         connector = self.connect or connect
-        async with connector(self.config.validate(), additional_headers={'Authorization':'Bearer '+self.config.api_key},
+        async with connector(self.config.url, additional_headers={'Authorization':'Bearer '+self.config.api_key},
                              max_size=2_000_000,max_queue=16,open_timeout=8,close_timeout=1,proxy=None) as ws:
             self.ws = ws
             while True:
@@ -558,6 +569,8 @@ class OmniSession:
                     event = strict_json(raw)
                     await self.handle(event)
                 if not self.closed: raise RuntimeError('omni_cloud_disconnected')
+            except ConnectionClosedOK:
+                raise  # Normal browser closure is handled by OmniService cleanup.
             except Exception as exc:
                 # Preserve the original processing fault BEFORE __aexit__ closes
                 # the socket. Otherwise a concurrent audio send can report only

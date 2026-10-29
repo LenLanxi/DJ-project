@@ -31,8 +31,6 @@ MAX_SPEED_CM_S = 100
 MIN_SPEED_CM_S = 10
 DEFAULT_SPEED_CM_S = 50
 MAX_HEIGHT_CM = 250
-MAX_DISTANCE_CM = 500
-MAX_ROTATION_DEG = 360
 RC_LIMIT = 100
 
 RESPONSE_TIMEOUT_S = 5.0
@@ -173,11 +171,10 @@ def _telemetry(tello=None):
     """Return the last received packet and its receipt age, never a poll time."""
     with _lock:
         target = tello or _tello
-    getter = getattr(target, 'get_current_state', None)
-    if not callable(getter):
+    if target is None:
         return {}, None, None, False
     try:
-        packet = getter()
+        packet = target.get_current_state()
         stamp = packet.get('_received_at')
         mono = packet.get('_received_monotonic')
         age = time.monotonic() - mono if type(mono) in (int, float) else None
@@ -202,7 +199,7 @@ def _height_probe(tello=None):
     if tello is None:
         return (cached, 'cached')
     packet, _stamp, _age, fresh = _telemetry(tello)
-    if callable(getattr(tello, 'get_current_state', None)) and not fresh:
+    if not fresh:
         return (None, 'stale_telemetry')
     height = None
     try:
@@ -229,9 +226,8 @@ def _read_battery(tello=None):
     """读一次真实电量；读不到就返回 None（绝不猜数字）。"""
     if tello is None:
         with _lock: tello = _tello
-    getter = getattr(tello, 'get_battery', None)
-    if tello is None or not callable(getter): return None
-    try: value = getter()
+    if tello is None: return None
+    try: value = tello.get_battery()
     except Exception: return None
     return value if type(value) is int else None
 
@@ -417,9 +413,6 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
                     firmware_threshold=TAKEOFF_FIRMWARE_BATTERY)
         return False
     if action in _MOVES:
-        if type(param) is not int or not 20 <= param <= MAX_DISTANCE_CM:
-            _record('action_rejected', action=action, reason='invalid_distance', param=param)
-            return False
         cm = _plan_ascent(param) if action == 'up' else (
              _plan_descent(param) if action == 'down' else param)
         if cm is None: return False
@@ -432,9 +425,6 @@ def _execute_real(action, param=None, *, epoch=None, guard=None):
                 _current_height(tello)
         return ok
     if action == 'rotate':
-        if type(param) is not int or param == 0 or abs(param) > MAX_ROTATION_DEG:
-            _record('action_rejected', action=action, reason='invalid_degrees', param=param)
-            return False
         ok, _error = _call_real(lambda: _execute_move(tello, action, param), action=action,
                                 deadline=_move_deadline(action, param), epoch=epoch, guard=guard)
         return ok
@@ -606,7 +596,7 @@ def health():
                     telemetry_timestamp=None,
                     telemetry_age_s=None, telemetry_fresh=False,
                     temperature_c=None, height_source='unavailable')
-    if connected and tello is not None:
+    if connected:
         packet, stamp, age, fresh = _telemetry(tello)
         data.update(telemetry_timestamp=stamp, telemetry_age_s=age,
                     telemetry_fresh=fresh)
@@ -614,14 +604,12 @@ def health():
         temperatures = [v for v in temperatures if type(v) in (int, float) and -20 <= v <= 150]
         if fresh and temperatures:
             data['temperature_c'] = max(temperatures)
-        for key, name in (('battery', 'get_battery'), ('flight_time_s', 'get_flight_time')):
-            getter = getattr(tello, name, None)     # 驱动替身可能没有这些方法
-            if not callable(getter): continue
+        for key, getter in (('battery', tello.get_battery), ('flight_time_s', tello.get_flight_time)):
             try:
                 value = getter()
             except Exception:
                 continue
-            if type(value) is int and value >= 0 and (fresh or not callable(getattr(tello, 'get_current_state', None))):
+            if fresh and type(value) is int and value >= 0:
                 data[key] = value
         height, source = _height_probe(tello)
         data['height_cm'], data['height_source'] = height, source
@@ -1106,15 +1094,13 @@ def disconnect(*, safe=True):
         return False
     if safe:
         try:
-            if tello.send_rc_control(0, 0, 0, 0) is False:
-                raise RuntimeError('disconnect_rc_returned_false')
+            tello.send_rc_control(0, 0, 0, 0)
         except Exception as exc:
             ok = False
             _record('disconnect_rc_failed', error=str(exc))
     ended = False
     try:
-        if tello.end() is False:
-            raise RuntimeError('disconnect_returned_false')
+        tello.end()
         ended = True
     except Exception as exc:
         ok = False

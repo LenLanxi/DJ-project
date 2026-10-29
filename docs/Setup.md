@@ -47,7 +47,17 @@ uv run --frozen python -m app.Application --help
 
 现场优先用 `start_flight.ps1`，默认跟随配置位于 `follow/configs`。默认网页 http://127.0.0.1:18848；`-WebPort 18849` 显式改端口，占用时报错，不自动选择其他端口。重启会话后刷新页面取得新授权；设备由用户手动选择，不跨电脑复用索引。
 
-默认阿里，启动前用 `-VoiceProvider doubao` 选择备选。失败后先停止、核对飞机，再重启选择路线；不自动切换、重放旧指令或恢复旧授权。`-Program` 和 `-Text` 是正式执行链的诊断方式；`-PlanOnly` 只生成程序但仍调用真实文本模型，不是离线模式。没有生产模拟入口或本地 STT/TTS 降级。
+Python 使用三个独立子命令：
+
+```powershell
+uv run --frozen python -m app.Application plan --text "查询飞机状态的程序"
+uv run --frozen python -m app.Application run --real-drone --program Task.py
+uv run --frozen python -m app.Application voice --real-drone --voice-provider alibaba
+```
+
+`plan` 调真实文本模型但不连接飞机，只有它接受 `--image`。`run` 的 `--program` 与 `--text` 二选一；文件程序默认不创建视觉客户端，需要时显式加 `--vision`，文字任务使用文本 ModelClient 的视觉能力。文本模型读取 `AI_CHAT_URL`、`AI_API_KEY`、`AI_MODEL` 环境配置。`voice` 才接受供应商凭据、会话时长及网页端口参数。用 `<子命令> --help` 查看对应参数。
+
+现场启动器默认 `voice`；`-Program` / `-Text` 映射到 `run`，`-Text ... -PlanOnly` 映射到 `plan`。静态图片和文件视觉参数使用上述 Python 子命令。默认阿里，启动前用 `-VoiceProvider doubao` 选择备选。失败后先停止、核对飞机，再重启选择路线；不自动切换、重放旧指令或恢复旧授权。没有生产模拟入口或本地 STT/TTS 降级。
 
 豆包备选沿用 OpenAPI `2025-06-01`、`S2SConfig.Provider="volcano_duplex"`、`OutputMode=1`、`VisionConfig.Enable=true`；`ThinkingType="disabled"` 减少额外思考延迟，但不保证时效达标。`LLMConfig.ModelName` 可为模型 ID 或 ep- 接入点，自定义资源另需 APIKey，不改用旧接口的 EndPointId。
 

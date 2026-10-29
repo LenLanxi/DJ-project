@@ -52,7 +52,7 @@ class RuntimeSessionLogTests(unittest.TestCase):
                 second.close()
                 active.close()
 
-    def test_active_or_legacy_bytes_exhausting_budget_raise_without_deletion(self):
+    def test_active_or_legacy_bytes_exhausting_budget_drop_without_deletion(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(MODULE, 'ROOT', Path(folder)):
             first = SessionLog(max_bytes=250)
             first({'event': 'active'})
@@ -60,8 +60,9 @@ class RuntimeSessionLogTests(unittest.TestCase):
             legacy.write_text('x' * 180, encoding='utf-8')
             second = SessionLog(max_bytes=250)
             try:
-                with self.assertRaisesRegex(RuntimeError, '保留预算不足'):
-                    second({'event': 'cannot fit'})
+                self.assertFalse(second({'event': 'cannot fit'}))
+                self.assertIn('保留预算不足', second.error)
+                self.assertEqual(second.dropped_records, 1)
                 self.assertTrue(first.path.exists())
                 self.assertEqual(legacy.read_text(encoding='utf-8'), 'x' * 180)
                 self.assertEqual(second.path.read_text(encoding='utf-8'), '')
@@ -97,18 +98,20 @@ class RuntimeSessionLogTests(unittest.TestCase):
             second = SessionLog(path)
             second.close()
 
-    def test_large_record_and_write_failures_are_not_silently_discarded(self):
+    def test_large_record_and_write_failures_are_reported_without_interrupting_tasks(self):
         with tempfile.TemporaryDirectory() as folder:
             log = SessionLog(Path(folder) / 'Session.jsonl', max_bytes=250)
             try:
-                with self.assertRaisesRegex(RuntimeError, '单条'):
-                    log({'event': 'x' * 1000})
+                self.assertFalse(log({'event': 'x' * 1000}))
+                self.assertIn('单条', log.error)
+                log._retry_at = 0
                 with patch.object(log, 'handle', wraps=log.handle) as handle:
                     handle.closed = False
                     handle.tell.return_value = 0
                     handle.write.side_effect = OSError('disk failed')
-                    with self.assertRaisesRegex(OSError, 'disk failed'):
-                        log({'event': 'write failure'})
+                    self.assertFalse(log({'event': 'write failure'}))
+                    self.assertIn('disk failed', log.error)
+                self.assertEqual(log.dropped_records, 2)
             finally:
                 log.close()
 
@@ -124,3 +127,14 @@ class RuntimeSessionLogTests(unittest.TestCase):
             self.assertNotIn('data:image', text)
             self.assertNotIn('Bearer abc', text)
             self.assertIn('"input_tokens": 2', text)
+
+    def test_capacity_scan_is_not_repeated_for_each_event(self):
+        with tempfile.TemporaryDirectory() as folder:
+            log = SessionLog(Path(folder) / 'Session.jsonl')
+            try:
+                with patch.object(log, '_files', wraps=log._files) as files:
+                    for index in range(20):
+                        self.assertTrue(log({'event': 'sample', 'index': index}))
+                    self.assertEqual(files.call_count, 1)
+            finally:
+                log.close()

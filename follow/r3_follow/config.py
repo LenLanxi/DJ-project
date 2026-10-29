@@ -5,11 +5,7 @@ explicit file must name the target and controller; a typo cannot silently bind
 all three aircraft to ID 0. physical_distance_m is a manually measured note,
 not a camera distance estimate or a conversion of RC values to physical speed.
 
-yaw_limit / forward_limit are the dimensionless RC budget of this instance
-(0.20 / 0.30 = the reviewed default = 20 / 30 RC). The service derives its RC
-clamp from the same two numbers, so raising them here raises the command
-ceiling; it does NOT make 100 mean 1 m/s (RC 100 is the aircraft's maximum
-stick, not a metric speed).
+Motion limits and slew rates are RC channel numbers, not physical velocity.
 """
 from dataclasses import asdict, dataclass
 import json
@@ -27,9 +23,9 @@ class FollowConfig:
     control_profile: str = "openpose_pid"
     physical_distance_m: float | None = None
     steering_mode: str = "yaw"
-    yaw_limit: float = 0.20
-    forward_limit: float = 0.30
-    max_request_rate: float | None = 0.8
+    horizontal_limit_rc: float = 20.0
+    forward_limit_rc: float = 30.0
+    slew_rc_per_second: float | None = 80.0
     vertical_follow: bool = False
     distance_mode: str = "apparent_pixels"
     camera_calibration: str | None = None
@@ -61,15 +57,15 @@ class FollowConfig:
             raise ValueError("steering_mode must be yaw, lateral, hybrid or adaptive")
         if self.pid_tuning not in ("marker_v2", "responsive_v1"):
             raise ValueError("pid_tuning must be marker_v2 or responsive_v1")
-        for name in ("yaw_limit", "forward_limit"):
+        for name in ("horizontal_limit_rc", "forward_limit_rc"):
             value = getattr(self, name)
             if (type(value) not in (int, float) or not math.isfinite(value)
-                    or not 0 < value <= 1):
-                raise ValueError(name + " must be a finite number in (0, 1]")
-        if self.max_request_rate is not None and (
-                type(self.max_request_rate) not in (int, float)
-                or not math.isfinite(self.max_request_rate) or self.max_request_rate <= 0):
-            raise ValueError("max_request_rate must be a finite positive number or null")
+                    or not 0 < value <= 100):
+                raise ValueError(name + " must be a finite number in (0, 100]")
+        if self.slew_rc_per_second is not None and (
+                type(self.slew_rc_per_second) not in (int, float)
+                or not math.isfinite(self.slew_rc_per_second) or self.slew_rc_per_second <= 0):
+            raise ValueError("slew_rc_per_second must be a finite positive number or null")
         if type(self.vertical_follow) is not bool:
             raise ValueError("vertical_follow must be a boolean")
         if self.distance_mode not in ("apparent_pixels", "relative_size", "pose"):
@@ -102,7 +98,7 @@ class FollowConfig:
 def _from_mapping(value):
     required = {"instance_id", "target_id", "dictionary", "control_profile"}
     allowed = required | {"physical_distance_m", "steering_mode",
-                          "yaw_limit", "forward_limit", "max_request_rate", "vertical_follow",
+                          "horizontal_limit_rc", "forward_limit_rc", "slew_rc_per_second", "vertical_follow",
                           "distance_mode", "camera_calibration", "camera_id", "marker_side_m",
                           "vertical_min_height_cm", "vertical_max_height_cm", "pid_tuning", "reference_size_limit"}
     keys = set(value)

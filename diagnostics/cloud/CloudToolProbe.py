@@ -135,7 +135,7 @@ async def trial(args, config, name, index, budget):
                 return result
     try:
         async with asyncio.timeout(100):
-            async with connect(config.validate(),additional_headers={'Authorization':'Bearer '+config.api_key},
+            async with connect(config.url,additional_headers={'Authorization':'Bearer '+config.api_key},
                                proxy=None,max_size=2000000,open_timeout=10,close_timeout=2) as ws:
                 if (await receive()).get('type')!='session.created': raise RuntimeError('missing_session_created')
                 update=session_update(config,instructions,definitions,mode='server_vad',silence_ms=1200)

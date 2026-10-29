@@ -3,20 +3,26 @@ from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 
+@dataclass(frozen=True)
+class ControlGrant:
+    owner: str
+    control_epoch: int
+    command_epoch: int
+
 @dataclass
 class CommandResult:
     ok: bool
     status: str = "failed" # "accepted", "completed", "failed", "timeout"
     reason: str = ""
     is_blocking: bool = True
+    grant: Optional[ControlGrant] = None
 
 @dataclass
 class ControlResult:
     ok: bool
     current_owner: Optional[str] = None
     reason: str = ""
-    control_epoch: int = 0
-    command_epoch: int = 0
+    grant: Optional[ControlGrant] = None
 
 @dataclass
 class StatusResult:

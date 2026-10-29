@@ -54,6 +54,6 @@ def make_service(reader, target_id=0, log_directory=False,
         f'cameraFixtureID{target_id}', target_id, 'DICT_4X4_50', 'openpose_pid',
         steering_mode=steering_mode, vertical_follow=vertical_follow,
         distance_mode=distance_mode)
-    service = FollowService(port, config=config, recovery_window=3,
+    service = FollowService(port, config=config,
         log_directory=log_directory, monotonic=monotonic, wall_clock=port.epoch_time)
     return port, service

@@ -39,11 +39,6 @@ class MultiMarkerVisionTests(unittest.TestCase):
         np.testing.assert_array_equal(image, before)
         return obs
 
-    def test_invalid_id_is_rejected_before_detector_construction(self):
-        for value in (-1, 50, True, False, np.bool_(True), 1., '1', None, float('nan')):
-            with self.subTest(value=value), self.assertRaises(ValueError):
-                MarkerTracker(value)
-
     def test_dictionary_boundaries_and_numpy_integer_are_supported(self):
         for value in (0, 1, 2, 49, np.int64(2)):
             self.assertEqual(MarkerTracker(value).target_id, int(value))

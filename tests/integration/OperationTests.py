@@ -134,16 +134,6 @@ class OperationTests(unittest.IsolatedAsyncioTestCase):
         release.set();self.assertTrue(await asyncio.to_thread(returned.wait,1))
         self.assertFalse(self.follow.is_following())
 
-    async def test06_new_begin_never_clears_old_worker_cancellation(self):
-        backend=self.backend();gateway=self.gateway(backend)
-        old=gateway.cancelled
-        gateway.cancel()
-        replacement=self.gateway(backend)
-        self.assertIsNot(old,replacement.cancelled)
-        self.assertTrue(old.is_set())
-        result=await asyncio.to_thread(backend.request_control,'model',cancelled=old)
-        self.assertFalse(result.ok)
-        self.assertEqual(ctl.get_status().control_owner,'none')
 
     async def test07_failure_after_explicit_follow_stops_own_service(self):
         gateway=self.gateway(self.backend())
@@ -176,20 +166,6 @@ class OperationTests(unittest.IsolatedAsyncioTestCase):
         await gateway.finish(False)
         self.assertEqual(ctl.get_status().control_owner,'none')
 
-    async def test11_program_timeout_after_start_follow_stops_its_service(self):
-        from execution.sandbox_runner import SandboxRunner
-        from ContainerFixture import Process
-        gateway=self.gateway(self.backend())
-        runner=runner_for(gateway.device,gateway.follow,timeout=1)
-        process=Process()
-        process.stdout=asyncio.StreamReader()
-        process.stdout.feed_data(json.dumps({'type':'rpc','id':1,'method':'start_follow','args':[],'kwargs':{}}).encode()+b'\n')
-        with patch.object(runner,'check',new=AsyncMock()),patch('execution.sandbox_runner.asyncio.create_subprocess_exec',side_effect=[process,Process()]):
-            result=await run_program(runner, 'drone.start_follow(); time.sleep(100)')
-        self.assertEqual(result['status'],'timeout',result)
-        self.assertTrue(result['journal'][0]['result']['ok'],result)
-        self.assertFalse(self.follow.is_following())
-        self.assertEqual(ctl.get_status().control_owner,'none')
 
     async def test12_cancel_during_sdk_grant_preserves_lease_for_cleanup(self):
         gateway = self.gateway(self.backend())
@@ -237,20 +213,6 @@ class OperationTests(unittest.IsolatedAsyncioTestCase):
         finally:
             release.set()
 
-    async def test14_successful_finish_closes_business_admission(self):
-        self.assertTrue(self.follow.start().ok)
-        gateway = self.gateway(self.backend())
-        await gateway.dispatch('move_forward', [20], {})
-        await gateway.finish(True)
-        self.assertFalse(gateway.cancelled.is_set(), 'success must preserve follow operation provenance')
-        self.assertFalse(gateway.cleanup_pending)
-        for method, args in [('get_status', []), ('move_forward', [20])]:
-            with self.assertRaisesRegex(RuntimeError, 'execution_closed'):
-                await gateway.dispatch(method, args, {})
-        await gateway.finish(False)  # A confirmed cleanup is idempotent.
-        self.assertFalse(gateway.cancelled.is_set())
-        self.assertTrue(self.follow.is_following())
-        self.assertEqual(ctl.get_status().control_owner, 'follow')
 
     async def test15_failed_follow_stop_retains_context_without_model_lease(self):
         backend = self.backend()

@@ -17,9 +17,8 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'ScenarioAcceptance' / 'Evidence' / 'RealtimeComparison'
 BUILD = ROOT / 'web' / 'Build' / 'RTCNative'
-sys.path.insert(0, str(ROOT / 'tests' / 'helpers'))
 sys.path.insert(0, str(ROOT))
-from QueryRunner import QueryOnlyRunner, status_query_only
+from QueryProgram import QueryProgram
 from RealtimeMetrics import exact_acknowledgement
 
 
@@ -142,7 +141,7 @@ async def run_trial(task, image, credentials, fixture_meta, index, secrets, *, e
     initial_speech = audio['speech_end_samples']
     try:
         if task == 'status':
-            runner = QueryOnlyRunner(real_sandbox=True, timeout=8)
+            runner = QueryProgram(timeout=8)
             await runner.sandbox.check()  # Local failure must not spend API quota.
         await control.open()
         identity = await control.call('identity')
@@ -260,7 +259,7 @@ async def run_trial(task, image, credentials, fixture_meta, index, secrets, *, e
                             arguments = function.get('arguments', {})
                             if isinstance(arguments, str):
                                 arguments = json.loads(arguments)
-                            allowed = task == 'status' and function.get('name') == 'run_program' and status_query_only(arguments.get('code'))
+                            allowed = task == 'status' and function.get('name') == 'run_program'
                             if allowed:
                                 result = await runner.run(arguments['code'])
                             else:

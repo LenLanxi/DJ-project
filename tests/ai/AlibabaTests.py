@@ -29,23 +29,24 @@ PCM = struct.pack('<3200h', *([500] * 3200))
 
 class ConfigTests(unittest.TestCase):
     def test01_exact_model_and_workspace_endpoint_without_secret_repr(self):
-        self.assertTrue(CONFIG.validate().endswith('?model=' + MODEL))
+        self.assertTrue(CONFIG.url.endswith('?model=' + MODEL))
         self.assertNotIn(CONFIG.api_key, repr(CONFIG))
-        self.assertEqual(replace(CONFIG, url=CONFIG.validate()).validate(), CONFIG.validate())
+        self.assertEqual(replace(CONFIG, url=CONFIG.url).url, CONFIG.url)
 
     def test02_no_remote_endpoint_or_legacy_model_fallback(self):
-        invalid = [replace(CONFIG, model='qwen3-omni-flash-realtime'),
-                   replace(CONFIG, url='wss://evil.example/api-ws/v1/realtime'),
-                   replace(CONFIG, url=CONFIG.url + '?key=secret'),
-                   replace(CONFIG, url=CONFIG.url.replace('wss:', 'ws:')),
-                   replace(CONFIG, url=CONFIG.url.replace('workspace1', 'otherworkspace'))]
-        for config in invalid:
-            with self.subTest(config=config), self.assertRaises(AlibabaError): config.validate()
+        invalid = [dict(model='qwen3-omni-flash-realtime'),
+                   dict(url='wss://evil.example/api-ws/v1/realtime'),
+                   dict(url=CONFIG.url + '&key=secret'),
+                   dict(url=CONFIG.url.replace('wss:', 'ws:')),
+                   dict(url=CONFIG.url.replace('workspace1', 'otherworkspace'))]
+        for values in invalid:
+            with self.subTest(fields=tuple(values)), self.assertRaises(AlibabaError):
+                replace(CONFIG, **values)
 
-    def test03_missing_credentials_and_invalid_voice_are_rejected(self):
-        for config in (replace(CONFIG, api_key=''), replace(CONFIG, workspace_id='invalid/workspace'),
-                       replace(CONFIG, voice='invalid/voice')):
-            with self.assertRaises(AlibabaError): config.validate()
+    def test03_missing_credentials_and_invalid_voice_are_rejected_at_construction(self):
+        for values in (dict(api_key=''), dict(workspace_id='invalid/workspace'),
+                       dict(voice='invalid/voice')):
+            with self.assertRaises(AlibabaError): replace(CONFIG, **values)
 
     def test04_explicit_credentials_file_does_not_mutate_environment(self):
         import os
@@ -329,8 +330,8 @@ class WireTests(unittest.IsolatedAsyncioTestCase):
         adapter = AlibabaRealtime(CONFIG, instructions='', tools=[], connect=fail)
         for audio, image in ((b'odd', None), (PCM*100, None), (PCM, b'not jpeg')):
             with self.assertRaises(AlibabaError): await adapter.run_turn(audio, image)
-        adapter = AlibabaRealtime(replace(CONFIG, api_key=''), instructions='', tools=[], connect=fail)
-        with self.assertRaises(AlibabaError): await adapter.run_turn(PCM)
+        with self.assertRaises(AlibabaError):
+            AlibabaRealtime(replace(CONFIG, api_key=''), instructions='', tools=[], connect=fail)
 
     async def test16_automatic_probe_preserves_distinct_items_and_effective_vad(self):
         async def handler(ws):

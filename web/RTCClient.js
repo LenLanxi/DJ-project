@@ -58,10 +58,6 @@
     return compact;
   }
 
-  function toolReply(id, result) {
-    return { ToolCallID: id, Content: JSON.stringify(result) };
-  }
-
   class Client {
     constructor(options) {
       this.sdk = options.sdk;
@@ -75,17 +71,8 @@
       this.onAutoplay = options.onAutoplay || (() => {});
       this.engine = this.socket = this.session = null;
       this.stream = this.track = null;
-      this.epoch = null;
       this.bound = false;
       this.active = false;
-      this.pendingTools = new Set();
-      this.completedRounds = new Set();
-      this.userSubtitleRound = null;
-      this.userSubtitleText = '';
-      this.turnRevoked = false;
-      this.pendingCalls = [];
-      this.pendingTurn = null;
-      this.turnOpen = false;
       this.lastFrame = 0;
       this.lastFrameId = null;
       this.frameGeneration = 0;
@@ -176,11 +163,7 @@
         if (url.protocol !== 'ws:' || url.hostname !== '127.0.0.1') throw new Error('控制连接必须是本机WebSocket');
         this.session = session;
         this.botJoined = false; this.cloudMessages = false;
-        this.epoch = null;
         this.bound = false;
-        this.pendingTools.clear(); this.completedRounds.clear(); this.pendingCalls = [];
-        this.userSubtitleRound = null; this.userSubtitleText = ''; this.turnRevoked = false;
-        this.pendingTurn = null; this.turnOpen = false;
         this.lastFrame = 0; this.lastFrameId = null;
         const socket = new this.Socket(session.bridgeUrl);
         this.socket = socket;
@@ -199,9 +182,6 @@
         };
         socket.onerror = () => { if (live()) this.fail(new Error('本机控制连接失败')); };
         socket.onclose = () => { if (live()) this.fail(new Error('本机控制连接已断开，任务已停止')); };
-        this.timers.push(setInterval(() => {
-          if (live()) this.heartbeat().catch(error => { if (live()) this.fail(error); });
-        }, 2000));
         this.timers.push(setTimeout(() => { if (live()) this.fail(new Error('达到会话时限，已结束连接')); }, session.expiresAt-Date.now()));
         await this.waitFor(() => this.bound, 8000, '本机控制授权超时');
         current();
@@ -235,7 +215,7 @@
         this.showSubmittedState();
         this.timers.push(setTimeout(() => {
           if (live() && !this.botJoined && !this.cloudMessages)
-            this.fail(new Error('模型在30秒内未入房或返回消息，已结束本次连接。请检查模型服务配置与网络。'));
+            this.onState('模型尚未入房或返回消息，继续等待；可手动结束连接。');
         }, 30000));
         this.timers.push(setInterval(() => {
           if (live() && this.lastFrame && Date.now()-this.lastFrame > FRAME_AGE_MS) {
@@ -253,7 +233,7 @@
       // Never overwrite an already observed conversation with "waiting".
       if (!this.cloudMessages) this.onState(this.botJoined
         ? '模型已入房，可以说话。收到回复后确认语音链路。'
-        : '启动请求已提交，正在等待模型入房（最多30秒）…');
+        : '启动请求已提交，正在等待模型入房…');
     }
 
     installEvents(generation = this.connectionGeneration) {
@@ -265,7 +245,7 @@
       const receive = event => {
         if (!this.active || !this.session || event.userId !== this.session.botId) return;
         try { this.cloudMessages = true; this.rtcMessage(decodeTLV(event.message)); }
-        catch (error) { this.fail(error); }
+        catch (error) { this.onState('忽略无效模型消息：' + String(error.message || error)); }
       };
       on('onUserJoined', event => {
         const user = event.userInfo && event.userInfo.userId || event.userId;
@@ -275,22 +255,22 @@
       });
       on('onRoomBinaryMessageReceived', receive);
       on('onUserBinaryMessageReceived', receive);
-      on('onError', error => this.fail(new Error('RTC错误：' + String(error.errorCode || error.code || 'unknown'))));
+      on('onError', error => this.onState('RTC暂时异常：' + String(error.errorCode || error.code || 'unknown')));
       for (const event of ['onTokenWillExpire', 'onTokenPublishPrivilegeWillExpire',
                            'onTokenSubscribePrivilegeWillExpire']) {
         on(event, () => this.renewToken().catch(error => {
           if (this.active && generation === this.connectionGeneration && this.engine === engine)
-            this.fail(error);
+            this.onState('令牌续期暂时失败：' + String(error.message || error));
         }));
       }
       on('onUserLeave', event => {
         const user = event.userInfo && event.userInfo.userId || event.userId;
-        if (this.session && user === this.session.botId) this.fail(new Error('模型已离开房间，停止动作并结束会话'));
+        if (this.session && user === this.session.botId) this.onState('模型已离开房间，等待重新入房；可手动结束连接。');
       });
       on('onAutoplayFailed', () => this.onAutoplay(true));
       on('onTrackEnded', event => { if (event.kind === 'audio') this.pauseCapture(); });
       on('onConnectionStateChanged', event => {
-        if ([1, 4, 6].includes(Number(event.state))) this.fail(new Error('RTC连接中断，停止动作并结束会话'));
+        if ([1, 4, 6].includes(Number(event.state))) this.onState('RTC连接暂时中断，等待SDK恢复；可手动结束连接。');
       });
       on('onAudioDeviceStateChanged', event => {
         if (event.deviceState !== 'inactive') return;
@@ -305,79 +285,23 @@
     }
 
     rtcMessage(message) {
-      if (!this.active || !this.session) return;
+      if (!this.active || !this.session || !this.bound) return;
+      this.send({ type: 'cloud_event', ...this.identity(), event: message });
       if (message.type === 'conv') {
-        const stage = Number(message.value.Stage && message.value.Stage.Code);
         const states = { 1: '模型正在听', 2: '模型正在理解', 3: '模型正在回答', 4: '模型已中断', 5: '本轮回复结束' };
-        if (states[stage]) this.onState(states[stage]);
-        if (stage === 4 && this.bound) {
-          this.interrupt(false, 'cloud_barge_in').catch(error => this.fail(error));
-          return;
-        }
-        if (stage === 5 && !this.pendingTools.size && !this.pendingTurn && !this.pendingCalls.length) this.turnOpen = false;
+        const state = states[message.value.Stage?.Code];
+        if (state) this.onState(state);
       } else if (message.type === 'subv') {
         for (const item of Array.isArray(message.value.data) ? message.value.data : []) {
-          if (item.userId === this.session.userId) {
-            if (this.turnRevoked) continue; // Only a new session can restore a revoked grant.
-            const text = typeof item.text === 'string' ? item.text.trim() : '';
-            // Official subv: paragraph is an end flag, roundId is an integer
-            // identity. Never coerce boolean flags or missing IDs into a grant.
-            const validRound = Number.isSafeInteger(item.roundId) && item.roundId >= 0;
-            if (!validRound || typeof item.paragraph !== 'boolean' || typeof item.definite !== 'boolean') {
-              if ((this.pendingTools.size || this.turnOpen) && text)
-                this.interrupt(false, 'invalid_subtitle_during_turn').catch(error => this.fail(error));
-              continue;
-            }
-            const id = String(item.roundId);
-            if (this.completedRounds.has(id)) continue;
-            if (this.userSubtitleRound !== null && item.roundId < this.userSubtitleRound) continue;
-            if ((this.pendingTools.size || this.turnOpen) && text) {
-              this.interrupt(false, 'user_speech_during_turn').catch(error => this.fail(error));
-              return;
-            }
-            if (item.roundId !== this.userSubtitleRound) {
-              this.userSubtitleRound = item.roundId;
-              this.userSubtitleText = '';
-            }
-            // User subtitles are cumulative. Quick subtitles may finish with
-            // empty text; reuse only the latest text from this exact round.
-            if (text) this.userSubtitleText = text;
-            if (item.definite === true && item.paragraph === true && this.userSubtitleText) {
-              const completedText = this.userSubtitleText;
-              this.completedRounds.add(id);
-              this.epoch = null;
-              this.pendingTurn = id;
-              this.turnOpen = true;
-              this.onMessage('你：' + completedText);
-              this.send({ type: 'user_turn', sessionId: this.session.sessionId, roomId: this.session.roomId,
-                taskId: this.session.taskId, userId: item.userId, id, text: completedText, completed: true });
-            }
-          } else if (item.userId === this.session.botId && item.definite === true) this.onMessage('模型：' + item.text);
+          if (item.definite === true && typeof item.text === 'string')
+            this.onMessage((item.userId === this.session.userId ? '你：' : '模型：') + item.text);
         }
-      } else if (message.type === 'tool') {
-        const calls = message.value.tool_calls;
-        if (!Array.isArray(calls) || !calls.length) throw new Error('模型工具格式无效');
-        if (this.epoch === null) {
-          // A final subtitle and its host acknowledgement may arrive shortly
-          // before a tool event. Never label an unrelated old call with a new turn.
-          if (this.pendingTurn === null) throw new Error('模型工具缺少有效用户轮次');
-          this.pendingCalls.push(calls);
-          return;
-        }
-        this.forwardCalls(calls);
       }
     }
 
-    forwardCalls(calls) {
-      if (this.epoch === null || this.turnRevoked || !this.bound || !this.active) throw new Error('缺少有效控制轮次');
-      for (const call of calls) {
-        if (!call || typeof call.id !== 'string' || call.id.length > 128) throw new Error('无效工具编号');
-        this.pendingTools.add(call.id);
-      }
-      // The host owns validation, execution deduplication and completed replies.
-      // Repeated events share one pending reply here, including changed payloads.
-      this.send({ type: 'tool', sessionId: this.session.sessionId, roomId: this.session.roomId,
-        taskId: this.session.taskId, botId: this.session.botId, epoch: this.epoch, calls });
+    identity() {
+      const { sessionId, roomId, taskId, userId, botId } = this.session;
+      return { sessionId, roomId, taskId, userId, botId };
     }
 
     async bridgeMessage(message) {
@@ -385,23 +309,8 @@
       if (message.type === 'bound') {
         this.bound = true;
         this.notify();
-      } else if (message.type === 'turn') {
-        if (!Number.isInteger(message.epoch)) throw new Error('本机返回无效轮次');
-        if (this.pendingTurn === null || String(message.id) !== this.pendingTurn) throw new Error('本机用户轮次不匹配');
-        this.epoch = message.epoch;
-        this.pendingTurn = null;
-        const waiting = this.pendingCalls.splice(0);
-        for (const calls of waiting) this.forwardCalls(calls);
       } else if (message.type === 'tool_result') {
-        if (message.epoch !== this.epoch || !this.pendingTools.has(message.id) || !this.engine || !this.session) return;
-        this.pendingTools.delete(message.id);
-        const engine = this.engine, session = this.session, generation = this.connectionGeneration;
-        const reply = toolReply(message.id, message.result);
-        await this.post('/api/update', { sessionId: session.sessionId, command: 'function',
-          message: JSON.stringify(reply) });
-        if (this.active && message.epoch === this.epoch && generation === this.connectionGeneration
-            && this.engine === engine && this.session === session)
-          this.onMessage('执行：' + JSON.stringify(safeResult(message.result || {})));
+        this.onMessage('执行：' + JSON.stringify(safeResult(message.result || {})));
       } else if (message.type === 'frame') {
         await this.renderFrame(message);
       } else if (message.type === 'invalid_frame') {
@@ -409,13 +318,13 @@
       } else if (message.type === 'session_reset_required') {
         await this.stop('任务已取消。请重新连接，再说一次要求；旧会话不会恢复执行。');
       } else if (message.type === 'error') {
-        throw new Error(message.reason || '本机控制拒绝请求');
+        this.onState('本次请求未执行：' + String(message.reason || '本机控制拒绝请求'));
       }
     }
 
     async renderFrame(message) {
       if (typeof message.jpeg !== 'string' || message.jpeg.length > 4000000
-        || !Number.isFinite(message.timestamp) || !Number.isInteger(message.id)) throw new Error('无效图传帧');
+        || !Number.isFinite(message.timestamp) || !Number.isInteger(message.id)) return this.clearFrame();
       if (Date.now()-message.timestamp*1000 < -50 || Date.now()-message.timestamp*1000 > FRAME_AGE_MS) return this.clearFrame();
       if (this.lastFrameId !== null && message.id <= this.lastFrameId) return;
       this.lastFrameId = message.id;
@@ -471,20 +380,8 @@
       finally { if (this.tokenRenewal === renewal) this.tokenRenewal = null; }
     }
 
-    async heartbeat() {
-      if (!this.active || !this.session) return;
-      this.send({ type: 'heartbeat' });
-      await this.post('/api/heartbeat', { sessionId: this.session.sessionId });
-    }
-
     async interrupt(land, source = 'operator') {
       if (!this.active || !this.bound) throw new Error('本机控制尚未连接，请使用物理急停键');
-      this.epoch = null;
-      this.turnRevoked = true;
-      this.pendingCalls = [];
-      this.pendingTurn = null;
-      this.turnOpen = false;
-      this.pendingTools.clear();
       this.send({ type: 'interrupt', land: Boolean(land), source });
       this.onState(land ? '已请求降落，请核对实际状态' : '已请求停止，请核对实际状态');
     }
@@ -519,11 +416,6 @@
       if (this.ending) return this.ending;
       this.connectionGeneration += 1;
       this.active = false;
-      this.epoch = null;
-      this.pendingCalls = [];
-      this.pendingTurn = null;
-      this.turnOpen = false;
-      this.pendingTools.clear();
       this.ending = (async () => {
         for (const timer of this.timers.splice(0)) clearTimeout(timer);
         for (const waiter of this.readyWaiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(new Error('连接已结束')); }
@@ -551,8 +443,6 @@
         if (this.socket) this.socket.close();
         this.socket = null;
         this.bound = false;
-        this.pendingTools.clear(); this.completedRounds.clear();
-        this.userSubtitleRound = null; this.userSubtitleText = '';
         this.clearFrame();
         if (session) work.push(this.post('/api/stop', { sessionId: session.sessionId }).catch(error => {
           this.onMessage('云端停止未确认：' + String(error.message || error));
@@ -565,7 +455,7 @@
     }
   }
 
-  const exported = { Client, decodeTLV, toolReply, safeResult, explicitDevice };
+  const exported = { Client, decodeTLV, safeResult, explicitDevice };
   global.CompanionRTC = exported;
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (typeof document === 'undefined') return;

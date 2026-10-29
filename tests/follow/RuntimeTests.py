@@ -134,7 +134,7 @@ class RuntimeTests(unittest.TestCase):
             closed = self.follow.close(wait=False)
             self.assertLess(time.monotonic() - began, .3)
             self.assertFalse(closed.ok)
-            self.assertEqual(closed.reason, 'follow_workers_still_running')
+            self.assertIn('follow-vision', closed.reason)
             starter.join(.5)
             self.assertFalse(starter.is_alive())
             self.assertFalse(result[0].ok)

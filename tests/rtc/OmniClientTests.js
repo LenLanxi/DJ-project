@@ -169,11 +169,15 @@ test('stop synchronously releases capture, playback, websocket, timers and workl
   assert.equal(value.client.active, false); assert.ok(value.media.streams[0].track.stopped); assert.ok(source.stopped); assert.equal(socket.closed, 1); assert.equal(value.timers.size, 0); assert.equal(value.captures[0].port.closed, true);
   await stopping; assert.equal(value.contexts[0].state, 'closed'); assert.equal(socket.sent.at(-1).type, 'stop');
 });
-test('upstream backpressure immediately stops instead of accumulating old speech', async () => {
-  const value = harness(); const socket = await connect(value); socket.bufferedAmount = MAX_UPSTREAM + 1;
+test('upstream backpressure drops microphone packets and preserves operator interrupt', async t => {
+  const value = harness(); t.after(() => value.client.stop()); const socket = await connect(value); socket.bufferedAmount = MAX_UPSTREAM + 1;
   value.captures[0].port.onmessage({ data: { pcm: new Uint8Array(640).buffer } });
-  assert.equal(value.client.active, false); assert.ok(value.media.streams[0].track.stopped); assert.equal(socket.closed, 1); assert.equal(socket.sent.filter(value => value.type === 'audio').length, 0);
+  assert.equal(value.client.active, true); assert.equal(socket.sent.some(message => message.type === 'audio'), false);
+  value.client.interrupt(true); assert.deepEqual(socket.sent.at(-1), {type:'interrupt',land:true});
+  socket.bufferedAmount = 0; value.captures[0].port.onmessage({ data: { pcm: new Uint8Array(640).buffer } });
+  assert.equal(socket.sent.at(-1).type, 'audio');
 });
+
 test('normal faster-than-realtime speech longer than six seconds queues and drains in order', async t => {
   const value = harness(); t.after(() => value.client.stop()); const socket = await connect(value);
   for (let i = 0; i < 10; i++) socket.receive(audio(1));
@@ -190,14 +194,14 @@ test('normal faster-than-realtime speech longer than six seconds queues and drai
   const sources=value.contexts[0].sources;
   for (let i=1;i<sources.length;i++) assert.equal(sources[i].startTime,sources[i-1].startTime+1);
 });
-test('speech backlog pauses playback while text and control remain available', async t => {
+test('speech backlog discards old playback and continues without a manual restart', async t => {
   const value=harness();t.after(()=>value.client.stop());const socket=await connect(value);
   for(let i=0;i<MAX_BUFFERED_AUDIO_SECONDS+1;i++)socket.receive(audio(1));
-  assert.equal(value.client.active,true);assert.ok(value.contexts[0].sources.every(source=>source.stopped));
-  assert.equal(value.client.connection.pendingAudioSeconds,0);assert.equal(value.client.connection.playbackPaused,true);
+  assert.equal(value.client.active,true);assert.ok(value.contexts[0].sources.some(source=>source.stopped));
+  assert.ok(value.client.connection.pendingAudioSeconds < MAX_BUFFERED_AUDIO_SECONDS);
+  assert.ok(!value.client.connection.playbackPaused);
   socket.receive({type:'reply_text',text:'任务结果仍然可见'});assert.equal(value.messages.at(-1).text,'任务结果仍然可见');
   assert.equal(socket.sent.some(message=>message.type==='stop'),false);
-  await value.client.resumeAudio();socket.receive(audio(.1));assert.equal(value.client.connection.playbackPaused,false);
 });
 
 test('a paused playback clock does not cancel control or discard feedback',async t=>{
@@ -217,9 +221,9 @@ test('new user input and interrupt discard all scheduled old audio immediately',
   socket.receive(audio(.1)); value.client.interrupt(true); assert.ok(value.contexts[0].sources.at(-1).stopped); assert.deepEqual(socket.sent.at(-1), { type: 'interrupt', land: true });
   socket.receive(audio(.1)); socket.receive({ type: 'interrupted' }); assert.ok(value.contexts[0].sources.at(-1).stopped);
 });
-test('invalid PCM and output sample rates fail closed', async () => {
+test('invalid PCM and output sample rates skip the fragment without closing control', async t => {
   for (const message of [{ type: 'audio' }, { type: 'audio', audio: '' }, { type: 'audio', audio: 'AA==' }, { type: 'audio', audio: 'not base64' }, { ...audio(.01), sampleRate: 24000.5 }, { ...audio(.01), sample_rate: '24000' }]) {
-    const value = harness(); const socket = await connect(value); socket.receive(message); assert.equal(value.client.active, false); assert.equal(value.contexts[0].sources.length, 0);
+    const value = harness(); t.after(()=>value.client.stop()); const socket = await connect(value); socket.receive(message); assert.equal(value.client.active, true); assert.equal(value.contexts[0].sources.length, 0);
   }
   assert.throws(() => decodePCM('AA==')); assert.equal(decodePCM(encodePCM(new Uint8Array([0, 128, 255, 127])))[0], -1);
 });
@@ -284,11 +288,7 @@ test('websocket loss clears audio and capture, without reconnect or replay', asy
   await assert.rejects(value.client.connect('mic1', 'headset1'), /重新启动入口/);
   assert.equal(value.sockets.length, 1); assert.equal(value.contexts.length, 1);
 });
-test('heartbeat is two seconds while frame freshness is checked more frequently', async t => {
-  const value = harness(); t.after(() => value.client.stop()); const socket = await connect(value);
-  value.tick(100); value.tick(100); value.tick(100); assert.equal(socket.sent.filter(message => message.type === 'heartbeat').length, 1);
-  value.tick(1900); assert.equal(socket.sent.filter(message => message.type === 'heartbeat').length, 2);
-});
+
 test('duplicate frames cannot refresh source timestamps and stale video clears without ending voice',async t=>{
  const value=harness();t.after(()=>value.client.stop());const socket=await connect(value);const timestamp=value.now()/1000;
  socket.receive({type:'frame',id:1,timestamp,jpeg:'/9j/2Q=='});value.images[0].onload();assert.equal(value.canvas.draws,1);

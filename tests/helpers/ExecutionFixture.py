@@ -16,8 +16,14 @@ def runner_for(device=None, follow=None, vision=None, **options):
 
 
 async def run_program(runner, code):
-    runtime = UnifiedRuntime(runner.test_device, runner.test_follow, runner.test_vision, runner=runner)
-    runner.test_runtime = runtime
+    if not hasattr(runner, 'test_runtime'):
+        runner.test_runtime = UnifiedRuntime(runner.test_device, runner.test_follow, runner.test_vision, runner=runner)
+        original = runner.run
+        async def run(code, host, outcome):
+            runner.test_outcome = outcome
+            return await original(code, host, outcome)
+        runner.run = run
+    runtime = runner.test_runtime
     def capture(*args, **kwargs):
         runner.test_host = Host(*args, **kwargs)
         return runner.test_host

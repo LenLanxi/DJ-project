@@ -17,7 +17,7 @@ class Clock:
 
 
 class Detector:
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         corners = ((frame[1]-80,160), (frame[1]+80,160),
                    (frame[1]+80,320), (frame[1]-80,320)) if frame[0] else ()
         return Observation(frame_id, acquired_at, source, 640, 480, 0,
@@ -26,7 +26,7 @@ class Detector:
 
 
 class GeometryDetector:
-    def detect(self, frame, frame_id, acquired_at, source):
+    def detect(self, frame, frame_id, acquired_at, source, *, processing_budget_ms=None):
         found, x, size = frame
         h = size / 2
         corners = ((x-h,240-h),(x+h,240-h),(x+h,240+h),(x-h,240+h)) if found else ()

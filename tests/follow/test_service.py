@@ -20,7 +20,7 @@ class ServiceTests(unittest.TestCase):
     def setUp(self):
         self.clock = Clock()
         self.port = FakeDevice(self.clock.mono)
-        self.service = FollowService(self.port, config=FollowConfig(steering_mode='lateral', max_request_rate=.8),
+        self.service = FollowService(self.port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
                            tracker=Detector(),
                            monotonic=self.clock.mono,
                            wall_clock=self.clock.wall,
@@ -272,7 +272,7 @@ class ServiceTests(unittest.TestCase):
             self.service._stop_tracking()
 
     def test_optional_brief_loss_holds_zero_until_stable_recovery(self):
-        self.service.controller.recovery_window = 1.5
+        self.service.controller.auto_recover = True
         self.moving()
         self.frame(found=False, advance=.02)
         self.service.control_once()
@@ -319,7 +319,7 @@ class WorkerTests(unittest.TestCase):
                 unblock.wait(3)
                 return super().detect(*args, **kwargs)
         port = FakeDevice()
-        service = FollowService(port, config=FollowConfig(steering_mode='lateral', max_request_rate=.8),
+        service = FollowService(port, config=FollowConfig(steering_mode='lateral', slew_rc_per_second=80.0),
                       tracker=Detector(),
                       log_directory=False)
         try:

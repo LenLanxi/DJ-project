@@ -14,7 +14,7 @@ from providers.RTCRuntime import RTCProcess, REQUIRED, validate_environment
 
 class RTCLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_rtc_credentials_are_detected_before_any_hardware_connection(self):
-        args=main.make_parser().parse_args(['--real-drone','--voice-provider','doubao',
+        args=main.make_parser().parse_args(['voice','--real-drone','--voice-provider','doubao',
                                           '--doubao-credentials','MissingCredentials.json'])
         with patch.dict(os.environ,{name:'' for name in REQUIRED}), \
              patch.object(main.DeviceSession,'open',new=AsyncMock()) as initialize:
@@ -33,7 +33,7 @@ class RTCLifecycleTests(unittest.IsolatedAsyncioTestCase):
         values['RTC_VLM_MODEL']='testModel'
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ,values):
             log=main.SessionLog(Path(tmp)/'Session.jsonl')
-            process=RTCProcess(log)
+            process=RTCProcess(log,node=validate_environment(180))
             bridge=types.SimpleNamespace(url='ws://127.0.0.1:9/?token=testNonceValue',token='testNonceValue')
             try:
                 url=await process.start(bridge,180,Tools.RTC_INSTRUCTIONS,Tools.RTC_TOOLS)
@@ -59,7 +59,7 @@ class RTCLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_unconfirmed_cloud_stop_keeps_the_cleanup_process_alive(self):
         with tempfile.TemporaryDirectory() as tmp:
             log=main.SessionLog(Path(tmp)/'Session.jsonl')
-            process=RTCProcess(log)
+            process=RTCProcess(log,node='node')
             process.url='http://127.0.0.1:1234'
             process.proc=types.SimpleNamespace(returncode=None,pid=12345,terminate=Mock(),wait=AsyncMock(return_value=0))
             async def timeout(awaitable,seconds):

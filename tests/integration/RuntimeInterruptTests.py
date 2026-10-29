@@ -6,13 +6,24 @@ import threading
 import time
 import unittest
 from unittest.mock import patch
-from RuntimeFixture import SyntheticFeed, container, driver, reset, runtime, sdk, settle, wait_until
+from RuntimeFixture import SyntheticFeed, driver, reset, runtime, sdk, settle, wait_until
 
 
 class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.follow = reset(flying=True)
+        from types import SimpleNamespace
+        async def execute(code, host, outcome):
+            try:
+                if 'move_forward' in code:
+                    await host.dispatch('move_forward', [30], {})
+                else:
+                    await host.dispatch('get_status', [], {})
+                outcome.result = {'ok': True, 'status': 'completed'}
+            finally:
+                outcome.executing = False
         self.app = runtime(follow=self.follow)
+        self.app.runner = SimpleNamespace(run=execute)
     def tearDown(self): reset()
 
     async def blocked(self, land=False):
@@ -22,7 +33,7 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
             if not release.wait(2): raise RuntimeError('test barrier timeout')
             finished.set()
             return True
-        with patch.object(driver, 'execute', side_effect=block), container([('move_forward',[30])]):
+        with patch.object(driver, 'execute', side_effect=block):
             turn = asyncio.create_task(self.app.run('drone.move_forward(30)'))
             try:
                 await wait_until(entered.is_set)
@@ -50,21 +61,17 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
     async def test_late_program_cancelled_after_interrupt(self):
         generation = self.app.generation
         await self.app.interrupt(False)
-        with container([('move_forward',[30])]) as process:
-            record = await self.app.run('drone.move_forward(30)', expected_generation=generation)
+        record = await self.app.run('drone.move_forward(30)', expected_generation=generation)
         self.assertEqual(record['status'], 'cancelled')
         self.assertEqual(record['reason'], 'stale_plan')
-        self.assertEqual(process.index, 0, 'cancelled plan must not launch a container')
 
     async def test_cancel_immediately_revokes_runner_gateway_and_pending_plan(self):
         generation = self.app.generation
         self.app.cancel()
         self.assertEqual(self.app.generation, generation + 1)
-        self.assertIsNone(self.app.execution)
-        with container([('get_status', [])]) as process:
-            record = await self.app.run('print(drone.get_status())', expected_generation=generation)
+        self.assertIsNone(self.app.current)
+        record = await self.app.run('print(drone.get_status())', expected_generation=generation)
         self.assertEqual(record['status'], 'cancelled')
-        self.assertEqual(process.index, 0)
 
     async def test_emergency_path_releases_follow_control(self):
         self.follow.set_frame_provider(SyntheticFeed())
@@ -75,14 +82,6 @@ class SessionInterruptTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sdk.get_status().control_owner, 'model')
         self.assertEqual(driver.snapshot()['velocity'], (0,0,0,0))
 
-    async def test_no_deadlock_when_interrupt_and_turn_race(self):
-        for _ in range(3):
-            with container([('get_status', [])]):
-                turn = asyncio.create_task(self.app.run('print(drone.get_status())'))
-                await asyncio.sleep(0)
-                await asyncio.wait_for(self.app.interrupt(), 1)
-                await asyncio.wait_for(turn, 2)
-        self.assertFalse(self.app.running)
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

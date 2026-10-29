@@ -15,6 +15,7 @@ import socket
 import threading
 import time
 import traceback
+from websockets.exceptions import ConnectionClosedOK
 from urllib.parse import urlsplit, parse_qs
 
 from providers.OmniSession import OmniSession
@@ -62,7 +63,6 @@ class OmniService:
 
     async def start(self):
         from websockets.asyncio.server import serve
-        self.config.validate()
         if hasattr(self.log, 'secrets'):
             self.log.secrets = tuple(self.log.secrets) + (self.token,)
         self.deadline = time.time()+self.seconds
@@ -101,7 +101,7 @@ class OmniService:
             raise RuntimeError('本机网页端口%s无法监听；请关闭占用该端口的旧会话，或使用-WebPort指定端口。不会自动换端口。' % self.http_port) from exc
         try:
             self.server = await serve(self.handle, '127.0.0.1', 0, max_size=256*1024,
-                                      max_queue=8, ping_interval=3, ping_timeout=5)
+                                      max_queue=8, ping_interval=None)
         except BaseException:
             self.http.server_close()
             self.http = None
@@ -117,7 +117,14 @@ class OmniService:
 
     async def send(self, value):
         if self.client is not None:
-            await asyncio.wait_for(self.client.send(json.dumps(value,ensure_ascii=False,allow_nan=False)),2)
+            await self.client.send(json.dumps(value,ensure_ascii=False,allow_nan=False))
+
+    async def notify(self, value):
+        # UI delivery is optional and always follows the flight action.
+        try:
+            await asyncio.wait_for(self.send(value), .25)
+        except Exception:
+            pass
 
     async def frames(self):
         previous = None
@@ -133,7 +140,6 @@ class OmniService:
                     await asyncio.sleep(.1)
                     continue
                 if time.time() >= self.deadline: raise TimeoutError('omni_session_expired')
-                if time.monotonic()-self.last_heartbeat > 8: raise TimeoutError('omni_heartbeat_expired')
                 if self.cloud is not None:
                     if self.cloud.fault is not None: raise self.cloud.fault
                     if not self.cloud.authority_current():
@@ -192,36 +198,29 @@ class OmniService:
         if self.closed or self.client is not None or self.finished.is_set():
             await socket.close(1008,'session_not_available'); return
         self.client = socket
-        self.last_heartbeat = time.monotonic()
         self.cloud = OmniSession(self.runtime,self.config,self.instructions,self.tools,
                                  self.send,self.log,connect=self.connect)
         self.cloud.fault = None
         cloud_task = None
         pump = asyncio.create_task(self.frames())
-        started = None
-        packets = 0
         phase = 'local_client'
+        error_notice = None
         self.log({'event':'omni_client_connected'})
         try:
             async def receive():
-                nonlocal cloud_task, started, packets
+                nonlocal cloud_task
                 async for raw in socket:
                     if self.handle_closing: return
                     value = json.loads(raw)
                     if not isinstance(value,dict): raise ValueError('omni_invalid_client_message')
                     kind = value.get('type')
-                    if kind == 'heartbeat': self.last_heartbeat = time.monotonic()
-                    elif kind == 'start':
+                    if kind == 'start':
                         if cloud_task is not None: raise ValueError('omni_already_started')
                         cloud_task = asyncio.create_task(self.cloud.run())
                         self.background.add(cloud_task)
                     elif kind == 'audio':
                         if cloud_task is None or cloud_task.done(): raise ValueError('omni_not_ready')
                         pcm = base64.b64decode(value.get('audio',''),validate=True)
-                        if started is None: started = time.monotonic()
-                        packets += 1
-                        if packets*.02 > time.monotonic()-started+1:
-                            raise ValueError('omni_audio_upload_rate')
                         await self.cloud.audio(pcm)
                     elif kind == 'audio_reset':
                         await self.cloud.clear_audio()
@@ -230,10 +229,10 @@ class OmniService:
                         self.land_requested = self.land_requested or value['land']
                         self.stopping = True
                         self.runtime.cancel()
-                        await self.send({'type':'interrupted'})
                         land = self.land_requested
                         self.stop_result = await asyncio.wait_for(self.runtime.interrupt(land),3)
                         self.stop_land = land
+                        await self.notify({'type':'interrupted'})
                         return  # No old cloud result may regain authority.
                     elif kind == 'stop':
                         details = value.get('diagnostics',{})
@@ -249,7 +248,7 @@ class OmniService:
                                   'diagnostics':diagnostics})
                         self.stopping = True
                         return
-                    else: raise ValueError('omni_unknown_client_message')
+                    else: self.log({'event':'omni_client_message_ignored','type':str(kind)[:64]})
             receiver = asyncio.create_task(receive())
             self.background.add(receiver)
             while True:
@@ -259,6 +258,8 @@ class OmniService:
                     phase = 'cloud_session' if task is cloud_task else 'video_pump' if task is pump else 'local_client_receive'
                     await task
                 if done: break
+        except ConnectionClosedOK:
+            pass  # A normal browser close still runs the shared stop/cleanup below.
         except Exception as exc:
             primary = getattr(self.cloud, 'fault', None)
             if primary is not None:
@@ -269,8 +270,7 @@ class OmniService:
             self.failure = type(exc).__name__+': '+str(exc)[:120]
             # Only safe, local fixed messages are transmitted/logged.
             self.runtime.cancel()
-            try: await self.send({'type':'error','reason':'语音或图传异常，已撤销本轮授权。请核对飞机状态并重新启动入口。'})
-            except Exception: pass
+            error_notice = {'type':'error','reason':'语音或图传异常，已撤销本轮授权。请核对飞机状态并重新启动入口。'}
             self.log({'event':'omni_transport_failed','error_type':type(exc).__name__,
                       'stage':phase,'error':str(exc),
                       'traceback':''.join(traceback.format_exception(type(exc),exc,exc.__traceback__))})
@@ -286,6 +286,8 @@ class OmniService:
                     self.stop_land = self.land_requested
             except Exception:
                 self.stop_result = {'ok':False,'reason':'omni_stop_unconfirmed'}
+            if error_notice is not None:
+                await self.notify(error_notice)
             self.cleanup_pending = self.stop_result.get('ok') is not True
             pump.cancel()
             for task in self.background: task.cancel()

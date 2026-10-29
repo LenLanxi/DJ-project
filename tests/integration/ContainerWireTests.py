@@ -31,12 +31,13 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(('move_forward',(20,)),b.calls)
         self.assertIsNone(b.owner)
         self.assertIn(b'arbitrary Python',proc.stdin.data)
-    async def test_program_done_does_not_hide_interface_error(self):
+    async def test_recovered_program_keeps_interface_error_in_journal(self):
         result,b,_=await self.run_with([
-            {'type':'rpc','id':1,'method':'move_forward','args':[20],'kwargs':{}},
+            {'type':'rpc','id':1,'method':'unknown_method','args':[],'kwargs':{}},
             {'type':'done','ok':True}])
-        self.assertFalse(result['ok'])
-        self.assertEqual(result['reason'],'one_or_more_interface_calls_failed')
+        self.assertTrue(result['ok'], result)
+        self.assertIn('error', result['journal'][0])
+        self.assertEqual(b.calls, [])
     async def test_missing_final_result_is_failure(self):
         result,_,_=await self.run_with([])
         self.assertFalse(result['ok'])

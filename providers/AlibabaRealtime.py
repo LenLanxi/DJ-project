@@ -39,7 +39,7 @@ class AlibabaConfig:
     model: str = MODEL
     voice: str = 'Tina'
 
-    def validate(self) -> str:
+    def __post_init__(self):
         if not isinstance(self.api_key, str) or not self.api_key.strip():
             raise AlibabaError('missing_api_key')
         if self.model != MODEL:
@@ -57,8 +57,8 @@ class AlibabaConfig:
             raise AlibabaError('invalid_endpoint_query')
         if not isinstance(self.voice, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', self.voice):
             raise AlibabaError('invalid_voice')
-        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path,
-                           urlencode({'model': self.model}), ''))
+        object.__setattr__(self, 'url', urlunsplit((parsed.scheme, parsed.netloc, parsed.path,
+                                                  urlencode({'model': self.model}), '')))
 
     @classmethod
     def from_credentials(cls, path: str | Path) -> 'AlibabaConfig':
@@ -75,7 +75,6 @@ class AlibabaConfig:
         allowed = value.get('AllowedModels')
         if allowed is not None and (not isinstance(allowed, list) or result.model not in allowed):
             raise AlibabaError('model_not_allowed_by_credentials')
-        result.validate()
         return result
 
 

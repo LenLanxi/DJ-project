@@ -15,7 +15,6 @@ const { createToken } = require('./RTCToken');
 const VERSION = '2025-06-01';
 const ENDPOINT = 'https://rtc.volcengineapi.com';
 const REGION = 'cn-north-1';
-const ACTIONS = new Set(['StartVoiceChat', 'UpdateVoiceChat', 'StopVoiceChat']);
 
 function safeCode(value) { return String(value || 'unknown').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 100); }
 function loadConfig(env = process.env) {
@@ -40,7 +39,7 @@ function loadConfig(env = process.env) {
     instructions: env.RTC_INSTRUCTIONS || '', tools,
     bridgeUrl: env.RTC_BRIDGE_URL || '', bridgeToken: env.RTC_BRIDGE_TOKEN || '',
     businessId: env.RTC_BUSINESS_ID || undefined, voice: env.VOLC_VOICE || 'zh_female_vv_jupiter_bigtts',
-    port, sessionMs: sessionSeconds * 1000, runtimeDeadline, heartbeatMs: 8000,
+    port, sessionMs: sessionSeconds * 1000, runtimeDeadline,
     apiTimeoutMs: 8000, retryMs: 2000, staticRoot: __dirname,
   };
   config.missing = Object.entries({ RTC_APP_ID: config.appId, RTC_APP_KEY: config.appKey,
@@ -76,7 +75,6 @@ function taskBody(session, config) {
 function createOpenApiInvoker(config, fetchImpl = globalThis.fetch, SignerClass) {
   const Signer = SignerClass || require('@volcengine/openapi').Signer;
   return async (action, body) => {
-    if (!ACTIONS.has(action)) throw new Error('unsupported_openapi_action');
     const request = { region: REGION, method: 'POST',
       params: { Action: action, Version: VERSION },
       headers: { Host: 'rtc.volcengineapi.com', 'Content-type': 'application/json' }, body };
@@ -90,7 +88,6 @@ function createOpenApiInvoker(config, fetchImpl = globalThis.fetch, SignerClass)
     let result;
     try { result = JSON.parse(raw); } catch { throw new Error('openapi_invalid_json'); }
     if (!response.ok && !result?.ResponseMetadata?.Error) throw new Error('openapi_http_' + response.status);
-    if (!result?.ResponseMetadata || typeof result.ResponseMetadata !== 'object') throw new Error('openapi_missing_metadata');
     return result;
   };
 }
@@ -147,7 +144,7 @@ class SessionController {
       taskId: crypto.randomUUID(), botId: 'CompanionBot' + crypto.randomBytes(8).toString('hex'),
       status: 'idle', createdAt: now,
       expiresAt: Math.min(now + this.config.sessionMs, this.config.runtimeDeadline ?? Infinity),
-      lastSeen: now, pending: null, needsStop: false, stopRequested: false,
+      pending: null, needsStop: false, stopRequested: false,
       lastAttempt: 0, stopReason: null, lastError: null, cloudStopConfirmed: false,
       stopRequestAudited: false };
     this.audit('rtc_session_created', this.session);
@@ -167,30 +164,23 @@ class SessionController {
   }
   renewToken(id) {
     const s = this.require(id);
-    if (s.stopRequested || s.status === 'stopped' || this.now() >= s.expiresAt)
+    if (s.stopRequested || this.now() >= s.expiresAt)
       throw Object.assign(new Error('session_expired'), { statusCode: 409 });
     const { token, tokenExpiresAt, expiresAt } = this.publicSession();
     this.audit('rtc_token_renewed', s);
     return { ok: true, sessionId: s.id, token, tokenExpiresAt, expiresAt };
   }
   require(id) {
-    if (!this.session || typeof id !== 'string' || id !== this.session.id)
+    if (!this.session || id !== this.session.id)
       throw Object.assign(new Error('unknown_session'), { statusCode: 404 });
     return this.session;
-  }
-  heartbeat(id) {
-    const s = this.require(id);
-    if (s.stopRequested || this.now() >= s.expiresAt || s.status === 'stopped')
-      return { ok: false, status: s.status, reason: s.stopReason || 'session_expired' };
-    s.lastSeen = this.now();
-    return { ok: true, expiresAt: s.expiresAt, status: s.status };
   }
   async start(id) {
     const s = this.require(id);
     if (s.stopRequested || this.now() >= s.expiresAt) return { ok: false, status: s.status, error: 'session_expired' };
     if (s.status === 'submitted') return { ok: true, status: 'submitted', alreadySubmitted: true };
     if (s.pending) return s.pending;
-    if (s.needsStop || s.status === 'stopped') return { ok: false, status: s.status, error: 'cleanup_or_restart_required' };
+    if (s.needsStop) return { ok: false, status: s.status, error: 'cleanup_or_restart_required' };
     s.status = 'starting'; s.needsStop = true;
     this.audit('rtc_start_requested', s);
     s.pending = (async () => {
@@ -248,8 +238,7 @@ class SessionController {
   async tick() {
     const s = this.session;
     if (!s || s.status === 'stopped') return;
-    const reason = this.now() >= s.expiresAt ? 'session_deadline'
-      : this.now() - s.lastSeen >= this.config.heartbeatMs ? 'client_heartbeat_lost' : null;
+    const reason = this.now() >= s.expiresAt ? 'session_deadline' : null;
     if (reason) {
       if (reason !== s.stopReason) this.audit(reason === 'session_deadline'
         ? 'rtc_session_deadline' : 'rtc_client_disconnected', s, { reason });
@@ -325,7 +314,6 @@ function createService(options = {}) {
         else if (route === '/api/start') result = await controller.start(value.sessionId);
         else if (route === '/api/update') result = await controller.update(value.sessionId, value.command, value.message);
         else if (route === '/api/stop') result = await controller.stop(value.sessionId);
-        else if (route === '/api/heartbeat') result = controller.heartbeat(value.sessionId);
         else if (route === '/api/token') result = controller.renewToken(value.sessionId);
         else return json(res, 404, { ok: false, error: 'not_found' });
         return json(res, result.ok ? 200 : 409, result);

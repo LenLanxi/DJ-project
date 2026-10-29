@@ -126,10 +126,9 @@
           try {
             if (event.data?.error) throw new Error('microphone_conversion_failed');
             if (!bundle.ready || bundle.inputPaused) return;
-            const bytes = new Uint8Array(event.data?.pcm || 0);
-            if (bytes.length !== 640) throw new Error('invalid_microphone_frame');
+            const bytes = new Uint8Array(event.data.pcm);
             this.send(bundle, { type: 'audio', audio: encodePCM(bytes) });
-          } catch (error) { this.fail(bundle, error); }
+          } catch (error) { this.pauseInput(bundle, '麦克风处理异常，语音输入已暂停；控制连接保留。'); }
         };
         bundle.input.connect(bundle.capture); bundle.capture.connect(bundle.mute); bundle.mute.connect(bundle.output);
         bundle.deviceChange = () => { void this.checkDevices(bundle); };
@@ -165,9 +164,6 @@
             if (bundle.lastFrameTimestamp !== null && (this.now() - bundle.lastFrameTimestamp * 1000 > FRAME_AGE_MS || this.now() < bundle.lastFrameTimestamp * 1000))
               this.clearFrame(bundle);
             this.pumpPlayback(bundle);
-            if (bundle.socket.readyState === 1 && (!bundle.lastHeartbeat || this.now() - bundle.lastHeartbeat >= 2000)) {
-              this.send(bundle, { type: 'heartbeat' }); bundle.lastHeartbeat = this.now();
-            }
           } catch (error) { this.fail(bundle, error); }
         }, 100));
         await this.bounded(ready, Math.min(15000, session.expiresAt - this.now()));
@@ -182,10 +178,11 @@
     send(bundle, value) {
       this.check(bundle);
       if (!bundle.socket || bundle.socket.readyState !== 1) throw new Error('local_socket_not_open');
-      if (bundle.socket.bufferedAmount > MAX_UPSTREAM) throw new Error('上行音频积压，连接已停止');
+      // Drop stale microphone packets under pressure; operator commands still pass.
+      if (value.type === 'audio' && bundle.socket.bufferedAmount > MAX_UPSTREAM) return false;
       const raw = JSON.stringify(value);
-      if (new TextEncoder().encode(raw).byteLength > MAX_MESSAGE) throw new Error('message_too_large');
       bundle.socket.send(raw);
+      return true;
     }
     listen(bundle, target, type, callback) {
       target.addEventListener?.(type, callback);
@@ -198,10 +195,13 @@
       switch (message.type) {
         case 'ready': bundle.ready = true; bundle.resolveReady?.(); break;
         case 'audio':
-          if (!bundle.ready) throw new Error('audio_before_ready');
-          if (message.sampleRate !== undefined && message.sampleRate !== 24000 || message.sample_rate !== undefined && message.sample_rate !== 24000)
-            throw new Error('invalid_output_sample_rate');
-          this.play(bundle, decodePCM(message.audio)); break;
+          if (!bundle.ready) break;
+          try {
+            if (message.sampleRate !== undefined && message.sampleRate !== 24000 || message.sample_rate !== undefined && message.sample_rate !== 24000)
+              throw new Error('invalid_output_sample_rate');
+            this.play(bundle, decodePCM(message.audio));
+          } catch (error) { this.onState('收到无法播放的音频片段，已跳过；文字和控制连接保留。'); }
+          break;
         case 'interrupted': this.clearPlayback(bundle); break;
         case 'user_text':
           this.clearPlayback(bundle);
@@ -211,7 +211,7 @@
         case 'frame': this.frame(bundle, message); break;
         case 'invalid_frame': this.clearFrame(bundle); break;
         case 'error': throw new Error(String(message.reason || 'host_error').slice(0, 1000));
-        default: throw new Error('unknown_server_message');
+        default: break;
       }
     }
     play(bundle, samples) {
@@ -220,7 +220,7 @@
       const seconds = samples.length / 24000;
       const ahead = Math.max(0, bundle.nextAudioAt - context.currentTime);
       if (ahead + bundle.pendingAudioSeconds + seconds > MAX_BUFFERED_AUDIO_SECONDS)
-        return this.pausePlayback(bundle, '待播语音积压，播放已暂停；控制连接保留，请查看文字。');
+        this.clearPlayback(bundle); // Keep recent speech instead of requiring a manual restart.
       bundle.pendingAudio.push(samples); bundle.pendingAudioSeconds += seconds;
       this.pumpPlayback(bundle);
     }
@@ -306,13 +306,13 @@
       this.onFrame('图像暂不可用；语音和控制连接保留。');
     }
     frame(bundle, message) {
-      if (!Number.isInteger(message.id) || message.id < 0 || !Number.isFinite(message.timestamp)) throw new Error('invalid_frame_identity');
+      if (!Number.isInteger(message.id) || message.id < 0 || !Number.isFinite(message.timestamp)) return this.clearFrame(bundle);
       if (message.id === bundle.lastFrameId) return; // never refresh a repeated source frame
       if (bundle.lastFrameId !== null && message.id < bundle.lastFrameId) return;
       const age = this.now() - message.timestamp * 1000;
       if (age < 0 || age > FRAME_AGE_MS || bundle.lastFrameTimestamp !== null && message.timestamp < bundle.lastFrameTimestamp)
         return this.clearFrame(bundle);
-      if (typeof message.jpeg !== 'string' || !message.jpeg.length || !/^[A-Za-z0-9+/]*={0,2}$/.test(message.jpeg)) throw new Error('invalid_frame_jpeg');
+      if (typeof message.jpeg !== 'string' || !message.jpeg.length) return this.clearFrame(bundle);
       bundle.lastFrameId = message.id; bundle.lastFrameTimestamp = message.timestamp;
       const generation = bundle.frameGeneration = (bundle.frameGeneration || 0) + 1;
       const image = this.imageFactory();
