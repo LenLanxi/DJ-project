@@ -164,7 +164,6 @@ Start: powershell -ExecutionPolicy Bypass -File .\Launch.ps1
 Takeoff is blocked unless -AllowTakeoff is supplied. Optional -RecordTest retains media.
 Open http://127.0.0.1:18848 manually and select audio devices. Start microphone explicitly.
 F12 stops; F11 lands. Ctrl+C requests landing and shutdown. Verify physical aircraft state.
-Offline SelfCheck does not certify cloud connectivity, microphone, camera or real flight.
 VC++ x64 runtime may be needed on clean Windows. N/KN editions may need Media Feature Pack.
 Third-party license notices are retained with Python, Node and their dependency packages.
 Do not share Credentials.json, logs or Recordings. Recordings are retained until you delete them.

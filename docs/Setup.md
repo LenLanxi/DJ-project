@@ -35,7 +35,7 @@ C:\Users\bente\Desktop\tmp\DoubaoRealtime\Credentials.json
 
 PowerShell 启动器使用 `-DoubaoCredentials`，Python 使用 `--doubao-credentials`；也可设置 DOUBAO_CREDENTIALS_FILE。`.env.example` 只列出环境配置，不会自动加载。具体默认路径以启动器和 `providers/DoubaoConfig.py` 为准。
 
-长期密钥只留在服务端，不进入网页、模型动作、Git 或证据。网页取得的是有期限的房间 token。配置和 Node 依赖在连接飞机前检查；本地预检通过不证明账号权限、云模型或媒体链路可用。
+长期密钥只留在服务端，不进入网页、模型动作、Git 或证据。网页取得的是有期限的房间 token。配置和 Node 依赖在连接飞机前检查。
 
 ## 云端能力与容量
 

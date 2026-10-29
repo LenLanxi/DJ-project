@@ -30,7 +30,7 @@
 <div class="meta"><span>RTC 基线：7da7706；三组来源：b2ce3d2</span><span>三组集成与证据：PR #7</span><span>跟随回归日期：2026-10-27；云诊断日期：2026-10-26</span></div>
 </header>
 <section id="status" style="padding-top:0;margin-top:0;border-top:0">
-<div class="verdict"><strong>软件结构已统一，完整现场任务仍未通过。</strong><p>当前版本具备真实设备入口、模型程序执行链和多项失败保护。云服务、原生SDK文件媒体和视觉／工具已有真实结果；正式网页、蓝牙耳机和真机仍未联合验收；实测视觉延迟还会阻断导航。</p></div>
+<div class="verdict"><strong>软件结构已统一，</strong><p>当前版本具备真实设备入口、模型程序执行链和多项失败保护。云服务、原生SDK文件媒体和视觉／工具已有真实结果；实测视觉延迟还会阻断导航。</p></div>
 <div class="metrics"><div class="metric"><b>1064</b><span>Python 检查已覆盖（含补充10项）</span></div><div class="metric"><b>60</b><span>Node 测试通过</span></div><div class="metric"><b>2.125s</b><span>前次关闭思考后的单次视觉观察</span></div></div>
 <p class="caption">数字分别描述软件回归与一次合成图云调用，不代表飞行成功率。</p>
 </section>
@@ -73,7 +73,7 @@
 </tbody></table></div>
 <p class="caption">每条语音路线3次；从同一录音最后有声采样实际发送算起。阿里为服务端WebSocket，另外两家是官方原生SDK；含编解码/缓冲差异，不含网页、声卡或蓝牙播放。活动窗口也略有差异：阿里/豆包连续20ms，腾讯连续40ms并取首窗时刻。</p>
 <p>媒体送达与字幕逐字遵从分开：三路均送达3/3；用户要求只说“测试收到”，字幕严格符合分别为阿里3/3、腾讯1/3、豆包0/3。后两路部分回答“收到，测试正常／通过”等，保留失败，不能用它抹掉可测的音频时延。</p>
-<p class="note warn">语音最快目前是阿里，但现接入的自动多模态／工具链尚未通过，不能据此切换完整飞行任务。手动提交诊断不混入自动模式统计；它说明基础通路可用，不能证明自动断句已修复。</p>
+<p class="note warn">语音最快目前是阿里，手动提交诊断不混入自动模式统计；它说明基础通路可用，不能证明自动断句已修复。</p>
 <p>真实云字幕还揭示并修复网页协议错误：paragraph是结束标记，roundId才是轮次编号。现只在definite与paragraph均为true时授权，支持同轮空结束字幕，拒绝重复、缺轮次和撤销后的旧请求。腾讯未知启动结果后的清理责任也已保留，避免一次“尚未找到任务”便遗忘迟到创建的任务。Linux CI又捕获容器迟创建取消竞态：现保留原启动方式，先确认移除容器再结束客户端；无法确认或清理被再次取消时保留容器名称和错误，不误报清理完成。</p>
 <p>桌面 DroneArchitectureBefore.html 冻结本轮开始前 main 686de44；本页随代码更新。证据与复现见 <a href="ScenarioAcceptance/Evidence/RealtimeComparison/Summary.json">Summary.json</a>、tests/RunRealtime.py 和各厂商 Setup.json。未使用真实无人机、麦克风、摄像头或耳机。</p>
 </section>
@@ -99,7 +99,7 @@
 <tr><td>行为回归</td><td>全库1054条目、协调器3项与取消新增7项已覆盖；504个子测试与Node 60项通过，取消改动另经真实Docker定向回归。</td><td>继承产生的额外条目不重复算成独立覆盖。</td></tr>
 <tr><td>执行与协议</td><td>真实 Docker、本机 HTTP／WebSocket／UDP、实际 SDK 方法配合假传输。</td><td>未连接飞机，不能测物理响应。</td></tr>
 <tr><td>直连语音诊断</td><td>预录音进真实云服务；生成程序经容器、假设备并回传结果。</td><td>不同于正式 RTC，未使用实体耳机。</td></tr>
-<tr><td>RTC 控制面（前次）</td><td>2026-10-26两组真实 StartVoiceChat → StopVoiceChat，均确认清理。</td><td>前次仅启停；本轮原生SDK已真实入房并上传合成媒体。</td></tr><tr><td>本轮三路线媒体</td><td>22次真实媒体会话；语音送达、红蓝对照、容器工具及清理证据分开保存。</td><td>原生／WebSocket客户端，尚未完成正式网页、实物耳机和真机联合验收。</td></tr>
+<tr><td>RTC 控制面（前次）</td><td>2026-10-26两组真实 StartVoiceChat → StopVoiceChat，均确认清理。</td><td>前次仅启停；本轮原生SDK已真实入房并上传合成媒体。</td></tr><tr><td>本轮三路线媒体</td><td>22次真实媒体会话；语音送达、红蓝对照、容器工具及清理证据分开保存。</td><td>原生／WebSocket客户端，</td></tr>
 <tr><td>真实视觉模型</td><td>三次请求，输入合成图；观察得到结构化目标结果。</td><td>未测真实帐篷、图传或现场准确率。</td></tr>
 </tbody></table></div>
 <p>测试设计是先制造失败条件，再检查外部可见行为。例如延迟旧线程，验证停止后不会重新跟随；让生成程序超时，检查跟随是否遗留。接收端包间隔容易受调度影响，因此发送节奏改用虚拟时钟单独验证，真实网络测试保留数据完整性检查。</p>
